@@ -2,6 +2,7 @@
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+import { createClient } from '../../../lib/supabase/server';
 import { createClient as createServerClient } from '../../../lib/supabase/server';
 import type { Database, UserRole } from '../../../types/database';
 
@@ -223,13 +224,19 @@ async function assertAdminAccess() {
     throw new Error('Pengguna belum terautentikasi.');
   }
 
-  const { data: profile, error } = await supabase.from('profiles').select('roles').eq('id', user.id).single();
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('roles')
+    .eq('id', user.id)
+    .single();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  if (!profile?.roles?.includes('admin')) {
+  const userRoles = (profile as { roles?: string[] } | null)?.roles || [];
+
+  if (!userRoles.includes('admin')) {
     throw new Error('Akses ditolak. Hanya admin yang dapat melakukan provisioning guru.');
   }
 }
@@ -284,7 +291,7 @@ export async function importSiswaAndKelasAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('import_kelas_dan_siswa_json', {
+  const { data, error } = await (supabase.rpc as any)('import_kelas_dan_siswa_json', {
     p_data: parsedData,
   });
 
@@ -368,7 +375,7 @@ export async function importGuruAction(formData: FormData, defaultPassword?: str
   }
 
   const supabase = await createServerClient();
-  const { error } = await supabase.rpc('import_guru_profiles_json', {
+  const { error } = await (supabase.rpc as any)('import_guru_profiles_json', {
     p_data: guruWithUserIds,
   });
 

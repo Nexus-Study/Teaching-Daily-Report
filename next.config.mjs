@@ -1,9 +1,6 @@
 import withPWA from '@ducanh2912/next-pwa';
 
 const nextConfig = {
-  experimental: {
-    typedRoutes: true,
-  },
 };
 
 export default withPWA({

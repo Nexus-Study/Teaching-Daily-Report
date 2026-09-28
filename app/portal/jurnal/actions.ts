@@ -63,7 +63,7 @@ export async function submitJurnalAndPresensi(formData: FormData) {
     throw new Error('Data presensi tidak valid.');
   }
 
-  const { error } = await supabase.rpc('submit_jurnal_and_presensi', {
+  const { error } = await (supabase.rpc as any)('submit_jurnal_and_presensi', {
     p_teacher_id: user.id,
     p_kelas_id: kelasId,
     p_mata_pelajaran: mataPelajaran,

@@ -5,6 +5,13 @@ import type { Kelas, JurnalMengajar, PresensiSiswa, CatatanPerilaku, PenangananP
 
 const managementRoles: UserRole[] = ['admin', 'kamad', 'waka_kurikulum', 'waka_kesiswaan'];
 
+interface KelasItem {
+  id: string;
+  nama_kelas: string;
+  tingkat: number;
+  wali_kelas_id?: string | null;
+}
+
 export type ReportKelasOption = Pick<Kelas, 'id' | 'nama_kelas' | 'tingkat' | 'wali_kelas_id'>;
 
 export type LaporanRingkas = {
@@ -72,9 +79,11 @@ async function getReportContext(): Promise<ReportContext> {
     throw new Error(error.message);
   }
 
+  const userRoles = (profile as { roles?: string[] } | null)?.roles ?? [];
+
   return {
     userId: user.id,
-    roles: profile?.roles ?? [],
+    roles: userRoles as UserRole[],
   };
 }
 
@@ -86,13 +95,18 @@ export async function getFiltersOptions(): Promise<ReportKelasOption[]> {
   const supabase = await createClient();
   const { userId, roles } = await getReportContext();
 
-  const { data, error } = await supabase.from('kelas').select('id, nama_kelas, tingkat, wali_kelas_id').order('tingkat', { ascending: true }).order('nama_kelas', { ascending: true });
+  const { data: rawKelas, error } = await supabase.from('kelas').select('id, nama_kelas, tingkat, wali_kelas_id').order('tingkat', { ascending: true }).order('nama_kelas', { ascending: true });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const kelasList = data ?? [];
+  const kelasList: ReportKelasOption[] = ((rawKelas || []) as KelasItem[]).map((kelas) => ({
+    id: kelas.id,
+    nama_kelas: kelas.nama_kelas,
+    tingkat: kelas.tingkat ?? 10,
+    wali_kelas_id: kelas.wali_kelas_id ?? null,
+  }));
 
   if (isManagementRole(roles)) {
     return kelasList;

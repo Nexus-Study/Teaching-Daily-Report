@@ -10,9 +10,13 @@ type KelasWithSiswa = Kelas & {
   siswa: Siswa[];
 };
 
-type RekapItem = CatatanPerilaku & {
+interface RekapItem extends CatatanPerilaku {
   siswa?: Siswa;
   penanganan_perilaku?: PenangananPerilaku[];
+  latestHandling?: {
+    tindak_lanjut?: string;
+    status?: PenangananStatus;
+  } | null;
 };
 
 const perilakuStyles: Record<PerilakuType, string> = {

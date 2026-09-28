@@ -18,7 +18,7 @@ export default function LoginPage() {
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
-        router.replace('/portal/');
+        router.replace('/portal');
       }
     };
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace('/portal/');
+    router.replace('/portal');
     router.refresh();
   };
 

@@ -26,7 +26,9 @@ export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
     throw new Error(siswaResult.error.message);
   }
 
-  const siswaByKelas = (siswaResult.data ?? []).reduce<Record<string, Siswa[]>>((accumulator, siswa) => {
+  const siswaList = (siswaResult.data ?? []) as Siswa[];
+
+  const siswaByKelas = siswaList.reduce<Record<string, Siswa[]>>((accumulator, siswa) => {
     if (!accumulator[siswa.kelas_id]) {
       accumulator[siswa.kelas_id] = [];
     }
@@ -35,7 +37,9 @@ export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
     return accumulator;
   }, {});
 
-  return (kelasResult.data ?? []).map((kelas) => ({
+  const kelasList = (kelasResult.data ?? []) as any[];
+
+  return kelasList.map((kelas) => ({
     ...kelas,
     siswa: siswaByKelas[kelas.id] ?? [],
   }));
@@ -63,7 +67,7 @@ export async function submitCatatanPerilaku(formData: FormData) {
     throw new Error('Lengkapi siswa dan deskripsi kejadian.');
   }
 
-  const { error } = await supabase.rpc('submit_catatan_perilaku', {
+  const { error } = await (supabase.rpc as any)('submit_catatan_perilaku', {
     p_reporter_id: user.id,
     p_siswa_id: siswaId,
     p_tanggal: tanggal || null,
@@ -101,7 +105,7 @@ export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: 
     status,
   };
 
-  const { error } = await supabase.from('penanganan_perilaku').upsert(payload, {
+  const { error } = await (supabase.from('penanganan_perilaku') as any).upsert(payload, {
     onConflict: 'catatan_id,handler_id,tanggal',
   });
 
