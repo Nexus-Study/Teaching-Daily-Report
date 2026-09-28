@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PWA Madrasah Terpadu maskable">
+  <rect width="512" height="512" rx="128" fill="#0284c7"/>
+  <rect x="88" y="88" width="336" height="336" rx="72" fill="#0f172a" opacity="0.95"/>
+  <path d="M160 176h192c17.7 0 32 14.3 32 32v176c0 8.8-7.2 16-16 16H144c-8.8 0-16-7.2-16-16V208c0-17.7 14.3-32 32-32zm0 32v144h192V208H160zm40 32h112v24H200v-24zm0 48h144v24H200v-24z" fill="#ffffff"/>
+</svg>
