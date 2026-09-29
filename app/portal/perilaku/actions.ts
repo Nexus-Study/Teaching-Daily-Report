@@ -11,6 +11,11 @@ type KelasWithSiswa = Kelas & {
 
 type PenangananRow = Pick<PenangananPerilaku, 'catatan_id' | 'handler_id' | 'tanggal' | 'tindak_lanjut' | 'status'>;
 
+export type CatatanPerilakuWithRelations = CatatanPerilaku & {
+  siswa?: Siswa;
+  penanganan_perilaku?: PenangananPerilaku[];
+};
+
 export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
   const supabase = await createClient();
   const [kelasResult, siswaResult] = await Promise.all([
@@ -105,9 +110,7 @@ export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: 
     status,
   };
 
-  const { error } = await (supabase.from('penanganan_perilaku') as any).upsert(payload, {
-    onConflict: 'catatan_id,handler_id,tanggal',
-  });
+  const { error } = await (supabase.from('penanganan_perilaku') as any).insert(payload);
 
   if (error) {
     throw new Error(error.message);
@@ -118,7 +121,7 @@ export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: 
   return { success: true };
 }
 
-export async function getRekapPerilaku(): Promise<CatatanPerilaku[]> {
+export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -138,5 +141,14 @@ export async function getRekapPerilaku(): Promise<CatatanPerilaku[]> {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as CatatanPerilaku[];
+  const result = (data ?? []) as CatatanPerilakuWithRelations[];
+
+  return result.map((item) => ({
+    ...item,
+    penanganan_perilaku: item.penanganan_perilaku ? [...item.penanganan_perilaku].sort((a, b) => {
+      const timeA = new Date(b.updated_at ?? b.tanggal).getTime();
+      const timeB = new Date(a.updated_at ?? a.tanggal).getTime();
+      return timeA - timeB;
+    }) : [],
+  }));
 }

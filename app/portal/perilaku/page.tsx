@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { AlertTriangle, CheckCircle2, CircleUser, Filter, LoaderCircle, RefreshCw, Save, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleUser, Filter, LoaderCircle, RefreshCw, Save, ShieldAlert, Users, ChevronDown } from 'lucide-react';
 
 import type { CatatanPerilaku, Kelas, PenangananPerilaku, PenangananStatus, PerilakuType, Siswa } from '../../../types/database';
 import { getKelasAndSiswaList, getRekapPerilaku, submitCatatanPerilaku, submitPenangananEskalasi } from './actions';
@@ -38,6 +38,23 @@ const statusLabel: Record<PenangananStatus, string> = {
   selesai: 'Selesai',
 };
 
+function formatWIT(dateString: string): string {
+  const date = new Date(dateString);
+  
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'Asia/Jayapura',
+  });
+
+  const formatted = formatter.format(date);
+  return `${formatted} WIT`;
+}
+
 export default function PerilakuPage() {
   const [kelasList, setKelasList] = useState<KelasWithSiswa[]>([]);
   const [selectedKelasId, setSelectedKelasId] = useState('');
@@ -46,6 +63,7 @@ export default function PerilakuPage() {
   const [tambahTindakLanjut, setTambahTindakLanjut] = useState(false);
   const [rekapList, setRekapList] = useState<RekapItem[]>([]);
   const [modalItem, setModalItem] = useState<RekapItem | null>(null);
+  const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
@@ -99,6 +117,13 @@ export default function PerilakuPage() {
           setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan catatan perilaku.');
         });
     });
+  };
+
+  const toggleExpanded = (cardId: string) => {
+    setExpandedCardIds((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
   };
 
   return (
@@ -292,6 +317,9 @@ export default function PerilakuPage() {
             ) : (
               timelineGroups.map((item) => {
                 const latestHandling = item.latestHandling;
+                const isExpanded = expandedCardIds[item.id] ?? false;
+                const totalHandling = item.penanganan_perilaku?.length ?? 0;
+                const hasMoreHistory = totalHandling > 1;
 
                 return (
                   <article key={item.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
@@ -315,21 +343,60 @@ export default function PerilakuPage() {
 
                     {latestHandling ? (
                       <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col gap-2">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Timeline Eskalasi</p>
-                            <p className="mt-1 text-sm text-slate-200">{latestHandling.tindak_lanjut}</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Timeline Eskalasi Terbaru</p>
+                            <p className="mt-1 text-xs text-slate-300">{formatWIT(latestHandling.status === 'selesai' ? latestHandling.tanggal ?? new Date().toISOString() : new Date().toISOString())}</p>
+                            <p className="mt-2 text-sm text-slate-200">{latestHandling.tindak_lanjut}</p>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setModalItem(item)}
-                            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
-                          >
-                            <CircleUser className="h-4 w-4" />
-                            Ubah Status
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            {latestHandling.status !== 'selesai' && (
+                              <button
+                                type="button"
+                                onClick={() => setModalItem(item)}
+                                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                              >
+                                <CircleUser className="h-4 w-4" />
+                                Ubah Status
+                              </button>
+                            )}
+
+                            {hasMoreHistory && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(item.id)}
+                                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                              >
+                                <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                Selengkapnya ({totalHandling - 1} riwayat)
+                              </button>
+                            )}
+
+                            {latestHandling.status === 'selesai' && (
+                              <span className="text-xs text-emerald-300 font-semibold">Status terkunci (Selesai)</span>
+                            )}
+                          </div>
                         </div>
+
+                        {isExpanded && hasMoreHistory && (
+                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Riwayat Perubahan Status</p>
+                            {item.penanganan_perilaku?.slice(1).map((handling, index) => (
+                              <div key={`${item.id}-history-${index}`} className="rounded-2xl border border-white/10 bg-slate-900/50 p-3">
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="flex-1">
+                                    <p className="text-xs text-slate-300">{formatWIT(handling.updated_at ?? handling.tanggal)}</p>
+                                    <p className="mt-1 text-xs text-slate-200">{handling.tindak_lanjut}</p>
+                                  </div>
+                                  <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold whitespace-nowrap ${statusStyles[handling.status]}`}>
+                                    {statusLabel[handling.status]}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-dashed border-white/10 bg-white/5 p-3">
