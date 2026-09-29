@@ -139,7 +139,7 @@ export default function AdminPage() {
           <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
             <InfoCard
               icon={<School className="h-5 w-5" />}
-              title="Format CSV Siswa"
+              title="Format CSV / Excel Siswa"
               description="Gunakan header: full_name,nisn,nama_kelas,tingkat. Setiap baris akan diproses menjadi data siswa dan kelas terkait."
             />
 
@@ -149,16 +149,16 @@ export default function AdminPage() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition active:scale-95 hover:bg-indigo-500/20"
             >
               <FileDown className="h-4 w-4" />
-              Unduh template CSV sampel siswa
+              Unduh template CSV / Excel sampel siswa
             </a>
 
             <form onSubmit={handleSiswaSubmit} className="space-y-4">
               <label className="grid gap-2 text-sm text-slate-200">
-                <span>File CSV Siswa</span>
+                <span>File CSV / Excel Siswa</span>
                 <input
                   name="csv_file"
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
                 />
               </label>
@@ -179,7 +179,7 @@ export default function AdminPage() {
           <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
             <InfoCard
               icon={<ShieldPlus className="h-5 w-5" />}
-              title="Format CSV Guru"
+              title="Format CSV / Excel Guru"
               description="Gunakan header: email,full_name,nip_nisn,roles. Kolom roles dapat dipisahkan dengan titik koma, misalnya guru_mapel;wali_kelas;waka_kesiswaan."
             />
 
@@ -189,7 +189,7 @@ export default function AdminPage() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition active:scale-95 hover:bg-indigo-500/20"
             >
               <FileDown className="h-4 w-4" />
-              Unduh template CSV sampel guru
+              Unduh template CSV / Excel sampel guru
             </a>
 
             <form onSubmit={handleGuruSubmit} className="space-y-4">
@@ -204,11 +204,11 @@ export default function AdminPage() {
               </label>
 
               <label className="grid gap-2 text-sm text-slate-200">
-                <span>File CSV Guru</span>
+                <span>File CSV / Excel Guru</span>
                 <input
                   name="csv_file"
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
                 />
               </label>

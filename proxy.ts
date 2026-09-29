@@ -12,7 +12,7 @@ function assertSupabaseConfig() {
   return { supabaseUrl, supabaseAnonKey };
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabaseUrl, supabaseAnonKey } = assertSupabaseConfig();
   let response = NextResponse.next({
     request: {
