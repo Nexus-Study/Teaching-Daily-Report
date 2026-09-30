@@ -30,7 +30,7 @@ const portalMenus: PortalMenu[] = [
     description: 'Catat perilaku dan tindak lanjut kolaboratif.',
     href: '/portal/perilaku/',
     icon: ShieldAlert,
-    roles: ['admin', 'guru_bk', 'wali_kelas', 'waka_kesiswaan'],
+    roles: ['admin', 'guru_bk', 'wali_kelas', 'waka_kesiswaan', 'guru_mapel', 'guru_tahfidz'],
     iconClass: 'text-emerald-600 dark:text-emerald-400',
     softTintClass: 'bg-emerald-50 dark:bg-emerald-950/50',
   },

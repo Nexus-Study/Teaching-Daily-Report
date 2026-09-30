@@ -71,6 +71,27 @@ export interface PresensiSiswa {
   catatan: string | null;
 }
 
+export interface RekapKehadiranSiswa {
+  siswa_id: string;
+  full_name: string;
+  nisn: string;
+  hadir: number;
+  sakit: number;
+  izin: number;
+  alpa: number;
+}
+
+export interface AlertKehadiranSiswa {
+  siswa_id: string;
+  full_name: string;
+  kelas_nama: string;
+  mata_pelajaran: string;
+  hadir: number;
+  sakit: number;
+  izin: number;
+  alpa: number;
+}
+
 export interface CatatanPerilaku {
   id: string;
   siswa_id: string;
@@ -304,6 +325,26 @@ export interface Database {
           p_data: Json;
         };
         Returns: Json;
+      };
+      get_rekap_kehadiran_siswa: {
+        Args: {
+          p_kelas_id: string;
+          p_mata_pelajaran?: string | null;
+          p_bulan_mulai?: number;
+          p_bulan_selesai?: number;
+          p_tahun?: number;
+        };
+        Returns: RekapKehadiranSiswa[];
+      };
+      get_alert_kehadiran_siswa: {
+        Args: {
+          p_kelas_id?: string | null;
+          p_mata_pelajaran?: string | null;
+          p_bulan_mulai?: number;
+          p_bulan_selesai?: number;
+          p_tahun?: number;
+        };
+        Returns: AlertKehadiranSiswa[];
       };
     };
     Enums: {
