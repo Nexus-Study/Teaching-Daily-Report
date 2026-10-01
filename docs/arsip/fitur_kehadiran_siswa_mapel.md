@@ -1,6 +1,6 @@
 # DEVELOPMENT FITUR SELESAI
     waktu_selesai: 30/09/2026 15.50
-    status: file tidak digunakan lagi. Silahkan dihapus.
+    status: file tidak digunakan lagi. DIARSIPKAN
 
 # Fitur Baru: Rekapitulasi Kehadiran Siswa di Mata Pelajaran
 ## Deksripsi UI

@@ -24,10 +24,12 @@ export type PenangananStatus = 'ditangani_di_tempat' | 'diteruskan' | 'proses' |
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export interface Profile {
+export type Profile = {
   id: string;
   full_name: string;
   nip_nisn: string | null;
+  email: string | null;
+  is_active: boolean;
   roles: UserRole[];
   avatar_url: string | null;
   phone_number: string | null;
@@ -35,7 +37,7 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface Kelas {
+export type Kelas = {
   id: string;
   nama_kelas: string;
   tingkat: number;
@@ -43,7 +45,7 @@ export interface Kelas {
   created_at: string;
 }
 
-export interface Siswa {
+export type Siswa = {
   id: string;
   full_name: string;
   nisn: string;
@@ -51,7 +53,7 @@ export interface Siswa {
   created_at: string;
 }
 
-export interface JurnalMengajar {
+export type JurnalMengajar = {
   id: string;
   teacher_id: string;
   kelas_id: string;
@@ -63,7 +65,7 @@ export interface JurnalMengajar {
   created_at: string;
 }
 
-export interface PresensiSiswa {
+export type PresensiSiswa = {
   id: string;
   jurnal_id: string;
   siswa_id: string;
@@ -71,7 +73,7 @@ export interface PresensiSiswa {
   catatan: string | null;
 }
 
-export interface RekapKehadiranSiswa {
+export type RekapKehadiranSiswa = {
   siswa_id: string;
   full_name: string;
   nisn: string;
@@ -81,7 +83,7 @@ export interface RekapKehadiranSiswa {
   alpa: number;
 }
 
-export interface AlertKehadiranSiswa {
+export type AlertKehadiranSiswa = {
   siswa_id: string;
   full_name: string;
   kelas_nama: string;
@@ -92,7 +94,7 @@ export interface AlertKehadiranSiswa {
   alpa: number;
 }
 
-export interface CatatanPerilaku {
+export type CatatanPerilaku = {
   id: string;
   siswa_id: string;
   reporter_id: string;
@@ -103,7 +105,7 @@ export interface CatatanPerilaku {
   created_at: string;
 }
 
-export interface PenangananPerilaku {
+export type PenangananPerilaku = {
   id: string;
   catatan_id: string;
   handler_id: string;
@@ -122,6 +124,8 @@ export interface Database {
           id: string;
           full_name: string;
           nip_nisn?: string | null;
+          email?: string | null;
+          is_active?: boolean;
           roles?: UserRole[];
           avatar_url?: string | null;
           phone_number?: string | null;
@@ -132,6 +136,8 @@ export interface Database {
           id?: string;
           full_name?: string;
           nip_nisn?: string | null;
+          email?: string | null;
+          is_active?: boolean;
           roles?: UserRole[];
           avatar_url?: string | null;
           phone_number?: string | null;

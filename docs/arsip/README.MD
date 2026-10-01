@@ -1,0 +1,2 @@
+## TENTANG FOLDER
+Folder /app/docs/arsip berisi file-file yang tidak digunakan secara aktif di dalam pengembangan aplikasi. Fungsinya hanya sebagai referensi manual. Copilot HARUS MENGABAIKAN folder ini dan semua file di dalamnya, DILARANG merujuk pada file apapun di dalam folder ini.

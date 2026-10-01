@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { BarChart3, BookOpen, GraduationCap, LogOut, ShieldAlert, ShieldCheck, User } from 'lucide-react';
+import { BarChart3, BookOpen, CalendarCheck, GraduationCap, LogOut, ShieldAlert, ShieldCheck, User } from 'lucide-react';
 
 import { createClient } from '../../lib/supabase/server';
 import type { Profile, UserRole } from '../../types/database';
@@ -42,6 +42,15 @@ const portalMenus: PortalMenu[] = [
     roles: ['admin', 'kamad', 'waka_kurikulum', 'waka_kesiswaan'],
     iconClass: 'text-amber-600 dark:text-amber-400',
     softTintClass: 'bg-amber-50 dark:bg-amber-950/50',
+  },
+  {
+    title: 'Rekap Kehadiran',
+    description: 'Rekap presensi mapel & alert ketidakhadiran siswa.',
+    href: '/portal/rekap-kehadiran/',
+    icon: CalendarCheck,
+    roles: ['admin', 'kamad', 'waka_kurikulum', 'waka_kesiswaan', 'guru_bk', 'guru_mapel', 'guru_tahfidz', 'wali_kelas'],
+    iconClass: 'text-sky-600 dark:text-sky-400',
+    softTintClass: 'bg-sky-50 dark:bg-sky-950/50',
   },
   {
     title: 'Kelola Data Master',

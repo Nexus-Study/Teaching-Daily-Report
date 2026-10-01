@@ -194,6 +194,24 @@ function parseRoles(value: string): UserRole[] {
   return Array.from(new Set(parsedRoles));
 }
 
+function parseRolesFromList(values: string[]): UserRole[] {
+  const parsedRoles = values
+    .map((role) => role.trim().toLowerCase())
+    .filter(Boolean) as UserRole[];
+
+  if (parsedRoles.length === 0) {
+    throw new Error('Minimal pilih satu role.');
+  }
+
+  for (const role of parsedRoles) {
+    if (!allowedRoles.includes(role)) {
+      throw new Error(`Role tidak valid: ${role}`);
+    }
+  }
+
+  return Array.from(new Set(parsedRoles));
+}
+
 function parseGuruCSV(csvText: string): GuruCSVRow[] {
   const rows = csvText
     .replace(/\uFEFF/g, '')
@@ -505,4 +523,201 @@ export async function importGuruAction(formData: FormData, defaultPassword?: str
     totalGuru: guruWithUserIds.length,
     defaultPasswordUsed: Boolean(defaultPassword?.trim()),
   };
+}
+
+export type GuruProfileRow = {
+  id: string;
+  full_name: string;
+  nip_nisn: string | null;
+  email: string | null;
+  roles: UserRole[];
+};
+
+export async function getGuruProfilesAction(): Promise<GuruProfileRow[]> {
+  try {
+    await assertAdminAccess();
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('profiles')
+      .select('id, full_name, nip_nisn, email, roles')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as GuruProfileRow[];
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal mengambil data guru. Silakan coba lagi.');
+  }
+}
+
+export async function createGuruSingleAction(formData: FormData) {
+  try {
+    await assertAdminAccess();
+
+    const fullName = String(formData.get('full_name') ?? '').trim();
+    const email = String(formData.get('email') ?? '').trim().toLowerCase();
+    const nipNisnRaw = String(formData.get('nip_nisn') ?? '').trim();
+    const password = String(formData.get('password') ?? '');
+    const roles = parseRolesFromList(formData.getAll('roles').map(String));
+
+    if (!fullName) {
+      throw new Error('Nama lengkap wajib diisi.');
+    }
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      throw new Error('Email tidak valid.');
+    }
+
+    if (!password || password.length < 6) {
+      throw new Error('Password minimal 6 karakter.');
+    }
+
+    const nipNisn = nipNisnRaw ? sanitizeNipNisn(nipNisnRaw) : null;
+    const adminClient = createAdminClient();
+
+    const { data: createdUser, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        nip_nisn: nipNisn,
+        roles,
+      },
+    });
+
+    if (createError) {
+      throw new Error(createError.message);
+    }
+
+    if (!createdUser.user?.id) {
+      throw new Error('Gagal membuat akun guru baru.');
+    }
+
+    const { error: profileError } = await adminClient.from('profiles').upsert(
+      {
+        id: createdUser.user.id,
+        full_name: fullName,
+        nip_nisn: nipNisn,
+        email,
+        roles,
+        is_active: true,
+      },
+      { onConflict: 'id' },
+    );
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal membuat akun guru. Silakan coba lagi.');
+  }
+}
+
+export async function updateGuruAction(formData: FormData) {
+  try {
+    await assertAdminAccess();
+
+    const userId = String(formData.get('user_id') ?? '').trim();
+    const fullName = String(formData.get('full_name') ?? '').trim();
+    const email = String(formData.get('email') ?? '').trim().toLowerCase();
+    const nipNisnRaw = String(formData.get('nip_nisn') ?? '').trim();
+    const password = String(formData.get('password') ?? '').trim();
+    const roles = parseRolesFromList(formData.getAll('roles').map(String));
+
+    if (!userId) {
+      throw new Error('ID pengguna tidak ditemukan.');
+    }
+
+    if (!fullName) {
+      throw new Error('Nama lengkap wajib diisi.');
+    }
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      throw new Error('Email tidak valid.');
+    }
+
+    const nipNisn = nipNisnRaw ? sanitizeNipNisn(nipNisnRaw) : null;
+    const adminClient = createAdminClient();
+
+    const authUpdateData: { email: string; email_confirm: boolean; password?: string } = {
+      email,
+      email_confirm: true,
+    };
+
+    if (password) {
+      if (password.length < 6) {
+        throw new Error('Password minimal 6 karakter.');
+      }
+
+      authUpdateData.password = password;
+    }
+
+    const { error: authError } = await adminClient.auth.admin.updateUserById(userId, authUpdateData);
+
+    if (authError) {
+      throw new Error(authError.message);
+    }
+
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        nip_nisn: nipNisn,
+        email,
+        roles,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal memperbarui data guru. Silakan coba lagi.');
+  }
+}
+
+export async function softDeleteGuruAction(userId: string) {
+  try {
+    await assertAdminAccess();
+
+    const trimmedUserId = userId.trim();
+
+    if (!trimmedUserId) {
+      throw new Error('ID pengguna tidak ditemukan.');
+    }
+
+    const adminClient = createAdminClient();
+
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', trimmedUserId);
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    // Bekukan akses login selama ~100 tahun (setara nonaktif permanen)
+    const { error: authError } = await adminClient.auth.admin.updateUserById(trimmedUserId, {
+      ban_duration: '876000h',
+    });
+
+    if (authError) {
+      throw new Error(authError.message);
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal menonaktifkan akun guru. Silakan coba lagi.');
+  }
 }
