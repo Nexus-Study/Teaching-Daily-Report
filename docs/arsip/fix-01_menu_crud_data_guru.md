@@ -1,4 +1,7 @@
 # [FIX-01] MENU CRUD DATA GURU
+STATUS FIX: SELESAI
+
+
 
 kebutuhan: menampilkan data guru yang tersimpan di supabase. menambahkan, mengubah, menghapus data guru. prioritas utama fitur crud adalah untuk memodifikasi email dan password auth. 
 

@@ -48,7 +48,7 @@ export type Kelas = {
 export type Siswa = {
   id: string;
   full_name: string;
-  nisn: string;
+  nisn: string | null;
   kelas_id: string;
   created_at: string;
 }
@@ -169,18 +169,26 @@ export interface Database {
         Insert: {
           id?: string;
           full_name: string;
-          nisn: string;
+          nisn: string | null;
           kelas_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           full_name?: string;
-          nisn?: string;
+          nisn?: string | null;
           kelas_id?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'siswa_kelas_id_fkey';
+            columns: ['kelas_id'];
+            isOneToOne: false;
+            referencedRelation: 'kelas';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       jurnal_mengajar: {
         Row: JurnalMengajar;
@@ -273,7 +281,7 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: { [_ in never]: never };
     Functions: {
       get_user_roles: {
         Args: { user_id: string };

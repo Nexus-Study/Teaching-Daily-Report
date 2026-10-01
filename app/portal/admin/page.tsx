@@ -2,16 +2,23 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
-import { ArrowLeft, FileDown, IdCard, LoaderCircle, Mail, Pencil, Plus, Search, School, ShieldPlus, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileDown, IdCard, LoaderCircle, Mail, Pencil, Plus, Search, School, ShieldPlus, Trash2, Users, X } from 'lucide-react';
 
 import {
+  createSiswaSingleAction,
   createGuruSingleAction,
+  deleteSiswaAction,
+  getKelasOptionsAction,
   getGuruProfilesAction,
+  getSiswaPaginatedAction,
   importGuruAction,
   importSiswaAndKelasAction,
   softDeleteGuruAction,
+  updateSiswaAction,
   updateGuruAction,
   type GuruProfileRow,
+  type KelasOption,
+  type SiswaWithKelas,
 } from './actions';
 import type { UserRole } from '../../../types/database';
 
@@ -31,6 +38,7 @@ type GuruImportResult = {
 
 type ActiveTab = 'siswa' | 'guru';
 type GuruSubTab = 'manage' | 'import';
+type SiswaSubTab = 'manage' | 'import';
 
 const guruRoles: UserRole[] = [
   'admin',
@@ -45,6 +53,26 @@ const guruRoles: UserRole[] = [
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('siswa');
+  const [siswaSubTab, setSiswaSubTab] = useState<SiswaSubTab>('manage');
+  const [siswaRows, setSiswaRows] = useState<SiswaWithKelas[]>([]);
+  const [kelasOptions, setKelasOptions] = useState<KelasOption[]>([]);
+  const [siswaSearchDraft, setSiswaSearchDraft] = useState('');
+  const [kelasFilterDraft, setKelasFilterDraft] = useState('');
+  const [siswaSearch, setSiswaSearch] = useState('');
+  const [kelasFilter, setKelasFilter] = useState('');
+  const [siswaPage, setSiswaPage] = useState(1);
+  const [siswaTotalCount, setSiswaTotalCount] = useState(0);
+  const [siswaTotalPages, setSiswaTotalPages] = useState(1);
+  const [siswaLoading, setSiswaLoading] = useState(false);
+  const [kelasLoading, setKelasLoading] = useState(false);
+  const [siswaNotice, setSiswaNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+  const [siswaFormOpen, setSiswaFormOpen] = useState(false);
+  const [editingSiswa, setEditingSiswa] = useState<SiswaWithKelas | null>(null);
+  const [siswaFormError, setSiswaFormError] = useState<string | null>(null);
+  const [siswaToDelete, setSiswaToDelete] = useState<SiswaWithKelas | null>(null);
+  const [siswaDeleteError, setSiswaDeleteError] = useState<string | null>(null);
+  const [siswaSaving, setSiswaSaving] = useState(false);
+  const [siswaDeleting, setSiswaDeleting] = useState(false);
   const [guruSubTab, setGuruSubTab] = useState<GuruSubTab>('manage');
   const [guruProfiles, setGuruProfiles] = useState<GuruProfileRow[]>([]);
   const [guruSearch, setGuruSearch] = useState('');
@@ -61,6 +89,95 @@ export default function AdminPage() {
   const [guruResult, setGuruResult] = useState<GuruImportResult | null>(null);
   const [isSubmittingSiswa, startSiswaTransition] = useTransition();
   const [isSubmittingGuru, startGuruTransition] = useTransition();
+
+  const refreshKelasOptions = useCallback(async () => {
+    setKelasLoading(true);
+    try {
+      setKelasOptions(await getKelasOptionsAction());
+    } catch (error) {
+      setSiswaNotice({ tone: 'error', message: error instanceof Error ? error.message : 'Gagal memuat pilihan kelas.' });
+    } finally {
+      setKelasLoading(false);
+    }
+  }, []);
+
+  const refreshSiswaList = useCallback(async (pageToLoad = siswaPage) => {
+    setSiswaLoading(true);
+    try {
+      const result = await getSiswaPaginatedAction({
+        search: siswaSearch,
+        kelasId: kelasFilter || undefined,
+        page: pageToLoad,
+        limit: 25,
+      });
+      setSiswaRows(result.data);
+      setSiswaTotalCount(result.totalCount);
+      setSiswaTotalPages(result.totalPages);
+      setSiswaPage(result.page);
+    } catch (error) {
+      setSiswaNotice({ tone: 'error', message: error instanceof Error ? error.message : 'Gagal memuat daftar siswa.' });
+    } finally {
+      setSiswaLoading(false);
+    }
+  }, [kelasFilter, siswaPage, siswaSearch]);
+
+  useEffect(() => {
+    if (activeTab === 'siswa' && siswaSubTab === 'manage') {
+      void refreshKelasOptions();
+    }
+  }, [activeTab, refreshKelasOptions, siswaSubTab]);
+
+  useEffect(() => {
+    if (activeTab === 'siswa' && siswaSubTab === 'manage') {
+      void refreshSiswaList();
+    }
+  }, [activeTab, refreshSiswaList, siswaSubTab]);
+
+  const handleSiswaFilterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSiswaNotice(null);
+    setSiswaSearch(siswaSearchDraft.trim());
+    setKelasFilter(kelasFilterDraft);
+    setSiswaPage(1);
+  };
+
+  const handleSiswaProfileSubmit = async (formData: FormData) => {
+    setSiswaSaving(true);
+    setSiswaFormError(null);
+    try {
+      if (editingSiswa) {
+        await updateSiswaAction(formData);
+      } else {
+        await createSiswaSingleAction(formData);
+      }
+      setSiswaFormOpen(false);
+      setSiswaNotice({ tone: 'success', message: editingSiswa ? 'Data siswa berhasil diperbarui.' : 'Siswa baru berhasil ditambahkan.' });
+      await refreshSiswaList();
+    } catch (error) {
+      setSiswaFormError(error instanceof Error ? error.message : 'Gagal menyimpan data siswa.');
+    } finally {
+      setSiswaSaving(false);
+    }
+  };
+
+  const handleSiswaDelete = async () => {
+    if (!siswaToDelete) return;
+
+    setSiswaDeleting(true);
+    setSiswaDeleteError(null);
+    try {
+      await deleteSiswaAction(siswaToDelete.id);
+      setSiswaNotice({ tone: 'success', message: `${siswaToDelete.full_name} berhasil dihapus.` });
+      setSiswaToDelete(null);
+      const pageToRefresh = siswaRows.length === 1 && siswaPage > 1 ? siswaPage - 1 : siswaPage;
+      setSiswaPage(pageToRefresh);
+      await refreshSiswaList(pageToRefresh);
+    } catch (error) {
+      setSiswaDeleteError(error instanceof Error ? error.message : 'Gagal menghapus data siswa.');
+    } finally {
+      setSiswaDeleting(false);
+    }
+  };
 
   const refreshGuruProfiles = useCallback(async () => {
     setGuruLoading(true);
@@ -228,7 +345,7 @@ export default function AdminPage() {
         <section className="rounded-3xl border border-white/10 bg-white/5 p-3 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
             <button type="button" onClick={() => setActiveTab('siswa')} className={tabButtonClass('siswa')}>
-              Impor Siswa &amp; Kelas
+              Kelola Siswa &amp; Kelas
             </button>
             <button type="button" onClick={() => setActiveTab('guru')} className={tabButtonClass('guru')}>
               Impor Guru &amp; Staf
@@ -238,43 +355,199 @@ export default function AdminPage() {
 
         {activeTab === 'siswa' ? (
           <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-            <InfoCard
-              icon={<School className="h-5 w-5" />}
-              title="Format CSV / Excel Siswa"
-              description="Gunakan header: full_name,nisn,nama_kelas,tingkat. Setiap baris akan diproses menjadi data siswa dan kelas terkait."
-            />
-
-            <a
-              href="/template_siswa.csv"
-              download
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition active:scale-95 hover:bg-indigo-500/20"
-            >
-              <FileDown className="h-4 w-4" />
-              Unduh template CSV / Excel sampel siswa
-            </a>
-
-            <form onSubmit={handleSiswaSubmit} className="space-y-4">
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>File CSV / Excel Siswa</span>
-                <input
-                  name="csv_file"
-                  type="file"
-                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
-                />
-              </label>
-
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-1.5">
               <button
-                type="submit"
-                disabled={isSubmittingSiswa}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={() => setSiswaSubTab('manage')}
+                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${siswaSubTab === 'manage' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
               >
-                {isSubmittingSiswa ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
-                Proses Impor Siswa
+                Daftar &amp; Kelola Siswa
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={() => setSiswaSubTab('import')}
+                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${siswaSubTab === 'import' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
+              >
+                Impor CSV Siswa
+              </button>
+            </div>
 
-            {siswaFeedback}
+            {siswaNotice && <AlertBox tone={siswaNotice.tone} message={siswaNotice.message} />}
+
+            {siswaSubTab === 'manage' ? (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Daftar Siswa</h2>
+                    <p className="mt-1 text-sm text-slate-400">{siswaTotalCount} siswa terdata</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setEditingSiswa(null); setSiswaFormError(null); setSiswaFormOpen(true); }}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tambah Siswa
+                  </button>
+                </div>
+
+                <form onSubmit={handleSiswaFilterSubmit} className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.7fr)_auto] sm:items-end">
+                  <label className="grid gap-1.5 text-sm text-slate-300">
+                    Nama atau NISN
+                    <span className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="search"
+                        value={siswaSearchDraft}
+                        onChange={(event) => setSiswaSearchDraft(event.target.value)}
+                        placeholder="Cari siswa"
+                        className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50"
+                      />
+                    </span>
+                  </label>
+                  <label className="grid gap-1.5 text-sm text-slate-300">
+                    Kelas
+                    <select
+                      value={kelasFilterDraft}
+                      onChange={(event) => setKelasFilterDraft(event.target.value)}
+                      disabled={kelasLoading}
+                      className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none focus:border-cyan-400/50 disabled:opacity-60"
+                    >
+                      <option value="">Semua kelas</option>
+                      {kelasOptions.map((kelas) => (
+                        <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} · Tingkat {kelas.tingkat}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                  >
+                    <Search className="h-4 w-4" /> Cari
+                  </button>
+                </form>
+
+                {siswaLoading ? (
+                  <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-slate-400">
+                    <LoaderCircle className="h-5 w-5 animate-spin" /> Memuat data siswa...
+                  </div>
+                ) : siswaRows.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {siswaRows.map((siswa) => (
+                      <article key={siswa.id} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="break-words font-semibold text-white">{siswa.full_name}</h3>
+                            <div className="mt-2">
+                              {siswa.nisn ? (
+                                <span className="inline-flex rounded-md border border-slate-500/20 bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-200">
+                                  NISN {siswa.nisn}
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-xs font-medium text-orange-200">
+                                  Belum ada NISN
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
+                              <School className="h-4 w-4 shrink-0 text-cyan-300" />
+                              {siswa.kelas?.nama_kelas ?? 'Kelas tidak tersedia'}
+                              {siswa.kelas && <span className="text-slate-500">· Tingkat {siswa.kelas.tingkat}</span>}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex gap-2 border-t border-white/5 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingSiswa(siswa); setSiswaFormError(null); setSiswaFormOpen(true); }}
+                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10"
+                          >
+                            <Pencil className="h-4 w-4" /> Edit NISN/Data
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setSiswaDeleteError(null); setSiswaToDelete(siswa); }}
+                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/5 px-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/10"
+                          >
+                            <Trash2 className="h-4 w-4" /> Hapus
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-white/15 px-4 py-10 text-center text-sm text-slate-400">
+                    {siswaSearch || kelasFilter ? 'Tidak ada siswa yang cocok dengan filter.' : 'Belum ada data siswa.'}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-center text-sm text-slate-400 sm:text-left">
+                    Halaman {siswaPage} dari {siswaTotalPages} · Total {siswaTotalCount} siswa
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSiswaPage((page) => Math.max(1, page - 1))}
+                      disabled={siswaLoading || siswaPage <= 1}
+                      aria-label="Halaman sebelumnya"
+                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-3 text-sm font-medium text-slate-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                    >
+                      <ChevronLeft className="h-4 w-4" /> Sebelumnya
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSiswaPage((page) => Math.min(siswaTotalPages, page + 1))}
+                      disabled={siswaLoading || siswaPage >= siswaTotalPages}
+                      aria-label="Halaman berikutnya"
+                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-3 text-sm font-medium text-slate-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                    >
+                      Berikutnya <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <InfoCard
+                  icon={<School className="h-5 w-5" />}
+                  title="Format CSV / Excel Siswa"
+                  description="Gunakan header: full_name,nisn,nama_kelas,tingkat. Kolom nisn boleh dikosongkan. Setiap baris akan diproses menjadi data siswa dan kelas terkait."
+                />
+
+                <a
+                  href="/template_siswa.csv"
+                  download
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/20"
+                >
+                  <FileDown className="h-4 w-4" />
+                  Unduh template CSV / Excel sampel siswa
+                </a>
+
+                <form onSubmit={handleSiswaSubmit} className="space-y-4">
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>File CSV / Excel Siswa</span>
+                    <input
+                      name="csv_file"
+                      type="file"
+                      accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingSiswa}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSubmittingSiswa ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
+                    Proses Impor Siswa
+                  </button>
+                </form>
+
+                {siswaFeedback}
+              </div>
+            )}
           </section>
         ) : (
           <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
@@ -431,6 +704,28 @@ export default function AdminPage() {
           </section>
         )}
 
+        {siswaFormOpen && (
+          <SiswaFormModal
+            student={editingSiswa}
+            classes={kelasOptions}
+            classesLoading={kelasLoading}
+            error={siswaFormError}
+            isPending={siswaSaving}
+            onClose={() => setSiswaFormOpen(false)}
+            onSubmit={handleSiswaProfileSubmit}
+          />
+        )}
+
+        {siswaToDelete && (
+          <SiswaDeleteModal
+            fullName={siswaToDelete.full_name}
+            error={siswaDeleteError}
+            isPending={siswaDeleting}
+            onCancel={() => { setSiswaDeleteError(null); setSiswaToDelete(null); }}
+            onConfirm={() => void handleSiswaDelete()}
+          />
+        )}
+
         {guruFormOpen && (
           <GuruFormModal
             profile={editingGuru}
@@ -452,6 +747,168 @@ export default function AdminPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function SiswaFormModal({
+  student,
+  classes,
+  classesLoading,
+  error,
+  isPending,
+  onClose,
+  onSubmit,
+}: {
+  student: SiswaWithKelas | null;
+  classes: KelasOption[];
+  classesLoading: boolean;
+  error: string | null;
+  isPending: boolean;
+  onClose: () => void;
+  onSubmit: (formData: FormData) => Promise<void>;
+}) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onSubmit(new FormData(event.currentTarget));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="siswa-form-title"
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Manajemen Siswa</p>
+            <h2 id="siswa-form-title" className="mt-1 text-xl font-semibold text-white">
+              {student ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            aria-label="Tutup form siswa"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {student && <input type="hidden" name="siswa_id" value={student.id} />}
+          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+            Nama Lengkap
+            <input
+              name="full_name"
+              required
+              defaultValue={student?.full_name ?? ''}
+              autoComplete="name"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+            NISN <span className="font-normal text-slate-400">(opsional)</span>
+            <input
+              name="nisn"
+              inputMode="numeric"
+              defaultValue={student?.nisn ?? ''}
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+            Kelas
+            <select
+              name="kelas_id"
+              required
+              defaultValue={student?.kelas_id ?? ''}
+              disabled={classesLoading || classes.length === 0}
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60 disabled:opacity-60"
+            >
+              <option value="" disabled>{classesLoading ? 'Memuat kelas...' : 'Pilih kelas'}</option>
+              {classes.map((kelas) => (
+                <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} · Tingkat {kelas.tingkat}</option>
+              ))}
+            </select>
+            {!classesLoading && classes.length === 0 && <span className="text-xs text-orange-200">Belum ada pilihan kelas.</span>}
+          </label>
+
+          {error && <AlertBox tone="error" message={error} />}
+
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || classesLoading || classes.length === 0}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+            >
+              {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
+              {isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function SiswaDeleteModal({
+  fullName,
+  error,
+  isPending,
+  onCancel,
+  onConfirm,
+}: {
+  fullName: string;
+  error: string | null;
+  isPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <section
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-siswa-title"
+        className="w-full max-w-md rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+      >
+        <h2 id="delete-siswa-title" className="text-lg font-semibold text-white">Hapus data siswa?</h2>
+        <p className="mt-2 break-words text-sm leading-6 text-slate-300">
+          Data <span className="font-semibold text-white">{fullName}</span> akan dihapus secara permanen.
+        </p>
+        {error && <div className="mt-4"><AlertBox tone="error" message={error} /></div>}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isPending}
+            className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-60"
+          >
+            {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
+            {isPending ? 'Menghapus...' : 'Ya, hapus siswa'}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

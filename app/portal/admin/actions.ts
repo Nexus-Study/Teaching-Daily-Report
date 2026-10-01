@@ -9,14 +9,14 @@ import type { Database, UserRole } from '../../../types/database';
 
 export type SiswaCSVRow = {
   full_name: string;
-  nisn: string;
+  nisn: string | null;
   nama_kelas: string;
   tingkat: number;
 };
 
 type ParsedSiswaCSVRow = {
   full_name: string;
-  nisn: string;
+  nisn: string | null;
   nama_kelas: string;
   tingkat: number;
 };
@@ -138,7 +138,7 @@ function parseSiswaCSV(csvText: string): SiswaCSVRow[] {
   }
 
   const header = parseCsvLine(rows[0]).map((column) => column.toLowerCase());
-  const requiredColumns = ['full_name', 'nisn', 'nama_kelas', 'tingkat'];
+  const requiredColumns = ['full_name', 'nama_kelas', 'tingkat'];
 
   for (const column of requiredColumns) {
     if (!header.includes(column)) {
@@ -152,11 +152,13 @@ function parseSiswaCSV(csvText: string): SiswaCSVRow[] {
     const cells = parseCsvLine(line);
 
     const fullName = cells[columnIndex.full_name] ?? '';
-    const nisn = cells[columnIndex.nisn] ?? '';
+    const nisnColumnIndex = columnIndex.nisn;
+    const nisnValue = nisnColumnIndex === undefined ? '' : (cells[nisnColumnIndex] ?? '');
+    const nisn = nisnValue.trim() || null;
     const namaKelas = cells[columnIndex.nama_kelas] ?? '';
     const tingkatValue = cells[columnIndex.tingkat] ?? '';
 
-    if (!fullName || !nisn || !namaKelas || !tingkatValue) {
+    if (!fullName || !namaKelas || !tingkatValue) {
       throw new Error(`Baris ${lineIndex + 2} tidak lengkap.`);
     }
 
@@ -311,7 +313,7 @@ async function assertAdminAccess() {
   const userRoles = (profile as { roles?: string[] } | null)?.roles || [];
 
   if (!userRoles.includes('admin')) {
-    throw new Error('Akses ditolak. Hanya admin yang dapat melakukan provisioning guru.');
+    throw new Error('Akses ditolak. Hanya admin yang dapat mengelola data master.');
   }
 }
 
@@ -424,6 +426,170 @@ export async function importSiswaAndKelasAction(formData: FormData) {
     totalKelas,
     totalSiswa,
   };
+}
+
+export type KelasOption = Pick<Database['public']['Tables']['kelas']['Row'], 'id' | 'nama_kelas' | 'tingkat'>;
+
+export type SiswaWithKelas = Pick<Database['public']['Tables']['siswa']['Row'], 'id' | 'full_name' | 'nisn' | 'kelas_id' | 'created_at'> & {
+  kelas: Pick<Database['public']['Tables']['kelas']['Row'], 'nama_kelas' | 'tingkat'> | null;
+};
+
+export async function getKelasOptionsAction(): Promise<KelasOption[]> {
+  try {
+    await assertAdminAccess();
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('kelas')
+      .select('id, nama_kelas, tingkat')
+      .order('tingkat', { ascending: true })
+      .order('nama_kelas', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ?? [];
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal memuat pilihan kelas.');
+  }
+}
+
+export async function getSiswaPaginatedAction(params: {
+  search?: string;
+  kelasId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: SiswaWithKelas[]; totalCount: number; page: number; totalPages: number }> {
+  try {
+    await assertAdminAccess();
+
+    const page = Math.max(1, Math.floor(params.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(params.limit ?? 25)));
+    const offset = (page - 1) * limit;
+    const adminClient = createAdminClient();
+    let query = adminClient
+      .from('siswa')
+      .select('id, full_name, nisn, kelas_id, created_at, kelas(nama_kelas, tingkat)', { count: 'exact' });
+
+    const search = params.search?.trim();
+    if (search) {
+      const safeSearch = search.replace(/[",()]/g, ' ').replace(/[%_\\]/g, '\\$&');
+      query = query.or(`full_name.ilike.%${safeSearch}%,nisn.ilike.%${safeSearch}%`);
+    }
+
+    if (params.kelasId?.trim()) {
+      query = query.eq('kelas_id', params.kelasId.trim());
+    }
+
+    const { data, error, count } = await query
+      .order('full_name', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const totalCount = count ?? 0;
+    return {
+      data: (data ?? []) as SiswaWithKelas[],
+      totalCount,
+      page,
+      totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+    };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal memuat daftar siswa.');
+  }
+}
+
+export async function createSiswaSingleAction(formData: FormData) {
+  try {
+    await assertAdminAccess();
+
+    const fullName = String(formData.get('full_name') ?? '').trim();
+    const nisn = String(formData.get('nisn') ?? '').trim() || null;
+    const kelasId = String(formData.get('kelas_id') ?? '').trim();
+
+    if (!fullName || !kelasId) {
+      throw new Error('Nama lengkap dan kelas wajib diisi.');
+    }
+
+    const adminClient = createAdminClient();
+    const { error } = await adminClient.from('siswa').insert({ full_name: fullName, nisn, kelas_id: kelasId });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal menambahkan data siswa.');
+  }
+}
+
+export async function updateSiswaAction(formData: FormData) {
+  try {
+    await assertAdminAccess();
+
+    const siswaId = String(formData.get('siswa_id') ?? '').trim();
+    const fullName = String(formData.get('full_name') ?? '').trim();
+    const nisn = String(formData.get('nisn') ?? '').trim() || null;
+    const kelasId = String(formData.get('kelas_id') ?? '').trim();
+
+    if (!siswaId) {
+      throw new Error('ID siswa tidak ditemukan.');
+    }
+
+    if (!fullName || !kelasId) {
+      throw new Error('Nama lengkap dan kelas wajib diisi.');
+    }
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('siswa')
+      .update({ full_name: fullName, nisn, kelas_id: kelasId })
+      .eq('id', siswaId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error('Data siswa tidak ditemukan.');
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal memperbarui data siswa.');
+  }
+}
+
+export async function deleteSiswaAction(siswaId: string) {
+  try {
+    await assertAdminAccess();
+
+    const id = siswaId.trim();
+    if (!id) {
+      throw new Error('ID siswa tidak ditemukan.');
+    }
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient.from('siswa').delete().eq('id', id).select('id').maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error('Data siswa tidak ditemukan.');
+    }
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Gagal menghapus data siswa.');
+  }
 }
 
 export async function importGuruAction(formData: FormData, defaultPassword?: string) {

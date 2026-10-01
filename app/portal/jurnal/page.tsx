@@ -11,6 +11,55 @@ type PresensiRow = {
   status: PresensiStatus;
 };
 
+type JournalHistoryEntry = {
+  tanggal: string;
+  dayOfWeek?: number;
+  mata_pelajaran: string;
+  jam_ke: string;
+};
+
+const MATA_PELAJARAN = [
+  "Al-Qur'an Hadis",
+  'Akidah Akhlak',
+  'Fikih',
+  'SKI',
+  'Pendidikan Pancasila',
+  'Bahasa Indonesia',
+  'Bahasa Arab',
+  'Bahasa Inggris',
+  'Matematika',
+  'IPA',
+  'PJOK',
+  'Informatika',
+  'Seni dan Prakarya',
+  'Mulok',
+  'Tahfizh',
+  'Kokurikuler',
+];
+
+const getDayOfWeek = (dateStr?: string) => {
+  const date = dateStr ? new Date(dateStr) : new Date();
+  return date.getDay();
+};
+
+function readJournalHistory(): JournalHistoryEntry[] {
+  try {
+    const storedHistory: unknown = JSON.parse(window.localStorage.getItem('jurnal_history') ?? '[]');
+    const entries = Array.isArray(storedHistory) ? storedHistory : [storedHistory];
+
+    return entries.filter(
+      (entry): entry is JournalHistoryEntry =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof entry.tanggal === 'string' &&
+        typeof entry.mata_pelajaran === 'string' &&
+        typeof entry.jam_ke === 'string',
+    );
+  } catch {
+    return [];
+  }
+}
+
 const statusStyles: Record<PresensiStatus, string> = {
   hadir: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100',
   izin: 'border-amber-400/30 bg-amber-500/15 text-amber-100',
@@ -30,11 +79,56 @@ export default function JurnalPage() {
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [rekapList, setRekapList] = useState<JurnalMengajar[]>([]);
   const [selectedKelasId, setSelectedKelasId] = useState('');
+  const [selectedMapel, setSelectedMapel] = useState('');
+  const [jamKeValue, setJamKeValue] = useState('');
+  const [jamKeSuggestions, setJamKeSuggestions] = useState<string[]>([]);
   const [presensiMap, setPresensiMap] = useState<Record<string, PresensiStatus>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
   const [isLoadingData, startLoadingData] = useTransition();
+
+  useEffect(() => {
+    if (selectedMapel) {
+      return;
+    }
+
+    const currentDay = getDayOfWeek();
+    const historyMatch = [...readJournalHistory()].reverse().find(
+      (jurnal) => (jurnal.dayOfWeek ?? getDayOfWeek(jurnal.tanggal)) === currentDay,
+    );
+    const rekapMatch = rekapList.find((jurnal) => getDayOfWeek(jurnal.tanggal) === currentDay);
+    const latestSubject = historyMatch?.mata_pelajaran ?? rekapMatch?.mata_pelajaran;
+
+    if (latestSubject) {
+      setSelectedMapel(latestSubject);
+    }
+  }, [rekapList, selectedMapel]);
+
+  useEffect(() => {
+    if (!selectedMapel) {
+      setJamKeSuggestions([]);
+      return;
+    }
+
+    const currentDay = getDayOfWeek();
+    const historyHours = readJournalHistory()
+      .filter(
+        (jurnal) =>
+          (jurnal.dayOfWeek ?? getDayOfWeek(jurnal.tanggal)) === currentDay &&
+          jurnal.mata_pelajaran === selectedMapel,
+      )
+      .map((jurnal) => jurnal.jam_ke);
+    const rekapHours = rekapList
+      .filter(
+        (jurnal) =>
+          getDayOfWeek(jurnal.tanggal) === currentDay &&
+          jurnal.mata_pelajaran === selectedMapel,
+      )
+      .map((jurnal) => jurnal.jam_ke);
+
+    setJamKeSuggestions(Array.from(new Set([...historyHours, ...rekapHours])));
+  }, [rekapList, selectedMapel]);
 
   useEffect(() => {
     startLoadingData(() => {
@@ -108,11 +202,27 @@ export default function JurnalPage() {
     }));
 
     formData.set('kelas_id', selectedKelasId);
+    formData.set('mata_pelajaran', selectedMapel);
+    formData.set('jam_ke', jamKeValue);
     formData.set('presensi_json', JSON.stringify(payload));
 
     startSubmitting(() => {
       void submitJurnalAndPresensi(formData)
         .then(async () => {
+          const currentDay = getDayOfWeek();
+          const historyEntry: JournalHistoryEntry = {
+            tanggal: new Date().toISOString().split('T')[0],
+            dayOfWeek: currentDay,
+            mata_pelajaran: selectedMapel,
+            jam_ke: jamKeValue,
+          };
+
+          try {
+            window.localStorage.setItem('jurnal_history', JSON.stringify([...readJournalHistory(), historyEntry]));
+          } catch {
+            setError('Jurnal tersimpan, tetapi riwayat lokal tidak dapat diperbarui.');
+          }
+
           setMessage('Jurnal dan presensi berhasil disimpan.');
           const rekap = await getRekapJurnal();
           setRekapList(rekap);
@@ -133,7 +243,7 @@ export default function JurnalPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Jurnal Mengajar</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Input cepat jurnal & presensi</h1>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Input jurnal & presensi</h1>
               <p className="mt-1 text-sm leading-6 text-slate-300">Target input kurang dari 60 detik dengan presensi ringkas per siswa.</p>
             </div>
           </div>
@@ -153,7 +263,7 @@ export default function JurnalPage() {
                   <option value="">Pilih kelas</option>
                   {kelasList.map((kelas) => (
                     <option key={kelas.id} value={kelas.id}>
-                      {kelas.nama_kelas} - {kelas.tingkat}
+                      {kelas.nama_kelas}
                     </option>
                   ))}
                 </select>
@@ -161,12 +271,21 @@ export default function JurnalPage() {
 
               <label className="grid gap-2 text-sm text-slate-200">
                 <span>Mata Pelajaran</span>
-                <input
+                <select
                   name="mata_pelajaran"
                   required
-                  placeholder="Contoh: Fikih"
+                  value={selectedMapel}
+                  onChange={(event) => setSelectedMapel(event.target.value)}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                />
+                >
+                  <option value="">Pilih mata pelajaran</option>
+                  {selectedMapel && !MATA_PELAJARAN.includes(selectedMapel) && (
+                    <option value={selectedMapel}>{selectedMapel}</option>
+                  )}
+                  {MATA_PELAJARAN.map((mataPelajaran) => (
+                    <option key={mataPelajaran} value={mataPelajaran}>{mataPelajaran}</option>
+                  ))}
+                </select>
               </label>
 
               <label className="grid gap-2 text-sm text-slate-200">
@@ -174,9 +293,15 @@ export default function JurnalPage() {
                 <input
                   name="jam_ke"
                   required
+                  list="jam-ke-suggestions"
                   placeholder="Contoh: 1-2"
+                  value={jamKeValue}
+                  onChange={(event) => setJamKeValue(event.target.value)}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
                 />
+                <datalist id="jam-ke-suggestions">
+                  {jamKeSuggestions.map((saran) => <option key={saran} value={saran} />)}
+                </datalist>
               </label>
 
               <label className="grid gap-2 text-sm text-slate-200">
@@ -191,11 +316,11 @@ export default function JurnalPage() {
             </div>
 
             <label className="grid gap-2 text-sm text-slate-200">
-              <span>Catatan Opsional</span>
+              <span>Uraian Singkat Materi</span>
               <textarea
                 name="catatan"
                 rows={3}
-                placeholder="Catatan singkat bila diperlukan"
+                placeholder="Uraian singkat materi, catatan penting, atau hal-hal yang perlu dicatat."
                 className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40"
               />
             </label>
@@ -222,7 +347,6 @@ export default function JurnalPage() {
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
                             <p className="font-medium text-white">{siswa.full_name}</p>
-                            <p className="text-xs text-slate-400">NISN {siswa.nisn}</p>
                           </div>
                           <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusStyles[status]}`}>{statusLabels[status]}</span>
                         </div>
