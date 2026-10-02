@@ -45,9 +45,9 @@ const hourOptions = Array.from({ length: 8 }, (_, index) => index + 1);
 const roleOptions: Array<{ value: UserRole; label: string }> = [
   { value: 'guru_mapel', label: 'Guru Mapel' },
   { value: 'wali_kelas', label: 'Wali Kelas' },
-  { value: 'guru_piket', label: 'Guru Piket' },
+  // { value: 'guru_piket', label: 'Guru Piket' },
   { value: 'guru_bk', label: 'Guru BK' },
-  { value: 'pembina_ekskul', label: 'Pembina Ekskul' },
+  // { value: 'pembina_ekskul', label: 'Pembina Ekskul' },
   { value: 'waka_kesiswaan', label: 'Waka Kesiswaan' },
   { value: 'waka_kurikulum', label: 'Waka Kurikulum' },
   { value: 'guru_tahfidz', label: 'Guru Tahfidz' },
@@ -329,16 +329,16 @@ export default function ProfileTab({ profile, mataPelajaranList, kelasList, jadw
                   {card.rows.map((row) => (
                     <div key={row.key} className="grid gap-3 py-4 first:pt-0 last:pb-0 sm:grid-cols-2 lg:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,0.8fr)_minmax(6rem,0.6fr)_minmax(6rem,0.6fr)_auto] lg:items-end">
                       <label className="space-y-2">
+                        <span className="text-xs font-medium text-slate-400">Hari</span>
+                        <select value={row.hari} onChange={(event) => updateRow(card.key, row.key, { hari: event.target.value as HariName })} disabled={!row.editing || savingRowKey === row.key} className={fieldClass}>
+                          {dayOptions.map((day) => <option key={day} value={day}>{day}</option>)}
+                        </select>
+                      </label>
+                      <label className="space-y-2">
                         <span className="text-xs font-medium text-slate-400">Kelas</span>
                         <select value={row.kelas_id} onChange={(event) => updateRow(card.key, row.key, { kelas_id: event.target.value })} disabled={!row.editing || savingRowKey === row.key} className={fieldClass}>
                           <option value="">Pilih kelas</option>
                           {kelasList.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
-                        </select>
-                      </label>
-                      <label className="space-y-2">
-                        <span className="text-xs font-medium text-slate-400">Hari</span>
-                        <select value={row.hari} onChange={(event) => updateRow(card.key, row.key, { hari: event.target.value as HariName })} disabled={!row.editing || savingRowKey === row.key} className={fieldClass}>
-                          {dayOptions.map((day) => <option key={day} value={day}>{day}</option>)}
                         </select>
                       </label>
                       <label className="space-y-2">

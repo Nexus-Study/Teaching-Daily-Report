@@ -10,6 +10,8 @@ CREATE TABLE public.profiles (
   phone_number text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  email text,
+  is_active boolean NOT NULL DEFAULT true,
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
@@ -25,7 +27,7 @@ CREATE TABLE public.kelas (
 CREATE TABLE public.siswa (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   full_name text NOT NULL,
-  nisn text NOT NULL UNIQUE,
+  nisn text UNIQUE,
   kelas_id uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT siswa_pkey PRIMARY KEY (id),
@@ -79,4 +81,25 @@ CREATE TABLE public.penanganan_perilaku (
   CONSTRAINT penanganan_perilaku_pkey PRIMARY KEY (id),
   CONSTRAINT penanganan_perilaku_catatan_id_fkey FOREIGN KEY (catatan_id) REFERENCES public.catatan_perilaku(id),
   CONSTRAINT penanganan_perilaku_handler_id_fkey FOREIGN KEY (handler_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.mata_pelajaran (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nama_mapel text NOT NULL UNIQUE,
+  jumlah_jam integer NOT NULL DEFAULT 2,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT mata_pelajaran_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jadwal_guru (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  teacher_id uuid NOT NULL,
+  mapel_id uuid NOT NULL,
+  kelas_id uuid NOT NULL,
+  hari text NOT NULL CHECK (hari = ANY (ARRAY['Senin'::text, 'Selasa'::text, 'Rabu'::text, 'Kamis'::text, 'Jumat'::text, 'Sabtu'::text])),
+  jam_mulai integer NOT NULL CHECK (jam_mulai >= 1 AND jam_mulai <= 8),
+  jam_selesai integer NOT NULL CHECK (jam_selesai >= 1 AND jam_selesai <= 8),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT jadwal_guru_pkey PRIMARY KEY (id),
+  CONSTRAINT jadwal_guru_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.profiles(id),
+  CONSTRAINT jadwal_guru_mapel_id_fkey FOREIGN KEY (mapel_id) REFERENCES public.mata_pelajaran(id),
+  CONSTRAINT jadwal_guru_kelas_id_fkey FOREIGN KEY (kelas_id) REFERENCES public.kelas(id)
 );
