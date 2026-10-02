@@ -106,7 +106,8 @@ Teaching-Daily-Report/
 │       ├── 20260929000003_submit_catatan_perilaku.sql
 │       ├── 20260929000004_import_kelas_dan_siswa_json.sql
 │       ├── 20260929000005_import_guru_profiles_json.sql
-│       └── 20260929000006_add_profile_email_is_active.sql
+│       ├── 20260929000006_add_profile_email_is_active.sql
+│       └── 20261003000000_update_submit_jurnal_and_presensi_tanggal.sql
 └── types/
     └── database.ts
 ```

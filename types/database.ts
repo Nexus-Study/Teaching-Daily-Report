@@ -398,6 +398,7 @@ export interface Database {
           p_materi: string;
           p_catatan?: string | null;
           p_presensi?: Json;
+          p_tanggal?: string | null;
         };
         Returns: string;
       };

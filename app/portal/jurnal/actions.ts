@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '../../../lib/supabase/server';
-import type { JurnalMengajar, Kelas, Siswa } from '../../../types/database';
+import type { JadwalGuru, JurnalMengajar, Kelas, Siswa } from '../../../types/database';
 
 type PresensiPayload = {
   siswa_id: string;
@@ -33,6 +33,30 @@ export async function getSiswaByKelas(kelasId: string): Promise<Siswa[]> {
   return data ?? [];
 }
 
+export async function getJadwalGuruByTeacher(): Promise<JadwalGuru[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error('Pengguna belum terautentikasi.');
+  }
+
+  const { data, error } = await (supabase.from('jadwal_guru') as any)
+    .select('*, mata_pelajaran (*), kelas (*)')
+    .eq('teacher_id', user.id)
+    .order('hari', { ascending: true })
+    .order('jam_mulai', { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as JadwalGuru[];
+}
+
 export async function submitJurnalAndPresensi(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -49,6 +73,7 @@ export async function submitJurnalAndPresensi(formData: FormData) {
   const jamKe = String(formData.get('jam_ke') ?? '').trim();
   const materi = String(formData.get('materi') ?? '').trim();
   const catatan = String(formData.get('catatan') ?? '').trim() || null;
+  const tanggal = String(formData.get('tanggal') ?? '').trim() || null;
   const presensiRaw = String(formData.get('presensi_json') ?? '[]');
 
   if (!kelasId || !mataPelajaran || !jamKe || !materi) {
@@ -71,6 +96,7 @@ export async function submitJurnalAndPresensi(formData: FormData) {
     p_materi: materi,
     p_catatan: catatan,
     p_presensi: presensiPayload,
+    p_tanggal: tanggal,
   });
 
   if (error) {

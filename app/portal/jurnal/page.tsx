@@ -3,61 +3,25 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { BookMarked, ClipboardList, LoaderCircle, RefreshCw, Save, Users } from 'lucide-react';
 
-import type { JurnalMengajar, Kelas, Siswa, PresensiStatus } from '../../../types/database';
-import { getKelasList, getRekapJurnal, getSiswaByKelas, submitJurnalAndPresensi } from './actions';
+import type { JadwalGuru, JurnalMengajar, Kelas, Siswa, PresensiStatus } from '../../../types/database';
+import { getJadwalGuruByTeacher, getKelasList, getRekapJurnal, getSiswaByKelas, submitJurnalAndPresensi } from './actions';
 
 type PresensiRow = {
   siswa_id: string;
   status: PresensiStatus;
 };
 
-type JournalHistoryEntry = {
-  tanggal: string;
-  dayOfWeek?: number;
-  mata_pelajaran: string;
-  jam_ke: string;
-};
+const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-const MATA_PELAJARAN = [
-  "Al-Qur'an Hadis",
-  'Akidah Akhlak',
-  'Fikih',
-  'SKI',
-  'Pendidikan Pancasila',
-  'Bahasa Indonesia',
-  'Bahasa Arab',
-  'Bahasa Inggris',
-  'Matematika',
-  'IPA',
-  'PJOK',
-  'Informatika',
-  'Seni dan Prakarya',
-  'Mulok',
-  'Tahfizh',
-  'Kokurikuler',
-];
+function getTodayWIT() {
+  const witOffsetMilliseconds = 9 * 60 * 60 * 1000;
+  return new Date(Date.now() + witOffsetMilliseconds).toISOString().slice(0, 10);
+}
 
-const getDayOfWeek = (dateStr?: string) => {
-  const date = dateStr ? new Date(dateStr) : new Date();
-  return date.getDay();
-};
-
-function readJournalHistory(): JournalHistoryEntry[] {
-  try {
-    const storedHistory: unknown = JSON.parse(window.localStorage.getItem('jurnal_history') ?? '[]');
-    const entries = Array.isArray(storedHistory) ? storedHistory : [storedHistory];
-
-    return entries.filter(
-      (entry): entry is JournalHistoryEntry =>
-        typeof entry === 'object' &&
-        entry !== null &&
-        typeof entry.tanggal === 'string' &&
-        typeof entry.mata_pelajaran === 'string' &&
-        typeof entry.jam_ke === 'string',
-    );
-  } catch {
-    return [];
-  }
+function getHariWIT(dateStr: string) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return hariIndonesia[dayIndex];
 }
 
 const statusStyles: Record<PresensiStatus, string> = {
@@ -76,12 +40,13 @@ const statusLabels: Record<PresensiStatus, string> = {
 
 export default function JurnalPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
+  const [jadwalGuru, setJadwalGuru] = useState<JadwalGuru[]>([]);
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [rekapList, setRekapList] = useState<JurnalMengajar[]>([]);
+  const [selectedTanggal, setSelectedTanggal] = useState(getTodayWIT);
   const [selectedKelasId, setSelectedKelasId] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
   const [jamKeValue, setJamKeValue] = useState('');
-  const [jamKeSuggestions, setJamKeSuggestions] = useState<string[]>([]);
   const [presensiMap, setPresensiMap] = useState<Record<string, PresensiStatus>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,63 +54,65 @@ export default function JurnalPage() {
   const [isLoadingData, startLoadingData] = useTransition();
 
   useEffect(() => {
-    if (selectedMapel) {
-      return;
-    }
-
-    const currentDay = getDayOfWeek();
-    const historyMatch = [...readJournalHistory()].reverse().find(
-      (jurnal) => (jurnal.dayOfWeek ?? getDayOfWeek(jurnal.tanggal)) === currentDay,
-    );
-    const rekapMatch = rekapList.find((jurnal) => getDayOfWeek(jurnal.tanggal) === currentDay);
-    const latestSubject = historyMatch?.mata_pelajaran ?? rekapMatch?.mata_pelajaran;
-
-    if (latestSubject) {
-      setSelectedMapel(latestSubject);
-    }
-  }, [rekapList, selectedMapel]);
-
-  useEffect(() => {
-    if (!selectedMapel) {
-      setJamKeSuggestions([]);
-      return;
-    }
-
-    const currentDay = getDayOfWeek();
-    const historyHours = readJournalHistory()
-      .filter(
-        (jurnal) =>
-          (jurnal.dayOfWeek ?? getDayOfWeek(jurnal.tanggal)) === currentDay &&
-          jurnal.mata_pelajaran === selectedMapel,
-      )
-      .map((jurnal) => jurnal.jam_ke);
-    const rekapHours = rekapList
-      .filter(
-        (jurnal) =>
-          getDayOfWeek(jurnal.tanggal) === currentDay &&
-          jurnal.mata_pelajaran === selectedMapel,
-      )
-      .map((jurnal) => jurnal.jam_ke);
-
-    setJamKeSuggestions(Array.from(new Set([...historyHours, ...rekapHours])));
-  }, [rekapList, selectedMapel]);
-
-  useEffect(() => {
     startLoadingData(() => {
-      void Promise.all([getKelasList(), getRekapJurnal()])
-        .then(([kelas, rekap]) => {
+      void Promise.all([getKelasList(), getRekapJurnal(), getJadwalGuruByTeacher()])
+        .then(([kelas, rekap, jadwal]) => {
           setKelasList(kelas);
           setRekapList(rekap);
-
-          if (!selectedKelasId && kelas.length > 0) {
-            setSelectedKelasId(kelas[0].id);
-          }
+          setJadwalGuru(jadwal);
         })
         .catch((loadError: unknown) => {
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data awal.');
         });
     });
   }, []);
+
+  const selectedHari = getHariWIT(selectedTanggal);
+  const jadwalHari = useMemo(
+    () => jadwalGuru.filter((jadwal) => jadwal.hari === selectedHari),
+    [jadwalGuru, selectedHari],
+  );
+  const mapelOptions = useMemo(
+    () => Array.from(new Set(jadwalHari.map((jadwal) => jadwal.mata_pelajaran?.nama_mapel).filter((mapel): mapel is string => Boolean(mapel)))),
+    [jadwalHari],
+  );
+  const kelasOptions = useMemo(() => {
+    const classes = new Map<string, { id: string; nama_kelas: string }>();
+    jadwalHari
+      .filter((jadwal) => jadwal.mata_pelajaran?.nama_mapel === selectedMapel && jadwal.kelas)
+      .forEach((jadwal) => classes.set(jadwal.kelas!.id, { id: jadwal.kelas!.id, nama_kelas: jadwal.kelas!.nama_kelas }));
+    return Array.from(classes.values());
+  }, [jadwalHari, selectedMapel]);
+  const jamKeOptions = useMemo(
+    () => Array.from(new Set(
+      jadwalHari
+        .filter((jadwal) => jadwal.mata_pelajaran?.nama_mapel === selectedMapel)
+        .map((jadwal) => `${jadwal.jam_mulai}-${jadwal.jam_selesai}`),
+    )).sort((left, right) => Number(left.split('-')[0]) - Number(right.split('-')[0])),
+    [jadwalHari, selectedMapel],
+  );
+
+  useEffect(() => {
+    if (mapelOptions.length === 1 && selectedMapel !== mapelOptions[0]) {
+      setSelectedMapel(mapelOptions[0]);
+    } else if (selectedMapel && !mapelOptions.includes(selectedMapel)) {
+      setSelectedMapel('');
+    }
+  }, [mapelOptions, selectedMapel]);
+
+  useEffect(() => {
+    if (kelasOptions.length === 1 && selectedKelasId !== kelasOptions[0].id) {
+      setSelectedKelasId(kelasOptions[0].id);
+    } else if (selectedKelasId && !kelasOptions.some((kelas) => kelas.id === selectedKelasId)) {
+      setSelectedKelasId('');
+    }
+  }, [kelasOptions, selectedKelasId]);
+
+  useEffect(() => {
+    if (jamKeOptions.length === 1 && jamKeValue !== jamKeOptions[0]) {
+      setJamKeValue(jamKeOptions[0]);
+    }
+  }, [jamKeOptions, jamKeValue]);
 
   useEffect(() => {
     if (!selectedKelasId) {
@@ -170,11 +137,6 @@ export default function JurnalPage() {
         });
     });
   }, [selectedKelasId]);
-
-  const selectedKelas = useMemo(
-    () => kelasList.find((kelas) => kelas.id === selectedKelasId),
-    [kelasList, selectedKelasId],
-  );
 
   const rekapWithClass = useMemo(
     () =>
@@ -202,6 +164,7 @@ export default function JurnalPage() {
     }));
 
     formData.set('kelas_id', selectedKelasId);
+    formData.set('tanggal', selectedTanggal);
     formData.set('mata_pelajaran', selectedMapel);
     formData.set('jam_ke', jamKeValue);
     formData.set('presensi_json', JSON.stringify(payload));
@@ -209,20 +172,6 @@ export default function JurnalPage() {
     startSubmitting(() => {
       void submitJurnalAndPresensi(formData)
         .then(async () => {
-          const currentDay = getDayOfWeek();
-          const historyEntry: JournalHistoryEntry = {
-            tanggal: new Date().toISOString().split('T')[0],
-            dayOfWeek: currentDay,
-            mata_pelajaran: selectedMapel,
-            jam_ke: jamKeValue,
-          };
-
-          try {
-            window.localStorage.setItem('jurnal_history', JSON.stringify([...readJournalHistory(), historyEntry]));
-          } catch {
-            setError('Jurnal tersimpan, tetapi riwayat lokal tidak dapat diperbarui.');
-          }
-
           setMessage('Jurnal dan presensi berhasil disimpan.');
           const rekap = await getRekapJurnal();
           setRekapList(rekap);
@@ -253,20 +202,20 @@ export default function JurnalPage() {
           <form action={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm text-slate-200">
-                <span>Kelas</span>
-                <select
-                  name="kelas_id"
-                  value={selectedKelasId}
-                  onChange={(event) => setSelectedKelasId(event.target.value)}
+                <span>Tanggal</span>
+                <input
+                  name="tanggal"
+                  type="date"
+                  required
+                  value={selectedTanggal}
+                  onChange={(event) => {
+                    setSelectedTanggal(event.target.value);
+                    setSelectedMapel('');
+                    setSelectedKelasId('');
+                    setJamKeValue('');
+                  }}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                >
-                  <option value="">Pilih kelas</option>
-                  {kelasList.map((kelas) => (
-                    <option key={kelas.id} value={kelas.id}>
-                      {kelas.nama_kelas}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
 
               <label className="grid gap-2 text-sm text-slate-200">
@@ -275,15 +224,34 @@ export default function JurnalPage() {
                   name="mata_pelajaran"
                   required
                   value={selectedMapel}
-                  onChange={(event) => setSelectedMapel(event.target.value)}
+                  onChange={(event) => {
+                    setSelectedMapel(event.target.value);
+                    setSelectedKelasId('');
+                    setJamKeValue('');
+                  }}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
                 >
                   <option value="">Pilih mata pelajaran</option>
-                  {selectedMapel && !MATA_PELAJARAN.includes(selectedMapel) && (
-                    <option value={selectedMapel}>{selectedMapel}</option>
-                  )}
-                  {MATA_PELAJARAN.map((mataPelajaran) => (
+                  {mapelOptions.map((mataPelajaran) => (
                     <option key={mataPelajaran} value={mataPelajaran}>{mataPelajaran}</option>
+                  ))}
+                </select>
+                {mapelOptions.length === 0 && <span className="text-xs text-amber-200">Tidak ada jadwal mapel pada hari {selectedHari}.</span>}
+              </label>
+
+              <label className="grid gap-2 text-sm text-slate-200">
+                <span>Kelas</span>
+                <select
+                  name="kelas_id"
+                  required
+                  disabled={!selectedMapel}
+                  value={selectedKelasId}
+                  onChange={(event) => setSelectedKelasId(event.target.value)}
+                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Pilih kelas</option>
+                  {kelasOptions.map((kelas) => (
+                    <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>
                   ))}
                 </select>
               </label>
@@ -300,11 +268,11 @@ export default function JurnalPage() {
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
                 />
                 <datalist id="jam-ke-suggestions">
-                  {jamKeSuggestions.map((saran) => <option key={saran} value={saran} />)}
+                  {jamKeOptions.map((saran) => <option key={saran} value={saran} />)}
                 </datalist>
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
                 <span>Materi</span>
                 <input
                   name="materi"
@@ -388,9 +356,10 @@ export default function JurnalPage() {
                 type="button"
                 onClick={async () => {
                   setError(null);
-                  const [kelas, rekap] = await Promise.all([getKelasList(), getRekapJurnal()]);
+                  const [kelas, rekap, jadwal] = await Promise.all([getKelasList(), getRekapJurnal(), getJadwalGuruByTeacher()]);
                   setKelasList(kelas);
                   setRekapList(rekap);
+                  setJadwalGuru(jadwal);
                 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
               >
