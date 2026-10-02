@@ -6,3 +6,7 @@ ubah string `Rekap Jurnal Harian` menjadi ubah `Rekap Jurnal Harian {mata_pelaja
 Kebutuhan: Rekap yang muncul hanya perlu 
 
 identifikasi gap pengetahuan/konteks
+
+--
+KOneksikan dengan daftar feature tentang riwayat dan detail jurnal
+pastikan waktu diset ke utc+ 9 (WIT di Indonesia)

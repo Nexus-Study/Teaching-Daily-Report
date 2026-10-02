@@ -86,10 +86,13 @@ export default function JurnalPage() {
   const jamKeOptions = useMemo(
     () => Array.from(new Set(
       jadwalHari
-        .filter((jadwal) => jadwal.mata_pelajaran?.nama_mapel === selectedMapel)
+        .filter((jadwal) =>
+          jadwal.mata_pelajaran?.nama_mapel === selectedMapel &&
+          (jadwal.kelas?.id === selectedKelasId || jadwal.kelas_id === selectedKelasId),
+        )
         .map((jadwal) => `${jadwal.jam_mulai}-${jadwal.jam_selesai}`),
     )).sort((left, right) => Number(left.split('-')[0]) - Number(right.split('-')[0])),
-    [jadwalHari, selectedMapel],
+    [jadwalHari, selectedMapel, selectedKelasId],
   );
 
   useEffect(() => {
@@ -263,6 +266,7 @@ export default function JurnalPage() {
                 <select
                   name="jam_ke"
                   required
+                  disabled={!selectedKelasId}
                   value={jamKeValue}
                   onChange={(event) => setJamKeValue(event.target.value)}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
