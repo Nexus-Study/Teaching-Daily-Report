@@ -71,7 +71,7 @@ export const portalMenus: PortalMenu[] = [
     description: 'Kelola data akun dan peran aktif.',
     href: '/portal/profil/',
     icon: User,
-    roles: ['admin', 'kamad', 'waka_kesiswaan', 'waka_kurikulum', 'guru_bk', 'guru_mapel', 'guru_tahfidz', 'wali_kelas', 'siswa'],
+    roles: ['admin', 'kamad', 'waka_kesiswaan', 'waka_kurikulum', 'guru_bk', 'guru_mapel', 'guru_tahfidz', 'wali_kelas', 'guru_piket', 'pembina_ekskul', 'siswa'],
     iconClass: 'text-slate-700 dark:text-slate-300',
     softTintClass: 'bg-slate-100 dark:bg-slate-800',
   },

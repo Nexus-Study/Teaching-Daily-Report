@@ -14,6 +14,8 @@ export type UserRole =
   | 'guru_mapel'
   | 'guru_tahfidz'
   | 'wali_kelas'
+  | 'guru_piket'
+  | 'pembina_ekskul'
   | 'siswa';
 
 export type PresensiStatus = 'hadir' | 'izin' | 'sakit' | 'alpa';
@@ -44,6 +46,28 @@ export type Kelas = {
   wali_kelas_id: string | null;
   created_at: string;
 }
+
+export type HariName = 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu';
+
+export type MataPelajaran = {
+  id: string;
+  nama_mapel: string;
+  jumlah_jam: number;
+  created_at: string;
+};
+
+export type JadwalGuru = {
+  id: string;
+  teacher_id: string;
+  mapel_id: string;
+  kelas_id: string;
+  hari: HariName;
+  jam_mulai: number;
+  jam_selesai: number;
+  created_at: string;
+  mata_pelajaran?: MataPelajaran;
+  kelas?: { id: string; nama_kelas: string };
+};
 
 export type Siswa = {
   id: string;
@@ -163,6 +187,68 @@ export interface Database {
           created_at?: string;
         };
         Relationships: [];
+      };
+      mata_pelajaran: {
+        Row: MataPelajaran;
+        Insert: {
+          id?: string;
+          nama_mapel: string;
+          jumlah_jam?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          nama_mapel?: string;
+          jumlah_jam?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      jadwal_guru: {
+        Row: JadwalGuru;
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          mapel_id: string;
+          kelas_id: string;
+          hari: HariName;
+          jam_mulai: number;
+          jam_selesai: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          mapel_id?: string;
+          kelas_id?: string;
+          hari?: HariName;
+          jam_mulai?: number;
+          jam_selesai?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'jadwal_guru_teacher_id_fkey';
+            columns: ['teacher_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'jadwal_guru_mapel_id_fkey';
+            columns: ['mapel_id'];
+            isOneToOne: false;
+            referencedRelation: 'mata_pelajaran';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'jadwal_guru_kelas_id_fkey';
+            columns: ['kelas_id'];
+            isOneToOne: false;
+            referencedRelation: 'kelas';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       siswa: {
         Row: Siswa;
