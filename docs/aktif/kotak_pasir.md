@@ -11,3 +11,19 @@ Arsitektur Layout Nested (app/portal/layout.tsx): Di dalam direktori app/portal/
 Restrukturisasi Komponen Profil & Logout: Pada app/portal/page.tsx, informasi profil pengguna dan tombol Logout saat ini berada di dalam header utama. Apakah untuk versi desktop, komponen profil dan tombol Logout ini akan dipindahkan ke dalam sidebar, atau header di halaman utama tetap dipertahankan?   tetap gunakan pertahankan di header utama.
 Spesifikasi Breakpoint Tailwind: Berapa batas minimum ukuran layar untuk menampilkan sidebar desktop? gunakan lg
 Indikator Rute Aktif (Active Route Highlight): Apakah item menu pada sidebar membutuhkan penanda visual aktif sesuai rute yang sedang diakses pengguna (menggunakan hook usePathname dari Next.js)? ya
+
+---
+iterasi:
+kembali ke 
+[GAP-EXPLORATION-01]:
+Strategi Responsif Mobile: Ketika diakses dari perangkat mobile/tablet (layar kecil), apakah tampilan utama tetap menggunakan header sticky dan grid menu seperti yang ada pada berkas page.tsx saat ini, atau membutuhkan navigasi bawah (bottom navigation) / hamburger menu? 
+ANALISIS: 
+Pilihan awal untuk mempertahankan grid menu, karena dua pertimbangan. Role tertentu memiliki banyak peran (seperti pada image_220772.png). Penggunaan bottom navigation akan sepertinya tidak dapat menampilkan semua menu. image_220b58.png memperlihatkan UI salah satu menu aplikasi. Penggunaan hamburgermenu dikhawatirkan akan membuat icon hamburger menu menutupi bagian atas UI, khususnya di bila diletakkan di bagian kiri atas. 
+
+[GAP-EXPLORATION-02]
+Restrukturisasi Komponen Profil & Logout: Pada app/portal/page.tsx, informasi profil pengguna dan tombol Logout saat ini berada di dalam header utama. Apakah untuk versi desktop, komponen profil dan tombol Logout ini akan dipindahkan ke dalam sidebar, atau header di halaman utama tetap dipertahankan? Pilihan awal untuk mempertahankan  
+
+/disc berikan alternatif solusi
+
+
+---

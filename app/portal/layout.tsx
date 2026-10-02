@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 
+import MobileNav from '@/app/portal/components/mobile-nav';
 import Sidebar from '@/app/portal/components/sidebar';
 import { createClient } from '@/lib/supabase/server';
 import type { Profile } from '@/types/database';
@@ -26,8 +27,13 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
     .single<Profile>();
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar userRoles={profile?.roles ?? null} />
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <div className="lg:hidden">
+        <MobileNav userRoles={profile?.roles ?? null} />
+      </div>
+      <div className="hidden lg:flex">
+        <Sidebar userRoles={profile?.roles ?? null} />
+      </div>
       <main className="min-w-0 flex-1">{children}</main>
     </div>
   );

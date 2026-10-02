@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 import { portalMenus } from '@/app/portal/config/menu';
+import { createClient } from '@/lib/supabase/client';
 import type { UserRole } from '@/types/database';
 
 type SidebarProps = {
@@ -14,8 +15,21 @@ type SidebarProps = {
 
 export default function Sidebar({ userRoles }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const visibleMenus = portalMenus.filter((menu) => menu.roles.some((role) => userRoles?.includes(role)));
+
+  async function handleLogout() {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      return;
+    }
+
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <aside
@@ -61,6 +75,21 @@ export default function Sidebar({ userRoles }: SidebarProps) {
           );
         })}
       </nav>
+
+      <div className="shrink-0 border-t border-slate-200 p-3 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Logout"
+          title={isCollapsed ? 'Logout' : undefined}
+          className={`flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 dark:text-rose-400 dark:hover:bg-rose-950/40 ${
+            isCollapsed ? 'justify-center px-0' : ''
+          }`}
+        >
+          <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
+          {!isCollapsed && <span>Logout</span>}
+        </button>
+      </div>
     </aside>
   );
 }
