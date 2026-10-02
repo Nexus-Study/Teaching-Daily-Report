@@ -3,8 +3,8 @@ import '@/app/globals.css';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'PWA Madrasah Terpadu',
-  description: 'Portal PWA Madrasah Terpadu dengan autentikasi Supabase.',
+  title: 'Portal Perkembangan Murid',
+  description: 'Portal PWA Madrasah Terpadu untuk melacak perkembangan siswa.',
 };
 
 export const viewport = {

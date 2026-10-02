@@ -20,6 +20,8 @@ tanggal terbaru 2      Materi       [detail]
 2. pada app/portal/jurnal ditambahkan button mengambang di bagian paling bawah layar (prioritas tampilan mobile), 
 bila dikllik mengarah ke riwayat jurnal. button ini bertuliskan "riwayat jurnal"
 prasyarat:
+
+## REKAP JURNAL HARIAN
 mengubah rekap jurnal harian pada app/portal/jurnal menjadi `Rekap jurnal harian {kelas}` dengan kelas khusus pada kelas yang dipilih di bagian atas.
 kartu rekap jurnal hanya dibatasi pada jurnal di kelas itu saja dengan tampilan visible sebanyak 3 kartu saja. diikuti tulisan selengkapnya yang dapat diklik. tulisan selengkapnya ini bukan tampilan utama, jadi tidak boleh mencolok. ketika tulisan selengkapnya ditekan, user diarahkan ke riwayat jurnal dengan nilai default pada kolom kelas adalah kelas app/portal/jurnal saat itu. 
 
@@ -55,13 +57,11 @@ keterangan:
 2. KEHADIRAN: bila ada salah satu atau lebih dari sakit, izin, alpa bernilai 0, sembunyikan. ikon pena berfungsi untuk memodifikasi kehadiran. mungkin ada nama tertentu yang sebelum dianggap hadir ternyata alpa. atau menambahkan siswa yang sakit, izin, atau alpa
 3. REFLEKSI: bila refleksi kosong, 
 
-nice to have: isian refleksi dapat diunduh berupa teks panjang yang mencakup refleksi dari berbagai kelas dan tanggal. 
+[nice_TO_have] isian refleksi dapat diunduh berupa teks panjang yang mencakup refleksi dari berbagai kelas dan tanggal. 
 
-Menambahkan menu refleksi tersendiri.
-Tampilan UI bisa seperti ini
+[nice_to_have] Menambahkan menu refleksi tersendiri. Tampilan UI menu Refleksi bisa seperti di bawah:
 
 kelas
-
 ------
 29 Agustus 2026
 teks 
@@ -73,7 +73,8 @@ Teks
 prasyarat:
 kartu jurnal dilengkapi dengan tulisan 'tambah refleksi'. begitu tulisan tambah refleksi diklik di akan ke kotak pengisian refleksi di detail jurnal yang sesuai berdasarkan kelas dan tanggal.
 
-nice to have: detail jurnal memiliki kemampuan swipe, ke kanan ke jurnal berikutnya, dan sebaliknya.
+[nice_to_have]: detail jurnal memiliki kemampuan swipe, ke kanan ke jurnal berikutnya, dan sebaliknya.
+
 pertanyaan:
 lebih baik membuat halaman baru atau melakukan sistem switch. pertimbangan harus diutamakan pada kemudahan refaktor/maintenance/debugging
 gap knowledge

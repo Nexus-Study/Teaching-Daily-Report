@@ -12,6 +12,12 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'id',
     icons: [
       {
+        src: '/icon.png',
+        sizes: '246x246',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
         src: '/icon-192.svg',
         sizes: '192x192',
         type: 'image/svg+xml',

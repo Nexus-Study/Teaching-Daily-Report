@@ -60,7 +60,7 @@ export default function PerilakuPage() {
   const [selectedKelasId, setSelectedKelasId] = useState('');
   const [selectedSiswaId, setSelectedSiswaId] = useState('');
   const [jenis, setJenis] = useState<PerilakuType>('pelanggaran');
-  const [tambahTindakLanjut, setTambahTindakLanjut] = useState(false);
+  const [tambahTindakLanjut, setTambahTindakLanjut] = useState(true);
   const [rekapList, setRekapList] = useState<RekapItem[]>([]);
   const [modalItem, setModalItem] = useState<RekapItem | null>(null);
   const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
