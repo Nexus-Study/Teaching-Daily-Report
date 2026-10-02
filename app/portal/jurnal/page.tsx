@@ -109,8 +109,10 @@ export default function JurnalPage() {
   }, [kelasOptions, selectedKelasId]);
 
   useEffect(() => {
-    if (jamKeOptions.length === 1 && jamKeValue !== jamKeOptions[0]) {
+    if (jamKeOptions.length === 1) {
       setJamKeValue(jamKeOptions[0]);
+    } else if (jamKeValue && !jamKeOptions.includes(jamKeValue)) {
+      setJamKeValue('');
     }
   }, [jamKeOptions, jamKeValue]);
 
@@ -193,7 +195,7 @@ export default function JurnalPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Jurnal Mengajar</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Input jurnal & presensi</h1>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Target input kurang dari 60 detik dengan presensi ringkas per siswa.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-300">Pastikan Bapak/Ibu sudah melengkapi jadwal mengajar di menu profil</p>
             </div>
           </div>
         </header>
@@ -258,18 +260,16 @@ export default function JurnalPage() {
 
               <label className="grid gap-2 text-sm text-slate-200">
                 <span>Jam Ke</span>
-                <input
+                <select
                   name="jam_ke"
                   required
-                  list="jam-ke-suggestions"
-                  placeholder="Contoh: 1-2"
                   value={jamKeValue}
                   onChange={(event) => setJamKeValue(event.target.value)}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                />
-                <datalist id="jam-ke-suggestions">
-                  {jamKeOptions.map((saran) => <option key={saran} value={saran} />)}
-                </datalist>
+                >
+                  <option value="">Pilih jam ke</option>
+                  {jamKeOptions.map((jam) => <option key={jam} value={jam}>{jam}</option>)}
+                </select>
               </label>
 
               <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
