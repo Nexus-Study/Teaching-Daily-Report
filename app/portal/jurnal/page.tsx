@@ -5,6 +5,7 @@ import { BookMarked, ClipboardList, LoaderCircle, RefreshCw, Save, Users } from 
 
 import type { HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa, PresensiStatus } from '../../../types/database';
 import { getAllMasterData, getRekapJurnal, getSiswaByKelas, getTodaySchedules, submitJurnalAndPresensi } from './actions';
+import PresensiSederhana from './PresensiSederhana';
 
 type PresensiRow = {
   siswa_id: string;
@@ -56,6 +57,7 @@ export default function JurnalPage() {
   const [isManualMode, setIsManualMode] = useState(false);
   const [simpanJadwalRutin, setSimpanJadwalRutin] = useState(true);
   const [presensiMap, setPresensiMap] = useState<Record<string, PresensiStatus>>({});
+  const [modePresensi, setModePresensi] = useState<'detail' | 'sederhana'>('sederhana');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
@@ -445,10 +447,45 @@ export default function JurnalPage() {
                 <h2 className="text-sm font-semibold text-white">Presensi Siswa</h2>
               </div>
 
+              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-1" role="tablist" aria-label="Mode presensi">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={modePresensi === 'sederhana'}
+                  onClick={() => setModePresensi('sederhana')}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                    modePresensi === 'sederhana'
+                      ? 'bg-cyan-500 text-slate-950'
+                      : 'text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  Mode Sederhana (Pengecualian)
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={modePresensi === 'detail'}
+                  onClick={() => setModePresensi('detail')}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                    modePresensi === 'detail'
+                      ? 'bg-cyan-500 text-slate-950'
+                      : 'text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  Mode Detail (Daftar Lengkap)
+                </button>
+              </div>
+
               {!selectedKelasId ? (
                 <p className="text-sm text-slate-400">Pilih kelas untuk memuat daftar siswa.</p>
               ) : siswaList.length === 0 ? (
                 <p className="text-sm text-slate-400">Belum ada siswa pada kelas ini.</p>
+              ) : modePresensi === 'sederhana' ? (
+                <PresensiSederhana
+                  siswaList={siswaList}
+                  presensiMap={presensiMap}
+                  onChange={setPresensiMap}
+                />
               ) : (
                 <div className="space-y-3">
                   {siswaList.map((siswa) => {

@@ -42,6 +42,7 @@ Teaching-Daily-Report/
 │       │   └── struktur_proyek.md
 │       ├── jurnal/
 │       │   ├── actions.ts
+│       │   ├── PresensiSederhana.tsx
 │       │   └── page.tsx
 │       ├── laporan/
 │       │   ├── actions.ts
@@ -120,7 +121,7 @@ Teaching-Daily-Report/
 - `app/portal/admin/`: halaman serta server actions untuk administrasi.
 - `app/portal/components/`: komponen navigasi portal untuk desktop dan perangkat mobile.
 - `app/portal/config/`: konfigurasi menu portal.
-- `app/portal/jurnal/`: halaman dan server actions jurnal mengajar.
+- `app/portal/jurnal/`: halaman, server actions, dan komponen presensi sederhana jurnal mengajar.
 - `app/portal/laporan/`: halaman dan server actions laporan.
 - `app/portal/perilaku/`: halaman dan server actions catatan perilaku.
 - `app/portal/profil/`: halaman profil, pengaturan jadwal mengajar, dan kredensial keamanan.
