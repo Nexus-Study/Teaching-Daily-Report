@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { BookMarked, ClipboardList, LoaderCircle, RefreshCw, Save, Users } from 'lucide-react';
 
-import type { JadwalGuru, JurnalMengajar, Kelas, Siswa, PresensiStatus } from '../../../types/database';
-import { getJadwalGuruByTeacher, getKelasList, getRekapJurnal, getSiswaByKelas, submitJurnalAndPresensi } from './actions';
+import type { HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa, PresensiStatus } from '../../../types/database';
+import { getAllMasterData, getRekapJurnal, getSiswaByKelas, getTodaySchedules, submitJurnalAndPresensi } from './actions';
 
 type PresensiRow = {
   siswa_id: string;
@@ -18,10 +18,11 @@ function getTodayWIT() {
   return new Date(Date.now() + witOffsetMilliseconds).toISOString().slice(0, 10);
 }
 
-function getHariWIT(dateStr: string) {
+function getHariWIT(dateStr: string): HariName | null {
   const [year, month, day] = dateStr.split('-').map(Number);
   const dayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return hariIndonesia[dayIndex];
+  const hari = hariIndonesia[dayIndex];
+  return hari === 'Minggu' ? null : hari as HariName;
 }
 
 const statusStyles: Record<PresensiStatus, string> = {
@@ -40,107 +41,141 @@ const statusLabels: Record<PresensiStatus, string> = {
 
 export default function JurnalPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
-  const [jadwalGuru, setJadwalGuru] = useState<JadwalGuru[]>([]);
+  const [mapelList, setMapelList] = useState<MataPelajaran[]>([]);
+  const [jadwalHari, setJadwalHari] = useState<JadwalGuru[]>([]);
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [rekapList, setRekapList] = useState<JurnalMengajar[]>([]);
   const [selectedTanggal, setSelectedTanggal] = useState(getTodayWIT);
+  const [selectedJadwalId, setSelectedJadwalId] = useState('');
   const [selectedKelasId, setSelectedKelasId] = useState('');
+  const [selectedMapelId, setSelectedMapelId] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
+  const [jamMulaiValue, setJamMulaiValue] = useState('');
+  const [jamSelesaiValue, setJamSelesaiValue] = useState('');
   const [jamKeValue, setJamKeValue] = useState('');
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [simpanJadwalRutin, setSimpanJadwalRutin] = useState(true);
   const [presensiMap, setPresensiMap] = useState<Record<string, PresensiStatus>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
   const [isLoadingData, startLoadingData] = useTransition();
+  const selectedHari = getHariWIT(selectedTanggal);
 
   useEffect(() => {
-    startLoadingData(() => {
-      void Promise.all([getKelasList(), getRekapJurnal(), getJadwalGuruByTeacher()])
-        .then(([kelas, rekap, jadwal]) => {
-          setKelasList(kelas);
-          setRekapList(rekap);
-          setJadwalGuru(jadwal);
-        })
-        .catch((loadError: unknown) => {
-          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data awal.');
-        });
+    startLoadingData(async () => {
+      try {
+        const [masterData, rekap] = await Promise.all([getAllMasterData(), getRekapJurnal()]);
+        setKelasList(masterData.kelasList);
+        setMapelList(masterData.mapelList);
+        setRekapList(rekap);
+      } catch (loadError: unknown) {
+        setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data awal.');
+      }
     });
   }, []);
 
-  const selectedHari = getHariWIT(selectedTanggal);
-  const jadwalHari = useMemo(
-    () => jadwalGuru.filter((jadwal) => jadwal.hari === selectedHari),
-    [jadwalGuru, selectedHari],
-  );
-  const mapelOptions = useMemo(
-    () => Array.from(new Set(jadwalHari.map((jadwal) => jadwal.mata_pelajaran?.nama_mapel).filter((mapel): mapel is string => Boolean(mapel)))),
-    [jadwalHari],
-  );
-  const kelasOptions = useMemo(() => {
-    const classes = new Map<string, { id: string; nama_kelas: string }>();
-    jadwalHari
-      .filter((jadwal) => jadwal.mata_pelajaran?.nama_mapel === selectedMapel && jadwal.kelas)
-      .forEach((jadwal) => classes.set(jadwal.kelas!.id, { id: jadwal.kelas!.id, nama_kelas: jadwal.kelas!.nama_kelas }));
-    return Array.from(classes.values());
-  }, [jadwalHari, selectedMapel]);
-  const jamKeOptions = useMemo(
-    () => Array.from(new Set(
-      jadwalHari
-        .filter((jadwal) =>
-          jadwal.mata_pelajaran?.nama_mapel === selectedMapel &&
-          (jadwal.kelas?.id === selectedKelasId || jadwal.kelas_id === selectedKelasId),
-        )
-        .map((jadwal) => `${jadwal.jam_mulai}-${jadwal.jam_selesai}`),
-    )).sort((left, right) => Number(left.split('-')[0]) - Number(right.split('-')[0])),
-    [jadwalHari, selectedMapel, selectedKelasId],
-  );
-
   useEffect(() => {
-    if (mapelOptions.length === 1 && selectedMapel !== mapelOptions[0]) {
-      setSelectedMapel(mapelOptions[0]);
-    } else if (selectedMapel && !mapelOptions.includes(selectedMapel)) {
-      setSelectedMapel('');
+    let isCurrentRequest = true;
+    setSelectedJadwalId('');
+    setSelectedKelasId('');
+    setSelectedMapelId('');
+    setSelectedMapel('');
+    setJamMulaiValue('');
+    setJamSelesaiValue('');
+    setJamKeValue('');
+
+    if (!selectedHari) {
+      setJadwalHari([]);
+      setIsManualMode(true);
+      setSimpanJadwalRutin(true);
+      return () => {
+        isCurrentRequest = false;
+      };
     }
-  }, [mapelOptions, selectedMapel]);
 
-  useEffect(() => {
-    if (kelasOptions.length === 1 && selectedKelasId !== kelasOptions[0].id) {
-      setSelectedKelasId(kelasOptions[0].id);
-    } else if (selectedKelasId && !kelasOptions.some((kelas) => kelas.id === selectedKelasId)) {
+    startLoadingData(async () => {
+      try {
+        const schedules = await getTodaySchedules(selectedHari);
+        if (!isCurrentRequest) {
+          return;
+        }
+        setJadwalHari(schedules);
+        const manualMode = schedules.length === 0;
+        setIsManualMode(manualMode);
+        setSimpanJadwalRutin(manualMode);
+      } catch (loadError: unknown) {
+        if (isCurrentRequest) {
+          setError(loadError instanceof Error ? loadError.message : 'Gagal memuat jadwal hari ini.');
+        }
+      }
+    });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [selectedHari]);
+
+  const handleScheduleSelect = (jadwalId: string) => {
+    setSelectedJadwalId(jadwalId);
+    const jadwal = jadwalHari.find((item) => item.id === jadwalId);
+    if (!jadwal) {
       setSelectedKelasId('');
-    }
-  }, [kelasOptions, selectedKelasId]);
-
-  useEffect(() => {
-    if (jamKeOptions.length === 1) {
-      setJamKeValue(jamKeOptions[0]);
-    } else if (jamKeValue && !jamKeOptions.includes(jamKeValue)) {
+      setSelectedMapelId('');
+      setSelectedMapel('');
+      setJamMulaiValue('');
+      setJamSelesaiValue('');
       setJamKeValue('');
-    }
-  }, [jamKeOptions, jamKeValue]);
-
-  useEffect(() => {
-    if (!selectedKelasId) {
-      setSiswaList([]);
-      setPresensiMap({});
       return;
     }
 
-    startLoadingData(() => {
-      void getSiswaByKelas(selectedKelasId)
-        .then((students) => {
-          setSiswaList(students);
-          setPresensiMap(
-            students.reduce<Record<string, PresensiStatus>>((accumulator, siswa) => {
-              accumulator[siswa.id] = 'hadir';
-              return accumulator;
-            }, {}),
-          );
-        })
-        .catch((loadError: unknown) => {
+    setSelectedKelasId(jadwal.kelas_id);
+    setSelectedMapelId(jadwal.mapel_id);
+    setSelectedMapel(jadwal.mata_pelajaran?.nama_mapel ?? '');
+    setJamMulaiValue(String(jadwal.jam_mulai));
+    setJamSelesaiValue(String(jadwal.jam_selesai));
+    setJamKeValue(`${jadwal.jam_mulai}-${jadwal.jam_selesai}`);
+  };
+
+  const handleJamChange = (jamMulai: string, jamSelesai: string) => {
+    setJamMulaiValue(jamMulai);
+    setJamSelesaiValue(jamSelesai);
+    setJamKeValue(jamMulai && jamSelesai ? `${jamMulai}-${jamSelesai}` : '');
+  };
+
+  useEffect(() => {
+    let isCurrentRequest = true;
+    if (!selectedKelasId) {
+      setSiswaList([]);
+      setPresensiMap({});
+      return () => {
+        isCurrentRequest = false;
+      };
+    }
+
+    startLoadingData(async () => {
+      try {
+        const students = await getSiswaByKelas(selectedKelasId);
+        if (!isCurrentRequest) {
+          return;
+        }
+        setSiswaList(students);
+        setPresensiMap(
+          students.reduce<Record<string, PresensiStatus>>((accumulator, siswa) => {
+            accumulator[siswa.id] = 'hadir';
+            return accumulator;
+          }, {}),
+        );
+      } catch (loadError: unknown) {
+        if (isCurrentRequest) {
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat daftar siswa.');
-        });
+        }
+      }
     });
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, [selectedKelasId]);
 
   const rekapWithClass = useMemo(
@@ -163,6 +198,11 @@ export default function JurnalPage() {
     setError(null);
     setMessage(null);
 
+    if (!selectedKelasId || !selectedMapelId || !selectedMapel || !jamKeValue) {
+      setError('Pilih jadwal atau lengkapi kelas, mata pelajaran, dan jam mengajar.');
+      return;
+    }
+
     const payload: PresensiRow[] = siswaList.map((siswa) => ({
       siswa_id: siswa.id,
       status: presensiMap[siswa.id] ?? 'hadir',
@@ -172,18 +212,34 @@ export default function JurnalPage() {
     formData.set('tanggal', selectedTanggal);
     formData.set('mata_pelajaran', selectedMapel);
     formData.set('jam_ke', jamKeValue);
+    formData.set('mapel_id', selectedMapelId);
+    formData.set('jam_mulai', jamMulaiValue);
+    formData.set('jam_selesai', jamSelesaiValue);
+    formData.set('hari', selectedHari ?? '');
+    formData.set('simpan_jadwal_rutin', String(simpanJadwalRutin && Boolean(selectedHari)));
     formData.set('presensi_json', JSON.stringify(payload));
 
-    startSubmitting(() => {
-      void submitJurnalAndPresensi(formData)
-        .then(async () => {
-          setMessage('Jurnal dan presensi berhasil disimpan.');
-          const rekap = await getRekapJurnal();
+    startSubmitting(async () => {
+      try {
+        await submitJurnalAndPresensi(formData);
+        setMessage('Jurnal dan presensi berhasil disimpan.');
+        try {
+          const [rekap, schedules] = await Promise.all([
+            getRekapJurnal(),
+            selectedHari ? getTodaySchedules(selectedHari) : Promise.resolve([]),
+          ]);
           setRekapList(rekap);
-        })
-        .catch((submitError: unknown) => {
-          setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan jurnal.');
-        });
+          setJadwalHari(schedules);
+        } catch (refreshError: unknown) {
+          setError(
+            refreshError instanceof Error
+              ? `Jurnal berhasil disimpan, tetapi data terbaru gagal dimuat: ${refreshError.message}`
+              : 'Jurnal berhasil disimpan, tetapi data terbaru gagal dimuat.',
+          );
+        }
+      } catch (submitError: unknown) {
+        setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan jurnal.');
+      }
     });
   };
 
@@ -213,68 +269,126 @@ export default function JurnalPage() {
                   type="date"
                   required
                   value={selectedTanggal}
-                  onChange={(event) => {
-                    setSelectedTanggal(event.target.value);
-                    setSelectedMapel('');
-                    setSelectedKelasId('');
-                    setJamKeValue('');
-                  }}
+                  onChange={(event) => setSelectedTanggal(event.target.value)}
                   className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
                 />
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>Mata Pelajaran</span>
-                <select
-                  name="mata_pelajaran"
-                  required
-                  value={selectedMapel}
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={isManualMode}
+                  disabled={jadwalHari.length === 0}
                   onChange={(event) => {
-                    setSelectedMapel(event.target.value);
-                    setSelectedKelasId('');
-                    setJamKeValue('');
+                    const manualMode = event.target.checked;
+                    setIsManualMode(manualMode);
+                    setSimpanJadwalRutin(manualMode);
+                    if (!manualMode) {
+                      handleScheduleSelect('');
+                    } else {
+                      setSelectedJadwalId('');
+                    }
                   }}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                >
-                  <option value="">Pilih mata pelajaran</option>
-                  {mapelOptions.map((mataPelajaran) => (
-                    <option key={mataPelajaran} value={mataPelajaran}>{mataPelajaran}</option>
-                  ))}
-                </select>
-                {mapelOptions.length === 0 && <span className="text-xs text-amber-200">Tidak ada jadwal mapel pada hari {selectedHari}.</span>}
+                  className="h-4 w-4 accent-cyan-400"
+                />
+                <span>
+                  Mengajar Kelas Lain / Infal / Setting Jadwal Mandiri
+                  {jadwalHari.length === 0 ? <span className="block text-xs text-slate-400">Mode manual aktif karena tidak ada jadwal pada {selectedHari ?? 'hari ini'}.</span> : null}
+                </span>
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>Kelas</span>
-                <select
-                  name="kelas_id"
-                  required
-                  disabled={!selectedMapel}
-                  value={selectedKelasId}
-                  onChange={(event) => setSelectedKelasId(event.target.value)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Pilih kelas</option>
-                  {kelasOptions.map((kelas) => (
-                    <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>
-                  ))}
-                </select>
-              </label>
+              {!isManualMode && jadwalHari.length > 0 ? (
+                <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
+                  <span>Pilih Jadwal Hari Ini</span>
+                  <select
+                    value={selectedJadwalId}
+                    onChange={(event) => handleScheduleSelect(event.target.value)}
+                    required
+                    className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                  >
+                    <option value="">Pilih jadwal mengajar</option>
+                    {jadwalHari.map((jadwal) => (
+                      <option key={jadwal.id} value={jadwal.id}>
+                        {jadwal.kelas?.nama_kelas ?? 'Kelas'} — {jadwal.mata_pelajaran?.nama_mapel ?? 'Mata pelajaran'} (Jam {jadwal.jam_mulai}-{jadwal.jam_selesai})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
 
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>Jam Ke</span>
-                <select
-                  name="jam_ke"
-                  required
-                  disabled={!selectedKelasId}
-                  value={jamKeValue}
-                  onChange={(event) => setJamKeValue(event.target.value)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                >
-                  <option value="">Pilih jam ke</option>
-                  {jamKeOptions.map((jam) => <option key={jam} value={jam}>{jam}</option>)}
-                </select>
-              </label>
+              {isManualMode ? (
+                <>
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>Kelas</span>
+                    <select
+                      value={selectedKelasId}
+                      onChange={(event) => setSelectedKelasId(event.target.value)}
+                      required
+                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                    >
+                      <option value="">Pilih kelas</option>
+                      {kelasList.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>Mata Pelajaran</span>
+                    <select
+                      value={selectedMapelId}
+                      onChange={(event) => {
+                        const mapel = mapelList.find((item) => item.id === event.target.value);
+                        setSelectedMapelId(event.target.value);
+                        setSelectedMapel(mapel?.nama_mapel ?? '');
+                      }}
+                      required
+                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                    >
+                      <option value="">Pilih mata pelajaran</option>
+                      {mapelList.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.nama_mapel}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>Jam Mulai</span>
+                    <select
+                      value={jamMulaiValue}
+                      onChange={(event) => handleJamChange(event.target.value, '')}
+                      required
+                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                    >
+                      <option value="">Pilih jam mulai</option>
+                      {Array.from({ length: 8 }, (_, index) => index + 1).map((jam) => <option key={jam} value={jam}>{jam}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>Jam Selesai</span>
+                    <select
+                      value={jamSelesaiValue}
+                      onChange={(event) => handleJamChange(jamMulaiValue, event.target.value)}
+                      disabled={!jamMulaiValue}
+                      required
+                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Pilih jam selesai</option>
+                      {Array.from({ length: 8 }, (_, index) => index + 1)
+                        .filter((jam) => jam > Number(jamMulaiValue))
+                        .map((jam) => <option key={jam} value={jam}>{jam}</option>)}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
+                  <span>Jam Ke</span>
+                  <input
+                    value={jamKeValue}
+                    readOnly
+                    required
+                    placeholder="Pilih jadwal untuk mengisi jam"
+                    className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none"
+                  />
+                </label>
+              )}
 
               <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
                 <span>Materi</span>
@@ -287,6 +401,32 @@ export default function JurnalPage() {
               </label>
             </div>
 
+            {isManualMode ? (
+              <label className="flex items-start gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-sm text-slate-200">
+                <input
+                  name="simpan_jadwal_rutin"
+                  type="checkbox"
+                  value="true"
+                  checked={simpanJadwalRutin}
+                  disabled={!selectedHari}
+                  onChange={(event) => setSimpanJadwalRutin(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-cyan-400"
+                />
+                <span>
+                  Simpan pilihan ini sebagai Jadwal Rutin Saya di Profil
+                  {!selectedHari ? <span className="block text-xs text-amber-200">Jadwal rutin hanya dapat disimpan untuk Senin-Sabtu.</span> : null}
+                </span>
+              </label>
+            ) : null}
+
+            <input type="hidden" name="kelas_id" value={selectedKelasId} />
+            <input type="hidden" name="mata_pelajaran" value={selectedMapel} />
+            <input type="hidden" name="mapel_id" value={selectedMapelId} />
+            <input type="hidden" name="jam_ke" value={jamKeValue} />
+            <input type="hidden" name="jam_mulai" value={jamMulaiValue} />
+            <input type="hidden" name="jam_selesai" value={jamSelesaiValue} />
+            <input type="hidden" name="hari" value={selectedHari ?? ''} />
+            <input type="hidden" name="simpan_jadwal_rutin" value={String(simpanJadwalRutin && Boolean(selectedHari))} />
             <label className="grid gap-2 text-sm text-slate-200">
               <span>Uraian Singkat Materi</span>
               <textarea
@@ -358,13 +498,25 @@ export default function JurnalPage() {
 
               <button
                 type="button"
-                onClick={async () => {
+                onClick={() => {
                   setError(null);
-                  const [kelas, rekap, jadwal] = await Promise.all([getKelasList(), getRekapJurnal(), getJadwalGuruByTeacher()]);
-                  setKelasList(kelas);
-                  setRekapList(rekap);
-                  setJadwalGuru(jadwal);
+                  startLoadingData(async () => {
+                    try {
+                      const [masterData, rekap, schedules] = await Promise.all([
+                        getAllMasterData(),
+                        getRekapJurnal(),
+                        selectedHari ? getTodaySchedules(selectedHari) : Promise.resolve([]),
+                      ]);
+                      setKelasList(masterData.kelasList);
+                      setMapelList(masterData.mapelList);
+                      setRekapList(rekap);
+                      setJadwalHari(schedules);
+                    } catch (loadError: unknown) {
+                      setError(loadError instanceof Error ? loadError.message : 'Gagal memuat ulang data jurnal.');
+                    }
+                  });
                 }}
+                disabled={isLoadingData}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
               >
                 <RefreshCw className="h-4 w-4" />
