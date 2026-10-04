@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { BookMarked, ClipboardList, LoaderCircle, RefreshCw, Save, Users } from 'lucide-react';
+import { type FormEvent, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { BookMarked, CalendarDays, ClipboardList, Clock3, LoaderCircle, RefreshCw, Save, Search, Users } from 'lucide-react';
 
+import ConfirmationModal from '../components/confirmation-modal';
 import type { HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa, PresensiStatus } from '../../../types/database';
 import { getAllMasterData, getRekapJurnal, getSiswaByKelas, getTodaySchedules, submitJurnalAndPresensi } from './actions';
 import PresensiSederhana from './PresensiSederhana';
@@ -10,6 +11,11 @@ import PresensiSederhana from './PresensiSederhana';
 type PresensiRow = {
   siswa_id: string;
   status: PresensiStatus;
+};
+
+type PendingSubmission = {
+  formData: FormData;
+  description: string;
 };
 
 const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -20,17 +26,21 @@ function getTodayWIT() {
 }
 
 function getHariWIT(dateStr: string): HariName | null {
+  if (!dateStr) {
+    return null;
+  }
+
   const [year, month, day] = dateStr.split('-').map(Number);
   const dayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
   const hari = hariIndonesia[dayIndex];
-  return hari === 'Minggu' ? null : hari as HariName;
+  return !hari || hari === 'Minggu' ? null : hari as HariName;
 }
 
 const statusStyles: Record<PresensiStatus, string> = {
-  hadir: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100',
-  izin: 'border-amber-400/30 bg-amber-500/15 text-amber-100',
-  sakit: 'border-sky-400/30 bg-sky-500/15 text-sky-100',
-  alpa: 'border-rose-400/30 bg-rose-500/15 text-rose-100',
+  hadir: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  izin: 'border-amber-200 bg-amber-50 text-amber-800',
+  sakit: 'border-sky-200 bg-sky-50 text-sky-800',
+  alpa: 'border-rose-200 bg-rose-50 text-rose-800',
 };
 
 const statusLabels: Record<PresensiStatus, string> = {
@@ -60,6 +70,12 @@ export default function JurnalPage() {
   const [modePresensi, setModePresensi] = useState<'detail' | 'sederhana'>('sederhana');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<PendingSubmission | null>(null);
+  const [showAllRekap, setShowAllRekap] = useState(false);
+  const [rekapSearch, setRekapSearch] = useState('');
+  const [rekapPage, setRekapPage] = useState(1);
+  const submissionInFlight = useRef(false);
   const [isSubmitting, startSubmitting] = useTransition();
   const [isLoadingData, startLoadingData] = useTransition();
   const selectedHari = getHariWIT(selectedTanggal);
@@ -106,6 +122,16 @@ export default function JurnalPage() {
         const manualMode = schedules.length === 0;
         setIsManualMode(manualMode);
         setSimpanJadwalRutin(manualMode);
+        if (schedules[0]) {
+          const firstSchedule = schedules[0];
+          setSelectedJadwalId(firstSchedule.id);
+          setSelectedKelasId(firstSchedule.kelas_id);
+          setSelectedMapelId(firstSchedule.mapel_id);
+          setSelectedMapel(firstSchedule.mata_pelajaran?.nama_mapel ?? '');
+          setJamMulaiValue(String(firstSchedule.jam_mulai));
+          setJamSelesaiValue(String(firstSchedule.jam_selesai));
+          setJamKeValue(`${firstSchedule.jam_mulai}-${firstSchedule.jam_selesai}`);
+        }
       } catch (loadError: unknown) {
         if (isCurrentRequest) {
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat jadwal hari ini.');
@@ -189,6 +215,29 @@ export default function JurnalPage() {
     [kelasList, rekapList],
   );
 
+  const filteredRekap = useMemo(() => {
+    const query = rekapSearch.trim().toLocaleLowerCase('id');
+    return rekapWithClass.filter((jurnal) => {
+      const matchesClass = showAllRekap || (selectedKelasId !== '' && jurnal.kelas_id === selectedKelasId);
+      const matchesSearch =
+        query === '' ||
+        jurnal.materi.toLocaleLowerCase('id').includes(query) ||
+        (jurnal.catatan ?? '').toLocaleLowerCase('id').includes(query);
+      return matchesClass && matchesSearch;
+    });
+  }, [rekapSearch, rekapWithClass, selectedKelasId, showAllRekap]);
+  const rekapPageSize = 3;
+  const totalRekapPages = Math.max(1, Math.ceil(filteredRekap.length / rekapPageSize));
+  const currentRekapPage = Math.min(rekapPage, totalRekapPages);
+  const paginatedRekap = filteredRekap.slice(
+    (currentRekapPage - 1) * rekapPageSize,
+    currentRekapPage * rekapPageSize,
+  );
+
+  useEffect(() => {
+    setRekapPage(1);
+  }, [filteredRekap.length, rekapSearch, selectedKelasId, showAllRekap]);
+
   const handleStatusChange = (siswaId: string, status: PresensiStatus) => {
     setPresensiMap((current) => ({
       ...current,
@@ -196,7 +245,8 @@ export default function JurnalPage() {
     }));
   };
 
-  const handleSubmit = (formData: FormData) => {
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setMessage(null);
 
@@ -205,6 +255,7 @@ export default function JurnalPage() {
       return;
     }
 
+    const formData = new FormData(event.currentTarget);
     const payload: PresensiRow[] = siswaList.map((siswa) => ({
       siswa_id: siswa.id,
       status: presensiMap[siswa.id] ?? 'hadir',
@@ -221,9 +272,30 @@ export default function JurnalPage() {
     formData.set('simpan_jadwal_rutin', String(simpanJadwalRutin && Boolean(selectedHari)));
     formData.set('presensi_json', JSON.stringify(payload));
 
+    const absentCount = payload.filter((row) => row.status !== 'hadir').length;
+    const selectedKelas = kelasList.find((kelas) => kelas.id === selectedKelasId);
+    const absenceDescription = absentCount === 0
+      ? 'Tidak ada siswa yang ditandai tidak hadir.'
+      : `${absentCount} siswa ditandai tidak hadir.`;
+    setPendingSubmission({
+      formData,
+      description: `Kelas ${selectedKelas?.nama_kelas ?? 'yang dipilih'} • ${selectedMapel}. ${absenceDescription} Simpan jurnal dan presensi ini?`,
+    });
+    setIsConfirmationOpen(true);
+  };
+
+  const handleConfirmedSubmit = () => {
+    if (!pendingSubmission || submissionInFlight.current) {
+      return;
+    }
+
+    submissionInFlight.current = true;
+    const { formData } = pendingSubmission;
     startSubmitting(async () => {
       try {
         await submitJurnalAndPresensi(formData);
+        setIsConfirmationOpen(false);
+        setPendingSubmission(null);
         setMessage('Jurnal dan presensi berhasil disimpan.');
         try {
           const [rekap, schedules] = await Promise.all([
@@ -240,100 +312,165 @@ export default function JurnalPage() {
           );
         }
       } catch (submitError: unknown) {
+        setIsConfirmationOpen(false);
+        setPendingSubmission(null);
         setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan jurnal.');
+      } finally {
+        submissionInFlight.current = false;
       }
     });
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-        <header className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-          <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-100">
-              <BookMarked className="h-6 w-6" />
+    <main className="min-h-screen bg-slate-100 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-slate-800">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <header className="rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-5 text-white shadow-md">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-teal-50">
+                <BookMarked className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wider text-teal-100">Jurnal Guru Mandiri</p>
+                <h1 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">Presensi &amp; Pengajaran Harian</h1>
+                <p className="mt-1 max-w-xl text-sm text-teal-100">
+                  Pilih jadwal mengajar di bawah. Riwayat jurnal akan mengikuti kelas yang dipilih.
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Jurnal Mengajar</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Input jurnal & presensi</h1>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Pastikan Bapak/Ibu sudah melengkapi jadwal mengajar di menu profil</p>
-            </div>
+            <label className="grid shrink-0 gap-1.5 rounded-xl border border-white/20 bg-white/15 p-3 text-xs font-semibold text-teal-50 backdrop-blur sm:min-w-48">
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                Tanggal Input
+              </span>
+              <input
+                name="tanggal"
+                form="jurnal-form"
+                type="date"
+                required
+                value={selectedTanggal}
+                onChange={(event) => setSelectedTanggal(event.target.value)}
+                className="h-9 rounded-lg border-0 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-300"
+              />
+            </label>
           </div>
+          {selectedTanggal && selectedTanggal < getTodayWIT() ? (
+            <p role="status" className="mt-4 flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-500/20 p-3 text-xs text-amber-50">
+              <Clock3 className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
+              <span>
+                <strong>MODE JURNAL SUSULAN:</strong> Merekap jurnal lampau (
+                {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${selectedTanggal}T00:00:00Z`))}).
+                Jadwal disesuaikan otomatis.
+              </span>
+            </p>
+          ) : null}
         </header>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-          <form action={handleSubmit} className="space-y-4">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form id="jurnal-form" onSubmit={handleFormSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>Tanggal</span>
-                <input
-                  name="tanggal"
-                  type="date"
-                  required
-                  value={selectedTanggal}
-                  onChange={(event) => setSelectedTanggal(event.target.value)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                />
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 md:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={isManualMode}
-                  disabled={jadwalHari.length === 0}
-                  onChange={(event) => {
-                    const manualMode = event.target.checked;
-                    setIsManualMode(manualMode);
-                    setSimpanJadwalRutin(manualMode);
-                    if (!manualMode) {
-                      handleScheduleSelect('');
-                    } else {
-                      setSelectedJadwalId('');
-                    }
-                  }}
-                  className="h-4 w-4 accent-cyan-400"
-                />
-                <span>
-                  Mengajar Kelas Lain / Infal / Setting Jadwal Mandiri
-                  {jadwalHari.length === 0 ? <span className="block text-xs text-slate-400">Mode manual aktif karena tidak ada jadwal pada {selectedHari ?? 'hari ini'}.</span> : null}
-                </span>
-              </label>
-
-              {!isManualMode && jadwalHari.length > 0 ? (
-                <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
-                  <span>Pilih Jadwal Hari Ini</span>
-                  <select
-                    value={selectedJadwalId}
-                    onChange={(event) => handleScheduleSelect(event.target.value)}
-                    required
-                    className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+              <section className="space-y-4 md:col-span-2" aria-labelledby="schedule-heading">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-teal-600" aria-hidden="true" />
+                    <h2 id="schedule-heading" className="text-base font-bold text-slate-900">
+                      1. Pilih Jadwal Mengajar{selectedHari ? ` (${selectedHari})` : ''}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isManualMode) {
+                        if (jadwalHari.length === 0) {
+                          return;
+                        }
+                        setIsManualMode(false);
+                        setSimpanJadwalRutin(false);
+                        handleScheduleSelect(jadwalHari[0].id);
+                      } else {
+                        setIsManualMode(true);
+                        setSimpanJadwalRutin(true);
+                        setSelectedJadwalId('');
+                      }
+                    }}
+                    disabled={isManualMode && jadwalHari.length === 0}
+                    aria-pressed={isManualMode}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isManualMode
+                        ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                        : 'border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100'
+                    }`}
                   >
-                    <option value="">Pilih jadwal mengajar</option>
-                    {jadwalHari.map((jadwal) => (
-                      <option key={jadwal.id} value={jadwal.id}>
-                        {jadwal.kelas?.nama_kelas ?? 'Kelas'} — {jadwal.mata_pelajaran?.nama_mapel ?? 'Mata pelajaran'} (Jam {jadwal.jam_mulai}-{jadwal.jam_selesai})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
+                    {isManualMode ? 'Tutup Mode Manual' : '+ Mode Manual / Infal'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {jadwalHari.map((jadwal) => {
+                    const isSelected = selectedJadwalId === jadwal.id && !isManualMode;
+                    const isFilled = rekapList.some(
+                      (jurnal) =>
+                        jurnal.tanggal === selectedTanggal &&
+                        jurnal.kelas_id === jadwal.kelas_id &&
+                        jurnal.mata_pelajaran === (jadwal.mata_pelajaran?.nama_mapel ?? '') &&
+                        jurnal.jam_ke === `${jadwal.jam_mulai}-${jadwal.jam_selesai}`,
+                    );
+
+                    return (
+                      <button
+                        key={jadwal.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => {
+                          setIsManualMode(false);
+                          setSimpanJadwalRutin(false);
+                          handleScheduleSelect(jadwal.id);
+                        }}
+                        className={`flex min-h-28 flex-col justify-between rounded-xl border-2 p-3.5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 ${
+                          isSelected
+                            ? 'border-teal-600 bg-teal-50/70 shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-teal-300'
+                        }`}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-bold text-teal-800">
+                            {jadwal.kelas?.nama_kelas ?? 'Kelas'}
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isFilled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {isFilled ? 'Terisi' : 'Belum'}
+                          </span>
+                        </span>
+                        <span className="mt-3 block">
+                          <span className="block text-sm font-bold text-slate-900">{jadwal.mata_pelajaran?.nama_mapel ?? 'Mata pelajaran'}</span>
+                          <span className="mt-0.5 block text-xs text-slate-500">Jam {jadwal.jam_mulai}-{jadwal.jam_selesai}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {jadwalHari.length === 0 ? (
+                    <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-medium text-slate-500 sm:col-span-3">
+                      Tidak ada jadwal mengajar{selectedHari ? ` pada hari ${selectedHari}` : ''}. Gunakan Mode Manual / Infal.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
 
               {isManualMode ? (
                 <>
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-slate-700">
                     <span>Kelas</span>
                     <select
                       value={selectedKelasId}
                       onChange={(event) => setSelectedKelasId(event.target.value)}
                       required
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                     >
                       <option value="">Pilih kelas</option>
                       {kelasList.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
                     </select>
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-slate-700">
                     <span>Mata Pelajaran</span>
                     <select
                       value={selectedMapelId}
@@ -343,34 +480,34 @@ export default function JurnalPage() {
                         setSelectedMapel(mapel?.nama_mapel ?? '');
                       }}
                       required
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                     >
                       <option value="">Pilih mata pelajaran</option>
                       {mapelList.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.nama_mapel}</option>)}
                     </select>
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-slate-700">
                     <span>Jam Mulai</span>
                     <select
                       value={jamMulaiValue}
                       onChange={(event) => handleJamChange(event.target.value, '')}
                       required
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                     >
                       <option value="">Pilih jam mulai</option>
                       {Array.from({ length: 8 }, (_, index) => index + 1).map((jam) => <option key={jam} value={jam}>{jam}</option>)}
                     </select>
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-slate-700">
                     <span>Jam Selesai</span>
                     <select
                       value={jamSelesaiValue}
                       onChange={(event) => handleJamChange(jamMulaiValue, event.target.value)}
                       disabled={!jamMulaiValue}
                       required
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">Pilih jam selesai</option>
                       {Array.from({ length: 8 }, (_, index) => index + 1)
@@ -380,31 +517,22 @@ export default function JurnalPage() {
                   </label>
                 </>
               ) : (
-                <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
+                <label className="grid gap-2 text-sm text-slate-700 md:col-span-2">
                   <span>Jam Ke</span>
                   <input
                     value={jamKeValue}
                     readOnly
                     required
                     placeholder="Pilih jadwal untuk mengisi jam"
-                    className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none"
+                    className="h-11 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 outline-none"
                   />
                 </label>
               )}
 
-              <label className="grid gap-2 text-sm text-slate-200 md:col-span-2">
-                <span>Materi</span>
-                <input
-                  name="materi"
-                  required
-                  placeholder="Contoh: Bab thaharah"
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
-                />
-              </label>
             </div>
 
             {isManualMode ? (
-              <label className="flex items-start gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-sm text-slate-200">
+              <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <input
                   name="simpan_jadwal_rutin"
                   type="checkbox"
@@ -412,11 +540,11 @@ export default function JurnalPage() {
                   checked={simpanJadwalRutin}
                   disabled={!selectedHari}
                   onChange={(event) => setSimpanJadwalRutin(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-cyan-400"
+                  className="mt-0.5 h-4 w-4 accent-teal-600"
                 />
                 <span>
                   Simpan pilihan ini sebagai Jadwal Rutin Saya di Profil
-                  {!selectedHari ? <span className="block text-xs text-amber-200">Jadwal rutin hanya dapat disimpan untuk Senin-Sabtu.</span> : null}
+                  {!selectedHari ? <span className="block text-xs text-amber-700">Jadwal rutin hanya dapat disimpan untuk Senin-Sabtu.</span> : null}
                 </span>
               </label>
             ) : null}
@@ -429,57 +557,52 @@ export default function JurnalPage() {
             <input type="hidden" name="jam_selesai" value={jamSelesaiValue} />
             <input type="hidden" name="hari" value={selectedHari ?? ''} />
             <input type="hidden" name="simpan_jadwal_rutin" value={String(simpanJadwalRutin && Boolean(selectedHari))} />
-            <label className="grid gap-2 text-sm text-slate-200">
-              <span>Uraian Singkat Materi</span>
-              <textarea
-                name="catatan"
-                rows={3}
-                placeholder="Uraian singkat materi, catatan penting, atau hal-hal yang perlu dicatat."
-                className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40"
-              />
-            </label>
-
             <input type="hidden" name="presensi_json" value="[]" readOnly />
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex items-center gap-2">
-                <Users className="h-4 w-4 text-cyan-300" />
-                <h2 className="text-sm font-semibold text-white">Presensi Siswa</h2>
+                <Users className="h-5 w-5 text-teal-600" aria-hidden="true" />
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">
+                    2. Presensi Cepat Siswa{selectedKelasId ? ` (${kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'Kelas'})` : ''}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">Seluruh siswa otomatis berstatus hadir. Tandai siswa yang absen saja.</p>
+                </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-1" role="tablist" aria-label="Mode presensi">
+              <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1" role="tablist" aria-label="Mode presensi">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={modePresensi === 'sederhana'}
                   onClick={() => setModePresensi('sederhana')}
-                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
                     modePresensi === 'sederhana'
-                      ? 'bg-cyan-500 text-slate-950'
-                      : 'text-slate-300 hover:bg-white/5'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Mode Sederhana (Pengecualian)
+                  Pengecualian (Cepat)
                 </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={modePresensi === 'detail'}
                   onClick={() => setModePresensi('detail')}
-                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
                     modePresensi === 'detail'
-                      ? 'bg-cyan-500 text-slate-950'
-                      : 'text-slate-300 hover:bg-white/5'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Mode Detail (Daftar Lengkap)
+                  Daftar Lengkap
                 </button>
               </div>
 
               {!selectedKelasId ? (
-                <p className="text-sm text-slate-400">Pilih kelas untuk memuat daftar siswa.</p>
+                <p className="text-sm text-slate-500">Pilih jadwal atau kelas manual untuk memuat daftar siswa.</p>
               ) : siswaList.length === 0 ? (
-                <p className="text-sm text-slate-400">Belum ada siswa pada kelas ini.</p>
+                <p className="text-sm text-slate-500">Belum ada siswa pada kelas ini.</p>
               ) : modePresensi === 'sederhana' ? (
                 <PresensiSederhana
                   siswaList={siswaList}
@@ -492,10 +615,10 @@ export default function JurnalPage() {
                     const status = presensiMap[siswa.id] ?? 'hadir';
 
                     return (
-                      <div key={siswa.id} className="rounded-2xl border border-white/8 bg-white/5 p-3">
+                      <div key={siswa.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-medium text-white">{siswa.full_name}</p>
+                            <p className="font-medium text-slate-900">{siswa.full_name}</p>
                           </div>
                           <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusStyles[status]}`}>{statusLabels[status]}</span>
                         </div>
@@ -509,7 +632,7 @@ export default function JurnalPage() {
                               className={`h-10 rounded-2xl border text-xs font-semibold transition active:scale-[0.98] ${
                                 status === itemStatus
                                   ? statusStyles[itemStatus]
-                                  : 'border-white/10 bg-slate-950/60 text-slate-300 hover:border-white/20 hover:bg-slate-900'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50'
                               }`}
                             >
                               {statusLabels[itemStatus]}
@@ -523,11 +646,36 @@ export default function JurnalPage() {
               )}
             </div>
 
+            <section className="space-y-4" aria-labelledby="lesson-heading">
+              <div className="flex items-center gap-2">
+                <BookMarked className="h-5 w-5 text-teal-600" aria-hidden="true" />
+                <h2 id="lesson-heading" className="text-base font-bold text-slate-900">3. Pokok &amp; Uraian Singkat Materi</h2>
+              </div>
+              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+                <span>Pokok Bahasan / Topik Utama <span className="text-rose-600">*</span></span>
+                <input
+                  name="materi"
+                  required
+                  placeholder="Contoh: Bab 2 Sistem Persamaan Linear"
+                  className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+                <span>Uraian Singkat Kegiatan / Catatan Kelas (Opsional)</span>
+                <textarea
+                  name="catatan"
+                  rows={3}
+                  placeholder="Tuliskan uraian singkat materi, kegiatan, atau catatan kelas."
+                  className="rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </label>
+            </section>
+
             <div className="flex items-center gap-3">
               <button
                 type="submit"
                 disabled={isSubmitting || isLoadingData}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Simpan Jurnal & Presensi
@@ -554,49 +702,149 @@ export default function JurnalPage() {
                   });
                 }}
                 disabled={isLoadingData}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition active:scale-[0.98] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className="h-4 w-4" />
                 Muat Ulang
               </button>
             </div>
 
-            {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+            {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p> : null}
+            {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
           </form>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-cyan-300" />
-            <h2 className="text-sm font-semibold text-white">Rekap Jurnal Harian</h2>
+        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="rounded-xl border border-teal-100 bg-teal-50 p-2 text-teal-700">
+                <ClipboardList className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900">Riwayat Jurnal Lampau</h2>
+                  <span className="rounded-full border border-teal-200 bg-teal-100 px-2.5 py-0.5 text-xs font-bold text-teal-800">
+                    {showAllRekap
+                      ? 'Semua Kelas'
+                      : selectedKelasId
+                        ? `Khusus ${kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'Kelas Ini'}`
+                        : 'Pilih Kelas'}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Otomatis menyaring riwayat kelas terpilih untuk mempermudah evaluasi materi sebelumnya.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-pressed={showAllRekap}
+              onClick={() => setShowAllRekap((showAll) => !showAll)}
+              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
+            >
+              {showAllRekap ? 'Khusus Kelas Ini' : 'Lihat Semua Kelas'}
+            </button>
           </div>
 
+          {!showAllRekap && selectedKelasId ? (
+            <div className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50/80 p-3 text-xs text-teal-900">
+              <span className="font-bold text-teal-700" aria-hidden="true">✦</span>
+              <span>
+                <strong>Filter Kontekstual Aktif:</strong> Menampilkan riwayat pengajaran{' '}
+                <strong>{kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'kelas terpilih'}</strong>.
+              </span>
+            </div>
+          ) : null}
+
+          <label className="relative block">
+            <span className="sr-only">Cari materi atau uraian jurnal</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <input
+              type="search"
+              value={rekapSearch}
+              onChange={(event) => setRekapSearch(event.target.value)}
+              placeholder="Cari materi atau uraian di kelas ini..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100"
+            />
+          </label>
+
           <div className="space-y-3">
-            {rekapWithClass.length === 0 ? (
-              <p className="text-sm text-slate-400">Belum ada jurnal yang tercatat.</p>
+            {paginatedRekap.length === 0 ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                {rekapWithClass.length === 0
+                  ? 'Belum ada jurnal yang tercatat.'
+                  : !showAllRekap && !selectedKelasId
+                    ? 'Pilih jadwal mengajar untuk menampilkan riwayat kelas, atau lihat semua kelas.'
+                    : 'Tidak ada riwayat jurnal yang cocok dengan filter atau kata kunci.'}
+              </p>
             ) : (
-              rekapWithClass.map((jurnal) => (
-                <article key={jurnal.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+              paginatedRekap.map((jurnal) => (
+                <article key={jurnal.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-white">{jurnal.mata_pelajaran}</p>
-                      <p className="text-xs text-slate-400">
-                        {jurnal.kelas_nama} • Jam {jurnal.jam_ke} • {jurnal.tanggal}
+                      <p className="text-sm font-bold text-slate-900">{jurnal.mata_pelajaran}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {jurnal.kelas_nama} • Jam {jurnal.jam_ke} •{' '}
+                        {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${jurnal.tanggal}T00:00:00Z`))}
                       </p>
                     </div>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-slate-300">
-                      {jurnal.created_at}
-                    </span>
+                    <time
+                      dateTime={jurnal.created_at}
+                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500"
+                    >
+                      {new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(new Date(jurnal.created_at))}
+                    </time>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{jurnal.materi}</p>
-                  {jurnal.catatan ? <p className="mt-2 text-xs text-slate-400">Catatan: {jurnal.catatan}</p> : null}
+                  <p className="mt-3 text-sm leading-6 text-slate-800">{jurnal.materi}</p>
+                  {jurnal.catatan ? <p className="mt-2 text-xs leading-5 text-slate-600">Uraian: {jurnal.catatan}</p> : null}
                 </article>
               ))
             )}
           </div>
+
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row">
+            <span>
+              Menampilkan {filteredRekap.length === 0 ? '0-0' : `${(currentRekapPage - 1) * rekapPageSize + 1}-${Math.min(currentRekapPage * rekapPageSize, filteredRekap.length)}`} dari {filteredRekap.length} jurnal
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setRekapPage((page) => Math.max(1, page - 1))}
+                disabled={currentRekapPage <= 1}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ← Sebelumnya
+              </button>
+              <span className="px-3 py-1.5 font-bold text-slate-800" aria-live="polite">
+                Hal {currentRekapPage} dari {totalRekapPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRekapPage((page) => Math.min(totalRekapPages, page + 1))}
+                disabled={currentRekapPage >= totalRekapPages}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Selanjutnya →
+              </button>
+            </div>
+          </div>
         </section>
       </div>
+      <ConfirmationModal
+        isOpen={isConfirmationOpen}
+        title="Konfirmasi Simpan Jurnal"
+        description={pendingSubmission?.description ?? ''}
+        confirmLabel="Simpan Jurnal & Presensi"
+        isLoading={isSubmitting}
+        onConfirm={handleConfirmedSubmit}
+        onClose={() => {
+          if (submissionInFlight.current) {
+            return;
+          }
+          setIsConfirmationOpen(false);
+          setPendingSubmission(null);
+        }}
+      />
     </main>
   );
 }

@@ -20,9 +20,9 @@ const statusLabels: Record<StatusTidakHadir, string> = {
   alpa: 'Alpa',
 };
 const statusStyles: Record<StatusTidakHadir, string> = {
-  sakit: 'border-sky-400/30 bg-sky-500/15 text-sky-100',
-  izin: 'border-amber-400/30 bg-amber-500/15 text-amber-100',
-  alpa: 'border-rose-400/30 bg-rose-500/15 text-rose-100',
+  sakit: 'border-sky-200 bg-sky-50 text-sky-800',
+  izin: 'border-amber-200 bg-amber-50 text-amber-800',
+  alpa: 'border-rose-200 bg-rose-50 text-rose-800',
 };
 
 export default function PresensiSederhana({
@@ -30,12 +30,17 @@ export default function PresensiSederhana({
   presensiMap,
   onChange,
 }: PresensiSederhanaProps) {
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedSiswaId, setSelectedSiswaId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<StatusTidakHadir>('sakit');
   const selectableSiswa = useMemo(
     () => siswaList.filter((siswa) => (presensiMap[siswa.id] ?? 'hadir') === 'hadir'),
     [presensiMap, siswaList],
   );
+  const filteredSiswa = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('id');
+    return selectableSiswa.filter((siswa) => siswa.full_name.toLocaleLowerCase('id').includes(query));
+  }, [searchTerm, selectableSiswa]);
   const selectedSiswaIsAvailable = selectableSiswa.some((siswa) => siswa.id === selectedSiswaId);
   const siswaTidakHadir = siswaList.filter((siswa) => {
     const status = presensiMap[siswa.id] ?? 'hadir';
@@ -65,52 +70,72 @@ export default function PresensiSederhana({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-[1fr_10rem_auto]">
-        <label className="grid gap-2 text-sm text-slate-200">
-          <span>Pilih Siswa Tidak Hadir</span>
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="grid gap-3 sm:grid-cols-12">
+          <div className="grid gap-1.5 text-xs font-semibold text-slate-700 sm:col-span-6">
+            <label htmlFor="siswa-search-input">Cari / Pilih Nama Siswa Tidak Hadir</label>
+            <input
+              id="siswa-search-input"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setSelectedSiswaId('');
+              }}
+              placeholder="Ketik nama siswa..."
+              autoComplete="off"
+              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            />
+            <label htmlFor="siswa-absence-select" className="sr-only">Pilih siswa tidak hadir</label>
           <select
+            id="siswa-absence-select"
             value={selectedSiswaIsAvailable ? selectedSiswaId : ''}
             onChange={(event) => setSelectedSiswaId(event.target.value)}
-            disabled={selectableSiswa.length === 0}
-            className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-3 text-slate-100 outline-none transition focus:border-cyan-400/40 disabled:opacity-50"
+            disabled={filteredSiswa.length === 0}
+            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:opacity-50"
           >
-            <option value="">Pilih siswa</option>
-            {selectableSiswa.map((siswa) => (
+            <option value="">{filteredSiswa.length === 0 ? 'Tidak ada siswa yang cocok' : 'Pilih siswa'}</option>
+            {filteredSiswa.map((siswa) => (
               <option key={siswa.id} value={siswa.id}>{siswa.full_name}</option>
             ))}
           </select>
-        </label>
+          </div>
 
-        <label className="grid gap-2 text-sm text-slate-200">
-          <span>Status</span>
+        <label className="grid content-start gap-1.5 text-xs font-semibold text-slate-700 sm:col-span-3">
+          <span>Status Absen</span>
           <select
             value={selectedStatus}
             onChange={(event) => setSelectedStatus(event.target.value as StatusTidakHadir)}
-            className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-3 text-slate-100 outline-none transition focus:border-cyan-400/40"
+            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
           >
             {statusTidakHadir.map((status) => (
-              <option key={status} value={status}>{statusLabels[status]}</option>
+              <option key={status} value={status}>{status === 'alpa' ? 'Alpa / Tanpa Keterangan' : statusLabels[status]}</option>
             ))}
           </select>
         </label>
 
-        <div className="flex items-end">
+        <div className="flex items-end sm:col-span-3">
           <button
             type="button"
             onClick={addAbsence}
             disabled={!selectedSiswaIsAvailable}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98] hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
             Tambah Ketidakhadiran
           </button>
         </div>
       </div>
+      </div>
 
       <div className="space-y-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+          Daftar Siswa Tidak Hadir ({siswaTidakHadir.length} Siswa)
+        </p>
         {siswaTidakHadir.length === 0 ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-4 text-sm text-slate-400">
-            Belum ada siswa yang ditandai tidak hadir. Siswa lainnya otomatis berstatus hadir.
+          <p className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs font-semibold text-emerald-800">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden="true">✓</span>
+            Semua siswa dicatat HADIR.
           </p>
         ) : (
           siswaTidakHadir.map((siswa) => {
@@ -119,10 +144,10 @@ export default function PresensiSederhana({
             return (
               <article
                 key={siswa.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <p className="truncate text-sm font-medium text-white">{siswa.full_name}</p>
+                  <p className="truncate text-xs font-bold text-slate-800">{siswa.full_name}</p>
                   <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold ${statusStyles[status]}`}>
                     {statusLabels[status]}
                   </span>
@@ -131,9 +156,9 @@ export default function PresensiSederhana({
                   type="button"
                   onClick={() => removeAbsence(siswa.id)}
                   aria-label={`Kembalikan ${siswa.full_name} menjadi hadir`}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               </article>
             );
