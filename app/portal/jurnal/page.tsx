@@ -1,11 +1,11 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { BookMarked, CalendarDays, ClipboardList, Clock3, LoaderCircle, RefreshCw, Save, Search, Users } from 'lucide-react';
+import { BookMarked, CalendarDays, ClipboardList, Clock3, LoaderCircle, Pencil, RefreshCw, Save, Search, Trash2, Users } from 'lucide-react';
 
 import ConfirmationModal from '../components/confirmation-modal';
 import type { HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa, PresensiStatus } from '../../../types/database';
-import { getAllMasterData, getRekapJurnal, getSiswaByKelas, getTodaySchedules, submitJurnalAndPresensi } from './actions';
+import { deleteJurnal, getAllMasterData, getCurrentTeacherId, getPresensiForJurnal, getRekapJurnal, getSiswaByKelas, getTodaySchedules, submitJurnalAndPresensi, updateJurnalAndPresensi, type PresensiInput } from './actions';
 import PresensiSederhana from './PresensiSederhana';
 
 type PresensiRow = {
@@ -16,6 +16,8 @@ type PresensiRow = {
 type PendingSubmission = {
   formData: FormData;
   description: string;
+  presensiInputs: PresensiInput[];
+  editingJurnalId: string | null;
 };
 
 const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -56,11 +58,17 @@ export default function JurnalPage() {
   const [jadwalHari, setJadwalHari] = useState<JadwalGuru[]>([]);
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [rekapList, setRekapList] = useState<JurnalMengajar[]>([]);
+  const [currentTeacherId, setCurrentTeacherId] = useState('');
+  const [editingJurnalId, setEditingJurnalId] = useState<string | null>(null);
+  const isEditing = Boolean(editingJurnalId);
   const [selectedTanggal, setSelectedTanggal] = useState(getTodayWIT);
   const [selectedJadwalId, setSelectedJadwalId] = useState('');
   const [selectedKelasId, setSelectedKelasId] = useState('');
   const [selectedMapelId, setSelectedMapelId] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
+  const [materi, setMateri] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [refleksi, setRefleksi] = useState('');
   const [jamMulaiValue, setJamMulaiValue] = useState('');
   const [jamSelesaiValue, setJamSelesaiValue] = useState('');
   const [jamKeValue, setJamKeValue] = useState('');
@@ -72,21 +80,33 @@ export default function JurnalPage() {
   const [error, setError] = useState<string | null>(null);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<PendingSubmission | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [pendingDeleteJurnalId, setPendingDeleteJurnalId] = useState<string | null>(null);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [showAllRekap, setShowAllRekap] = useState(false);
   const [rekapSearch, setRekapSearch] = useState('');
   const [rekapPage, setRekapPage] = useState(1);
   const submissionInFlight = useRef(false);
+  const deletionInFlight = useRef(false);
+  const pendingEditPresensi = useRef<Record<string, PresensiStatus> | null>(null);
+  const formSectionRef = useRef<HTMLElement>(null);
   const [isSubmitting, startSubmitting] = useTransition();
+  const [isDeleting, startDeleting] = useTransition();
   const [isLoadingData, startLoadingData] = useTransition();
   const selectedHari = getHariWIT(selectedTanggal);
 
   useEffect(() => {
     startLoadingData(async () => {
       try {
-        const [masterData, rekap] = await Promise.all([getAllMasterData(), getRekapJurnal()]);
+        const [masterData, rekap, teacherId] = await Promise.all([
+          getAllMasterData(),
+          getRekapJurnal(),
+          getCurrentTeacherId(),
+        ]);
         setKelasList(masterData.kelasList);
         setMapelList(masterData.mapelList);
         setRekapList(rekap);
+        setCurrentTeacherId(teacherId);
       } catch (loadError: unknown) {
         setError(loadError instanceof Error ? loadError.message : 'Gagal memuat data awal.');
       }
@@ -95,13 +115,15 @@ export default function JurnalPage() {
 
   useEffect(() => {
     let isCurrentRequest = true;
-    setSelectedJadwalId('');
-    setSelectedKelasId('');
-    setSelectedMapelId('');
-    setSelectedMapel('');
-    setJamMulaiValue('');
-    setJamSelesaiValue('');
-    setJamKeValue('');
+    if (!editingJurnalId) {
+      setSelectedJadwalId('');
+      setSelectedKelasId('');
+      setSelectedMapelId('');
+      setSelectedMapel('');
+      setJamMulaiValue('');
+      setJamSelesaiValue('');
+      setJamKeValue('');
+    }
 
     if (!selectedHari) {
       setJadwalHari([]);
@@ -120,9 +142,11 @@ export default function JurnalPage() {
         }
         setJadwalHari(schedules);
         const manualMode = schedules.length === 0;
-        setIsManualMode(manualMode);
-        setSimpanJadwalRutin(manualMode);
-        if (schedules[0]) {
+        if (!editingJurnalId) {
+          setIsManualMode(manualMode);
+          setSimpanJadwalRutin(manualMode);
+        }
+        if (!editingJurnalId && schedules[0]) {
           const firstSchedule = schedules[0];
           setSelectedJadwalId(firstSchedule.id);
           setSelectedKelasId(firstSchedule.kelas_id);
@@ -142,7 +166,7 @@ export default function JurnalPage() {
     return () => {
       isCurrentRequest = false;
     };
-  }, [selectedHari]);
+  }, [editingJurnalId, selectedHari]);
 
   const handleScheduleSelect = (jadwalId: string) => {
     setSelectedJadwalId(jadwalId);
@@ -188,12 +212,12 @@ export default function JurnalPage() {
           return;
         }
         setSiswaList(students);
-        setPresensiMap(
-          students.reduce<Record<string, PresensiStatus>>((accumulator, siswa) => {
-            accumulator[siswa.id] = 'hadir';
-            return accumulator;
-          }, {}),
-        );
+        const restoredPresensi = pendingEditPresensi.current;
+        setPresensiMap(students.reduce<Record<string, PresensiStatus>>((accumulator, siswa) => {
+          accumulator[siswa.id] = restoredPresensi?.[siswa.id] ?? 'hadir';
+          return accumulator;
+        }, {}));
+        pendingEditPresensi.current = null;
       } catch (loadError: unknown) {
         if (isCurrentRequest) {
           setError(loadError instanceof Error ? loadError.message : 'Gagal memuat daftar siswa.');
@@ -245,12 +269,91 @@ export default function JurnalPage() {
     }));
   };
 
+  const resetEditMode = () => {
+    setEditingJurnalId(null);
+    setMateri('');
+    setCatatan('');
+    setRefleksi('');
+    pendingEditPresensi.current = null;
+
+    if (jadwalHari[0]) {
+      setIsManualMode(false);
+      setSimpanJadwalRutin(false);
+      handleScheduleSelect(jadwalHari[0].id);
+    } else {
+      setIsManualMode(true);
+      setSelectedJadwalId('');
+      setSelectedKelasId('');
+      setSelectedMapelId('');
+      setSelectedMapel('');
+      setJamMulaiValue('');
+      setJamSelesaiValue('');
+      setJamKeValue('');
+    }
+  };
+
+  const handleEditJurnal = async (jurnal: JurnalMengajar) => {
+    if (isLoadingEdit) {
+      return;
+    }
+
+    setIsLoadingEdit(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const [students, absences] = await Promise.all([
+        getSiswaByKelas(jurnal.kelas_id),
+        getPresensiForJurnal(jurnal.id),
+      ]);
+      const attendanceByStudent = absences.reduce<Record<string, PresensiStatus>>((attendance, entry) => {
+        attendance[entry.siswa_id] = entry.status;
+        return attendance;
+      }, {});
+
+      setEditingJurnalId(jurnal.id);
+      setSelectedTanggal(jurnal.tanggal);
+      setSelectedJadwalId('');
+      setSelectedKelasId(jurnal.kelas_id);
+      const mapel = mapelList.find((item) => item.nama_mapel === jurnal.mata_pelajaran);
+      setSelectedMapelId(mapel?.id ?? '');
+      setSelectedMapel(jurnal.mata_pelajaran);
+      const [jamMulai, jamSelesai] = jurnal.jam_ke.split('-');
+      setJamMulaiValue(jamMulai ?? '');
+      setJamSelesaiValue(jamSelesai ?? '');
+      setJamKeValue(jurnal.jam_ke);
+      setIsManualMode(true);
+      setSimpanJadwalRutin(false);
+      setMateri(jurnal.materi);
+      setCatatan(jurnal.catatan ?? '');
+      setRefleksi(jurnal.refleksi ?? '');
+      setSiswaList(students);
+
+      const currentAttendance = students.reduce<Record<string, PresensiStatus>>((attendance, student) => {
+        attendance[student.id] = attendanceByStudent[student.id] ?? 'hadir';
+        return attendance;
+      }, {});
+      setPresensiMap(currentAttendance);
+
+      if (selectedKelasId !== jurnal.kelas_id) {
+        pendingEditPresensi.current = currentAttendance;
+      } else {
+        pendingEditPresensi.current = null;
+      }
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (loadError: unknown) {
+      setError(loadError instanceof Error ? loadError.message : 'Gagal memuat jurnal untuk diedit.');
+    } finally {
+      setIsLoadingEdit(false);
+    }
+  };
+
   const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
 
-    if (!selectedKelasId || !selectedMapelId || !selectedMapel || !jamKeValue) {
+    if (!selectedKelasId || (!isEditing && !selectedMapelId) || !selectedMapel || !jamKeValue) {
       setError('Pilih jadwal atau lengkapi kelas, mata pelajaran, dan jam mengajar.');
       return;
     }
@@ -271,6 +374,7 @@ export default function JurnalPage() {
     formData.set('hari', selectedHari ?? '');
     formData.set('simpan_jadwal_rutin', String(simpanJadwalRutin && Boolean(selectedHari)));
     formData.set('presensi_json', JSON.stringify(payload));
+    formData.set('refleksi', refleksi);
 
     const absentCount = payload.filter((row) => row.status !== 'hadir').length;
     const selectedKelas = kelasList.find((kelas) => kelas.id === selectedKelasId);
@@ -279,7 +383,9 @@ export default function JurnalPage() {
       : `${absentCount} siswa ditandai tidak hadir.`;
     setPendingSubmission({
       formData,
+      presensiInputs: payload,
       description: `Kelas ${selectedKelas?.nama_kelas ?? 'yang dipilih'} • ${selectedMapel}. ${absenceDescription} Simpan jurnal dan presensi ini?`,
+      editingJurnalId,
     });
     setIsConfirmationOpen(true);
   };
@@ -293,10 +399,34 @@ export default function JurnalPage() {
     const { formData } = pendingSubmission;
     startSubmitting(async () => {
       try {
-        await submitJurnalAndPresensi(formData);
+        if (pendingSubmission.editingJurnalId) {
+          const journalId = pendingSubmission.editingJurnalId;
+          const result = await updateJurnalAndPresensi(journalId, formData, pendingSubmission.presensiInputs);
+          if (!result.success) {
+            throw new Error(result.error);
+          }
+          setRekapList((current) => current.map((jurnal) => (
+            jurnal.id === journalId
+              ? {
+                  ...jurnal,
+                  materi: String(formData.get('materi') ?? ''),
+                  catatan: String(formData.get('catatan') ?? '') || null,
+                  refleksi: String(formData.get('refleksi') ?? '') || null,
+                  tanggal: String(formData.get('tanggal') ?? jurnal.tanggal),
+                  jam_ke: String(formData.get('jam_ke') ?? jurnal.jam_ke),
+                }
+              : jurnal
+          )));
+          setMessage('Jurnal berhasil diperbarui.');
+          if (editingJurnalId === journalId) {
+            resetEditMode();
+          }
+        } else {
+          await submitJurnalAndPresensi(formData);
+          setMessage('Jurnal dan presensi berhasil disimpan.');
+        }
         setIsConfirmationOpen(false);
         setPendingSubmission(null);
-        setMessage('Jurnal dan presensi berhasil disimpan.');
         try {
           const [rekap, schedules] = await Promise.all([
             getRekapJurnal(),
@@ -317,6 +447,36 @@ export default function JurnalPage() {
         setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan jurnal.');
       } finally {
         submissionInFlight.current = false;
+      }
+    });
+  };
+
+  const handleConfirmedDelete = () => {
+    if (!pendingDeleteJurnalId || deletionInFlight.current) {
+      return;
+    }
+
+    deletionInFlight.current = true;
+    const jurnalId = pendingDeleteJurnalId;
+    startDeleting(async () => {
+      try {
+        const result = await deleteJurnal(jurnalId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        setRekapList((current) => current.filter((jurnal) => jurnal.id !== jurnalId));
+        setIsDeleteConfirmationOpen(false);
+        setPendingDeleteJurnalId(null);
+        if (editingJurnalId === jurnalId) {
+          resetEditMode();
+        }
+        setMessage('Jurnal dan presensi berhasil dihapus.');
+      } catch (deleteError: unknown) {
+        setIsDeleteConfirmationOpen(false);
+        setPendingDeleteJurnalId(null);
+        setError(deleteError instanceof Error ? deleteError.message : 'Gagal menghapus jurnal.');
+      } finally {
+        deletionInFlight.current = false;
       }
     });
   };
@@ -366,8 +526,13 @@ export default function JurnalPage() {
           ) : null}
         </header>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section ref={formSectionRef} className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <form id="jurnal-form" onSubmit={handleFormSubmit} className="space-y-5">
+            {isEditing ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <h2 className="text-lg font-bold text-slate-900">Edit Jurnal Mengajar</h2>
+              </div>
+            ) : null}
             <div className="grid gap-4 md:grid-cols-2">
               <section className="space-y-4 md:col-span-2" aria-labelledby="schedule-heading">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -379,6 +544,7 @@ export default function JurnalPage() {
                   </div>
                   <button
                     type="button"
+                    disabled={isEditing}
                     onClick={() => {
                       if (isManualMode) {
                         if (jadwalHari.length === 0) {
@@ -393,7 +559,6 @@ export default function JurnalPage() {
                         setSelectedJadwalId('');
                       }
                     }}
-                    disabled={isManualMode && jadwalHari.length === 0}
                     aria-pressed={isManualMode}
                     className={`rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:opacity-50 ${
                       isManualMode
@@ -420,6 +585,7 @@ export default function JurnalPage() {
                       <button
                         key={jadwal.id}
                         type="button"
+                        disabled={isEditing}
                         aria-pressed={isSelected}
                         onClick={() => {
                           setIsManualMode(false);
@@ -455,7 +621,7 @@ export default function JurnalPage() {
                 </div>
               </section>
 
-              {isManualMode ? (
+              {isManualMode && !isEditing ? (
                 <>
                   <label className="grid gap-2 text-sm text-slate-700">
                     <span>Kelas</span>
@@ -463,7 +629,8 @@ export default function JurnalPage() {
                       value={selectedKelasId}
                       onChange={(event) => setSelectedKelasId(event.target.value)}
                       required
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      disabled={isEditing}
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-slate-100 disabled:text-slate-600"
                     >
                       <option value="">Pilih kelas</option>
                       {kelasList.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
@@ -480,14 +647,15 @@ export default function JurnalPage() {
                         setSelectedMapel(mapel?.nama_mapel ?? '');
                       }}
                       required
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      disabled={isEditing}
+                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-slate-100 disabled:text-slate-600"
                     >
                       <option value="">Pilih mata pelajaran</option>
                       {mapelList.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.nama_mapel}</option>)}
                     </select>
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-700">
+                  {!isEditing ? <label className="grid gap-2 text-sm text-slate-700">
                     <span>Jam Mulai</span>
                     <select
                       value={jamMulaiValue}
@@ -498,9 +666,9 @@ export default function JurnalPage() {
                       <option value="">Pilih jam mulai</option>
                       {Array.from({ length: 8 }, (_, index) => index + 1).map((jam) => <option key={jam} value={jam}>{jam}</option>)}
                     </select>
-                  </label>
+                  </label> : null}
 
-                  <label className="grid gap-2 text-sm text-slate-700">
+                  {!isEditing ? <label className="grid gap-2 text-sm text-slate-700">
                     <span>Jam Selesai</span>
                     <select
                       value={jamSelesaiValue}
@@ -514,24 +682,39 @@ export default function JurnalPage() {
                         .filter((jam) => jam > Number(jamMulaiValue))
                         .map((jam) => <option key={jam} value={jam}>{jam}</option>)}
                     </select>
-                  </label>
+                  </label> : null}
                 </>
               ) : (
-                <label className="grid gap-2 text-sm text-slate-700 md:col-span-2">
-                  <span>Jam Ke</span>
-                  <input
-                    value={jamKeValue}
-                    readOnly
-                    required
-                    placeholder="Pilih jadwal untuk mengisi jam"
-                    className="h-11 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 outline-none"
-                  />
-                </label>
+                <>
+                  {isEditing ? (
+                    <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                      <p className="text-sm text-slate-700">
+                        <span className="block text-xs font-semibold text-slate-500">Kelas</span>
+                        <span className="mt-1 block font-medium">{kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'Kelas'}</span>
+                      </p>
+                      <p className="text-sm text-slate-700">
+                        <span className="block text-xs font-semibold text-slate-500">Mata Pelajaran</span>
+                        <span className="mt-1 block font-medium">{selectedMapel}</span>
+                      </p>
+                    </div>
+                  ) : null}
+                  <label className="grid gap-2 text-sm text-slate-700 md:col-span-2">
+                    <span>Jam Ke</span>
+                    <input
+                      value={jamKeValue}
+                      onChange={(event) => setJamKeValue(event.target.value)}
+                      readOnly={!isEditing}
+                      required
+                      placeholder="Pilih jadwal untuk mengisi jam"
+                      className="h-11 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 outline-none read-only:cursor-default"
+                    />
+                  </label>
+                </>
               )}
 
             </div>
 
-            {isManualMode ? (
+            {isManualMode && !isEditing ? (
               <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <input
                   name="simpan_jadwal_rutin"
@@ -656,6 +839,8 @@ export default function JurnalPage() {
                 <input
                   name="materi"
                   required
+                  value={materi}
+                  onChange={(event) => setMateri(event.target.value)}
                   placeholder="Contoh: Bab 2 Sistem Persamaan Linear"
                   className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
@@ -665,7 +850,20 @@ export default function JurnalPage() {
                 <textarea
                   name="catatan"
                   rows={3}
+                  value={catatan}
+                  onChange={(event) => setCatatan(event.target.value)}
                   placeholder="Tuliskan uraian singkat materi, kegiatan, atau catatan kelas."
+                  className="rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+                <span>Refleksi Mengajar (Opsional)</span>
+                <textarea
+                  name="refleksi"
+                  rows={3}
+                  value={refleksi}
+                  onChange={(event) => setRefleksi(event.target.value)}
+                  placeholder="Tuliskan refleksi, evaluasi pembelajaran, atau tindak lanjut."
                   className="rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </label>
@@ -674,12 +872,26 @@ export default function JurnalPage() {
             <div className="flex items-center gap-3">
               <button
                 type="submit"
-                disabled={isSubmitting || isLoadingData}
+                disabled={isSubmitting || isLoadingData || isLoadingEdit}
                 className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Simpan Jurnal & Presensi
+                {isSubmitting
+                  ? 'Memproses...'
+                  : isEditing
+                    ? 'Simpan Perubahan Jurnal'
+                    : 'Simpan Jurnal & Presensi'}
               </button>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={resetEditMode}
+                  disabled={isSubmitting}
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Batal Edit
+                </button>
+              ) : null}
 
               <button
                 type="button"
@@ -797,6 +1009,33 @@ export default function JurnalPage() {
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-800">{jurnal.materi}</p>
                   {jurnal.catatan ? <p className="mt-2 text-xs leading-5 text-slate-600">Uraian: {jurnal.catatan}</p> : null}
+                  {jurnal.refleksi ? <p className="mt-2 text-xs leading-5 text-teal-800">Refleksi: {jurnal.refleksi}</p> : null}
+                  {jurnal.teacher_id === currentTeacherId ? (
+                    <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleEditJurnal(jurnal)}
+                        disabled={isLoadingData || isSubmitting || isDeleting || isLoadingEdit}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isLoadingEdit ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {isLoadingEdit ? 'Memuat...' : 'Edit'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setPendingDeleteJurnalId(jurnal.id);
+                          setIsDeleteConfirmationOpen(true);
+                        }}
+                        disabled={isLoadingData || isSubmitting || isDeleting}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        Hapus
+                      </button>
+                    </div>
+                  ) : null}
                 </article>
               ))
             )}
@@ -832,9 +1071,9 @@ export default function JurnalPage() {
       </div>
       <ConfirmationModal
         isOpen={isConfirmationOpen}
-        title="Konfirmasi Simpan Jurnal"
+        title={isEditing ? 'Konfirmasi Perubahan Jurnal' : 'Konfirmasi Simpan Jurnal'}
         description={pendingSubmission?.description ?? ''}
-        confirmLabel="Simpan Jurnal & Presensi"
+        confirmLabel={isEditing ? 'Simpan Perubahan' : 'Simpan Jurnal & Presensi'}
         isLoading={isSubmitting}
         onConfirm={handleConfirmedSubmit}
         onClose={() => {
@@ -843,6 +1082,22 @@ export default function JurnalPage() {
           }
           setIsConfirmationOpen(false);
           setPendingSubmission(null);
+        }}
+      />
+      <ConfirmationModal
+        isOpen={isDeleteConfirmationOpen}
+        variant="danger"
+        title="Hapus Jurnal Mengajar"
+        description="Apakah Anda yakin ingin menghapus jurnal ini beserta seluruh data presensinya? Aksi ini tidak dapat dibatalkan."
+        confirmLabel="Hapus Jurnal"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmedDelete}
+        onClose={() => {
+          if (deletionInFlight.current) {
+            return;
+          }
+          setIsDeleteConfirmationOpen(false);
+          setPendingDeleteJurnalId(null);
         }}
       />
     </main>

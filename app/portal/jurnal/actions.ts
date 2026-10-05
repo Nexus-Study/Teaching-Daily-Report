@@ -3,13 +3,19 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '../../../lib/supabase/server';
-import type { Database, HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa } from '../../../types/database';
+import type { Database, HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, PresensiStatus, Siswa } from '../../../types/database';
 
-type PresensiPayload = {
+export type PresensiInput = {
   siswa_id: string;
-  status: 'hadir' | 'izin' | 'sakit' | 'alpa';
-  catatan?: string;
+  status: PresensiStatus;
+  catatan?: string | null;
 };
+
+type PresensiPayload = PresensiInput;
+
+type JurnalActionResult = { success: true } | { success: false; error: string };
+
+const presensiStatuses: PresensiStatus[] = ['hadir', 'izin', 'sakit', 'alpa'];
 
 export async function getKelasList(): Promise<Kelas[]> {
   const supabase = await createClient();
@@ -37,6 +43,20 @@ export async function getAllMasterData(): Promise<{ kelasList: Kelas[]; mapelLis
   }
 
   return { kelasList: kelasResult.data ?? [], mapelList: mapelResult.data ?? [] };
+}
+
+export async function getCurrentTeacherId(): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error('Pengguna tidak terautentikasi.');
+  }
+
+  return user.id;
 }
 
 export async function getSiswaByKelas(kelasId: string): Promise<Siswa[]> {
@@ -163,6 +183,7 @@ export async function submitJurnalAndPresensi(formData: FormData) {
   const jamKe = String(formData.get('jam_ke') ?? '').trim();
   const materi = String(formData.get('materi') ?? '').trim();
   const catatan = String(formData.get('catatan') ?? '').trim() || null;
+  const refleksi = String(formData.get('refleksi') ?? '').trim() || null;
   const tanggal = String(formData.get('tanggal') ?? '').trim() || null;
   const presensiRaw = String(formData.get('presensi_json') ?? '[]');
   const simpanJadwalRutin = String(formData.get('simpan_jadwal_rutin') ?? 'false') === 'true';
@@ -218,7 +239,7 @@ export async function submitJurnalAndPresensi(formData: FormData) {
     p_presensi: presensiPayload,
     p_tanggal: tanggal,
   } satisfies Database['public']['Functions']['submit_jurnal_and_presensi']['Args'];
-  const { error } = await (supabase.rpc as any)('submit_jurnal_and_presensi', rpcArgs);
+  const { data: jurnalId, error } = await (supabase.rpc as any)('submit_jurnal_and_presensi', rpcArgs);
 
   if (error) {
     throw new Error(
@@ -228,7 +249,269 @@ export async function submitJurnalAndPresensi(formData: FormData) {
     );
   }
 
+  // RPC belum menerima refleksi, sehingga disimpan lewat update atas jurnal yang baru dibuat.
+  if (refleksi && jurnalId) {
+    const { error: refleksiError } = await (supabase.from('jurnal_mengajar') as any)
+      .update({ refleksi } satisfies Database['public']['Tables']['jurnal_mengajar']['Update'])
+      .eq('id', jurnalId)
+      .eq('teacher_id', user.id);
+
+    if (refleksiError) {
+      revalidatePath('/portal/jurnal/');
+      throw new Error(`Jurnal dan presensi berhasil disimpan, tetapi refleksi gagal disimpan: ${refleksiError.message}`);
+    }
+  }
+
   revalidatePath('/portal/jurnal/');
+
+  return { success: true };
+}
+
+async function getOwnedJurnal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teacherId: string,
+  jurnalId: string,
+): Promise<{ id: string; kelas_id: string } | { error: string }> {
+  const { data, error } = await (supabase.from('jurnal_mengajar') as any)
+    .select('id, kelas_id')
+    .eq('id', jurnalId)
+    .eq('teacher_id', teacherId)
+    .maybeSingle();
+
+  if (error) {
+    return { error: error.message };
+  }
+  if (!data) {
+    return { error: 'Jurnal tidak ditemukan atau bukan milik Anda.' };
+  }
+
+  return data as { id: string; kelas_id: string };
+}
+
+async function getPresensiRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  jurnalId: string,
+): Promise<{ rows: PresensiInput[] } | { error: string }> {
+  const { data, error } = await (supabase.from('presensi_siswa') as any)
+    .select('siswa_id, status, catatan')
+    .eq('jurnal_id', jurnalId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { rows: (data ?? []) as PresensiInput[] };
+}
+
+export async function getPresensiForJurnal(jurnalId: string): Promise<PresensiInput[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error('Pengguna tidak terautentikasi.');
+  }
+
+  const id = String(jurnalId ?? '').trim();
+  if (!id) {
+    throw new Error('ID jurnal tidak valid.');
+  }
+
+  const jurnal = await getOwnedJurnal(supabase, user.id, id);
+  if ('error' in jurnal) {
+    throw new Error(jurnal.error);
+  }
+
+  const result = await getPresensiRows(supabase, id);
+  if ('error' in result) {
+    throw new Error(result.error);
+  }
+
+  return result.rows;
+}
+
+function toPresensiRecords(jurnalId: string, rows: PresensiInput[]) {
+  return rows.map((row) => ({
+    jurnal_id: jurnalId,
+    siswa_id: row.siswa_id,
+    status: row.status,
+    catatan: row.catatan?.trim() || null,
+  })) satisfies Database['public']['Tables']['presensi_siswa']['Insert'][];
+}
+
+export async function updateJurnalAndPresensi(
+  jurnalId: string,
+  formData: FormData,
+  presensiInputs: PresensiInput[],
+): Promise<JurnalActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { success: false, error: 'Pengguna tidak terautentikasi' };
+  }
+
+  const id = String(jurnalId ?? '').trim();
+  const materi = String(formData.get('materi') ?? '').trim();
+  const jamKe = String(formData.get('jam_ke') ?? '').trim();
+
+  if (!id) {
+    return { success: false, error: 'ID jurnal tidak valid.' };
+  }
+  if (!materi || !jamKe) {
+    return { success: false, error: 'Lengkapi materi dan jam ke.' };
+  }
+
+  const updates: Database['public']['Tables']['jurnal_mengajar']['Update'] = { materi, jam_ke: jamKe };
+
+  if (formData.has('catatan')) {
+    updates.catatan = String(formData.get('catatan') ?? '').trim() || null;
+  }
+  if (formData.has('refleksi')) {
+    updates.refleksi = String(formData.get('refleksi') ?? '').trim() || null;
+  }
+  if (formData.has('tanggal')) {
+    const tanggal = String(formData.get('tanggal') ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal) || Number.isNaN(Date.parse(`${tanggal}T00:00:00Z`))) {
+      return { success: false, error: 'Format tanggal tidak valid.' };
+    }
+    updates.tanggal = tanggal;
+  }
+
+  if (!Array.isArray(presensiInputs)) {
+    return { success: false, error: 'Data presensi tidak valid.' };
+  }
+
+  const seenSiswa = new Set<string>();
+  for (const item of presensiInputs) {
+    if (
+      !item
+      || typeof item.siswa_id !== 'string'
+      || !item.siswa_id
+      || !presensiStatuses.includes(item.status)
+      || seenSiswa.has(item.siswa_id)
+    ) {
+      return { success: false, error: 'Data presensi tidak valid.' };
+    }
+    seenSiswa.add(item.siswa_id);
+  }
+
+  const jurnal = await getOwnedJurnal(supabase, user.id, id);
+  if ('error' in jurnal) {
+    return { success: false, error: jurnal.error };
+  }
+
+  // Menjaga invarian RPC submit: setiap siswa harus berasal dari kelas jurnal.
+  if (seenSiswa.size > 0) {
+    const { data: siswaRows, error: siswaError } = await supabase
+      .from('siswa')
+      .select('id')
+      .eq('kelas_id', jurnal.kelas_id)
+      .in('id', [...seenSiswa]);
+
+    if (siswaError) {
+      return { success: false, error: siswaError.message };
+    }
+    if ((siswaRows ?? []).length !== seenSiswa.size) {
+      return { success: false, error: 'Data siswa tidak sesuai dengan kelas jurnal.' };
+    }
+  }
+
+  const { error: updateError } = await (supabase.from('jurnal_mengajar') as any)
+    .update(updates)
+    .eq('id', id)
+    .eq('teacher_id', user.id);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  const previous = await getPresensiRows(supabase, id);
+  if ('error' in previous) {
+    return { success: false, error: previous.error };
+  }
+
+  const { error: deleteError } = await (supabase.from('presensi_siswa') as any).delete().eq('jurnal_id', id);
+  if (deleteError) {
+    return { success: false, error: deleteError.message };
+  }
+
+  if (presensiInputs.length > 0) {
+    const { error: insertError } = await (supabase.from('presensi_siswa') as any).insert(
+      toPresensiRecords(id, presensiInputs),
+    );
+
+    if (insertError) {
+      // Pemulihan best-effort agar presensi lama tidak hilang jika penyisipan gagal.
+      const { error: restoreError } = previous.rows.length > 0
+        ? await (supabase.from('presensi_siswa') as any).insert(toPresensiRecords(id, previous.rows))
+        : { error: null };
+
+      return {
+        success: false,
+        error: restoreError
+          ? `Presensi gagal diperbarui dan presensi lama tidak dapat dipulihkan: ${insertError.message}`
+          : `Presensi gagal diperbarui, presensi lama dipertahankan: ${insertError.message}`,
+      };
+    }
+  }
+
+  revalidatePath('/portal/jurnal');
+
+  return { success: true };
+}
+
+export async function deleteJurnal(jurnalId: string): Promise<JurnalActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { success: false, error: 'Pengguna tidak terautentikasi' };
+  }
+
+  const id = String(jurnalId ?? '').trim();
+  if (!id) {
+    return { success: false, error: 'ID jurnal tidak valid.' };
+  }
+
+  const jurnal = await getOwnedJurnal(supabase, user.id, id);
+  if ('error' in jurnal) {
+    return { success: false, error: jurnal.error };
+  }
+
+  const previous = await getPresensiRows(supabase, id);
+  if ('error' in previous) {
+    return { success: false, error: previous.error };
+  }
+
+  const { error: presensiError } = await (supabase.from('presensi_siswa') as any).delete().eq('jurnal_id', id);
+  if (presensiError) {
+    return { success: false, error: presensiError.message };
+  }
+
+  const { data: deleted, error: jurnalError } = await (supabase.from('jurnal_mengajar') as any)
+    .delete()
+    .eq('id', id)
+    .eq('teacher_id', user.id)
+    .select('id');
+
+  if (jurnalError || !deleted || deleted.length === 0) {
+    // Pemulihan best-effort agar jurnal yang gagal dihapus tidak kehilangan presensinya.
+    if (previous.rows.length > 0) {
+      await (supabase.from('presensi_siswa') as any).insert(toPresensiRecords(id, previous.rows));
+    }
+    return { success: false, error: jurnalError?.message ?? 'Jurnal gagal dihapus.' };
+  }
+
+  revalidatePath('/portal/jurnal');
 
   return { success: true };
 }

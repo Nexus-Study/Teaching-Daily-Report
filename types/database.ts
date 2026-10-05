@@ -86,6 +86,7 @@ export type JurnalMengajar = {
   jam_ke: string;
   materi: string;
   catatan: string | null;
+  refleksi: string | null;
   created_at: string;
 }
 
@@ -287,6 +288,7 @@ export interface Database {
           jam_ke: string;
           materi: string;
           catatan?: string | null;
+          refleksi?: string | null;
           created_at?: string;
         };
         Update: {
@@ -298,6 +300,7 @@ export interface Database {
           jam_ke?: string;
           materi?: string;
           catatan?: string | null;
+          refleksi?: string | null;
           created_at?: string;
         };
         Relationships: [];
