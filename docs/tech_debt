@@ -1,0 +1,46 @@
+[MODE: DISKUSI]
+
+[STATE-DIGEST-08] Audit Percakapan & Laporan Utang Teknis (Technical Debt)
+
+Versi Aplikasi Saat Ini: v1.6.1 (Patch Rilis: Modal Konfirmasi Hapus Siswa Tidak Hadir).
+
+Status Branch: remodelling_jurnal_ui siap digabung/sudah sinkron dengan main.
+
+Ruang Lingkup Audit: Penilaian aspek arsitektur, manajemen repositori, kode, dan UX/UI berdasarkan seluruh riwayat interaksi dan artefak proyek sejauh ini.
+
+[AUDIT-01] Inventarisasi Utang Teknis (Technical Debt Inventory)
+
+Berikut adalah hasil audit utang teknis yang teridentifikasi selama pengembangan v1.0.0 hingga v1.6.1:
+
+1. Arsitektur & Query Performance (Prioritas: Sedang)
+Problem: Query getRekapJurnal() pada app/portal/jurnal/actions.ts menggunakan pemanggilan relasi lansung .select('*, presensi_siswa(status)') tanpa aggregasi di tingkat database (PostgreSQL/Supabase RPC).
+
+Dampak: Jika jumlah data riwayat jurnal dan siswa meningkat signifikan, kalkulasi jumlah_hadir dan jumlah_absen di level JavaScript Node/Next.js client/server runtime akan memicu overhead memori dan latency network.
+
+Rekomendasi Refactoring: Buat Database View atau RPC Function di Supabase untuk menghitung jumlah hadir/absen secara teragregasi langsung dari PostgreSQL.
+
+2. State Management & Modal Logic di app/portal/jurnal/page.tsx (Prioritas: Tinggi)
+Problem: Berkas app/portal/jurnal/page.tsx telah menampung terlalu banyak peran (God Component): mengelola jurnal, form input, rekapitulasi, modal detail presensi, hingga modal konfirmasi hapus siswa.
+
+Dampak: File membengkak, meningkatkan risiko side-effects saat pengeditan UI, serta memperlambat waktu rendering/kompilasi Copilot saat passing @workspace /app/portal/jurnal/page.tsx.
+
+Rekomendasi Refactoring: Pecah modal detail presensi dan modal konfirmasi ke dalam komponen terisolasi (ModalDetailPresensi.tsx & ModalKonfirmasiHapusPresensi.tsx).
+
+3. Kebersihan Git Branching & Dokumentasi (Prioritas: Rendah)
+Problem: Terdapat branch lokal/remote remodelling_jurnal_ui yang belum dibersihkan setelah dilakukan merge/tagging ke main. Selain itu, app/docs/struktur_proyek.md perlu diverifikasi ulang agar selaras dengan versi v1.6.1.
+
+Dampak: Penumpukan branch usang di remote repository.
+
+Rekomendasi Cleanup: Hapus branch remodelling_jurnal_ui lokal dan remote setelah dipastikan merge ke main sukses.
+
+[BACKLOG-06] Usulan Sprint Refactoring & Technical Debt Cleanup (v1.7.0)
+
+[TICK-20]: Break-down God Component app/portal/jurnal/page.tsx menjadi sub-komponen terisolasi (ModalDetailPresensi, ModalConfirmDelete).
+
+[TICK-21]: Optimasi query database Supabase untuk agregasi presensi di level Postgres view/function.
+
+[TICK-22]: Pembersihan branch usang (remodelling_jurnal_ui) dan pembaruan dokumen arsitektur proyek.
+
+[CHECKPOINT-08] Konfirmasi Rencana Penanganan
+
+Apakah Anda ingin memasukkan backlog penanganan Utang Teknis [TICK-20] s.d. [TICK-22] ke dalam Sprint berikutnya? [Ya/Tidak]
