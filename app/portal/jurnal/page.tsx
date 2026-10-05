@@ -1,7 +1,7 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { BookMarked, CalendarDays, ClipboardList, Clock3, LoaderCircle, Pencil, RefreshCw, Save, Search, Trash2, Users } from 'lucide-react';
+import { BookMarked, CalendarDays, ClipboardList, Clock3, LoaderCircle, Pencil, RefreshCw, Save, Search, Trash2, Users, X } from 'lucide-react';
 
 import ConfirmationModal from '../components/confirmation-modal';
 import type { HariName, JadwalGuru, JurnalMengajar, Kelas, MataPelajaran, Siswa, PresensiStatus } from '../../../types/database';
@@ -52,12 +52,24 @@ const statusLabels: Record<PresensiStatus, string> = {
   alpa: 'Alpa',
 };
 
+const journalDateFormatter = new Intl.DateTimeFormat('id-ID', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
 export default function JurnalPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [mapelList, setMapelList] = useState<MataPelajaran[]>([]);
   const [jadwalHari, setJadwalHari] = useState<JadwalGuru[]>([]);
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [rekapList, setRekapList] = useState<JurnalMengajar[]>([]);
+  const [viewDetailJurnal, setViewDetailJurnal] = useState<JurnalMengajar | null>(null);
+  const [detailPresensiList, setDetailPresensiList] = useState<Array<{ id: string; full_name: string; status: PresensiStatus }>>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [currentTeacherId, setCurrentTeacherId] = useState('');
   const [editingJurnalId, setEditingJurnalId] = useState<string | null>(null);
   const isEditing = Boolean(editingJurnalId);
@@ -90,6 +102,7 @@ export default function JurnalPage() {
   const deletionInFlight = useRef(false);
   const pendingEditPresensi = useRef<Record<string, PresensiStatus> | null>(null);
   const formSectionRef = useRef<HTMLElement>(null);
+  const refleksiTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isSubmitting, startSubmitting] = useTransition();
   const [isDeleting, startDeleting] = useTransition();
   const [isLoadingData, startLoadingData] = useTransition();
@@ -262,6 +275,21 @@ export default function JurnalPage() {
     setRekapPage(1);
   }, [filteredRekap.length, rekapSearch, selectedKelasId, showAllRekap]);
 
+  useEffect(() => {
+    if (!viewDetailJurnal) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setViewDetailJurnal(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewDetailJurnal]);
+
   const handleStatusChange = (siswaId: string, status: PresensiStatus) => {
     setPresensiMap((current) => ({
       ...current,
@@ -292,7 +320,7 @@ export default function JurnalPage() {
     }
   };
 
-  const handleEditJurnal = async (jurnal: JurnalMengajar) => {
+  const handleEditJurnal = async (jurnal: JurnalMengajar, focusRefleksi = false) => {
     if (isLoadingEdit) {
       return;
     }
@@ -341,10 +369,40 @@ export default function JurnalPage() {
         pendingEditPresensi.current = null;
       }
       formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (focusRefleksi) {
+        window.requestAnimationFrame(() => refleksiTextareaRef.current?.focus());
+      }
     } catch (loadError: unknown) {
       setError(loadError instanceof Error ? loadError.message : 'Gagal memuat jurnal untuk diedit.');
     } finally {
       setIsLoadingEdit(false);
+    }
+  };
+
+  const handleViewDetail = async (jurnal: JurnalMengajar) => {
+    setViewDetailJurnal(jurnal);
+    setDetailPresensiList([]);
+    setDetailError(null);
+    setIsLoadingDetail(true);
+
+    try {
+      const [attendance, students] = await Promise.all([
+        getPresensiForJurnal(jurnal.id),
+        getSiswaByKelas(jurnal.kelas_id),
+      ]);
+      const statusByStudent = attendance.reduce<Record<string, PresensiStatus>>((statuses, entry) => {
+        statuses[entry.siswa_id] = entry.status;
+        return statuses;
+      }, {});
+      setDetailPresensiList(students.map((student) => ({
+        id: student.id,
+        full_name: student.full_name,
+        status: statusByStudent[student.id] ?? 'hadir',
+      })));
+    } catch (detailError: unknown) {
+      setDetailError(detailError instanceof Error ? detailError.message : 'Gagal memuat rincian presensi.');
+    } finally {
+      setIsLoadingDetail(false);
     }
   };
 
@@ -859,6 +917,7 @@ export default function JurnalPage() {
               <label className="grid gap-1.5 text-xs font-bold text-slate-700">
                 <span>Refleksi Mengajar (Opsional)</span>
                 <textarea
+                  ref={refleksiTextareaRef}
                   name="refleksi"
                   rows={3}
                   value={refleksi}
@@ -991,49 +1050,88 @@ export default function JurnalPage() {
               </p>
             ) : (
               paginatedRekap.map((jurnal) => (
-                <article key={jurnal.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">{jurnal.mata_pelajaran}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {jurnal.kelas_nama} • Jam {jurnal.jam_ke} •{' '}
-                        {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${jurnal.tanggal}T00:00:00Z`))}
+                <article key={jurnal.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="rounded-lg bg-cyan-100 px-2.5 py-1 text-xs font-bold text-cyan-800">
+                        {kelasList.find((kelas) => kelas.id === jurnal.kelas_id)?.nama_kelas ?? 'Kelas'}
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        {jurnal.mata_pelajaran} • Jam {jurnal.jam_ke}
                       </p>
                     </div>
-                    <time
-                      dateTime={jurnal.created_at}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500"
-                    >
-                      {new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(new Date(jurnal.created_at))}
-                    </time>
+                    <div className="ml-auto flex items-center gap-2">
+                      <time dateTime={jurnal.tanggal} className="text-xs font-medium text-slate-500">
+                        {journalDateFormatter.format(new Date(`${jurnal.tanggal}T00:00:00Z`))}
+                      </time>
+                      {jurnal.teacher_id === currentTeacherId ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => void handleEditJurnal(jurnal)}
+                            disabled={isLoadingData || isSubmitting || isDeleting || isLoadingEdit}
+                            aria-label="Edit jurnal"
+                            title="Edit jurnal"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-cyan-50 hover:text-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isLoadingEdit ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setError(null);
+                              setPendingDeleteJurnalId(jurnal.id);
+                              setIsDeleteConfirmationOpen(true);
+                            }}
+                            disabled={isLoadingData || isSubmitting || isDeleting}
+                            aria-label="Hapus jurnal"
+                            title="Hapus jurnal"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-800">{jurnal.materi}</p>
-                  {jurnal.catatan ? <p className="mt-2 text-xs leading-5 text-slate-600">Uraian: {jurnal.catatan}</p> : null}
-                  {jurnal.refleksi ? <p className="mt-2 text-xs leading-5 text-teal-800">Refleksi: {jurnal.refleksi}</p> : null}
-                  {jurnal.teacher_id === currentTeacherId ? (
-                    <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+
+                  <h3 className="mt-2 text-base font-bold text-slate-900">{jurnal.materi}</h3>
+                  {jurnal.catatan ? <p className="mt-1 text-xs leading-5 text-slate-600">Uraian: {jurnal.catatan}</p> : null}
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700">
+                        ✓ {jurnal.jumlah_hadir ?? 0} Hadir
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700">
+                        ✕ {jurnal.jumlah_absen ?? 0} Absen
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => void handleEditJurnal(jurnal)}
-                        disabled={isLoadingData || isSubmitting || isDeleting || isLoadingEdit}
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleViewDetail(jurnal)}
+                        className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
                       >
-                        {isLoadingEdit ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
-                        {isLoadingEdit ? 'Memuat...' : 'Edit'}
+                        Lihat Detail
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setPendingDeleteJurnalId(jurnal.id);
-                          setIsDeleteConfirmationOpen(true);
-                        }}
-                        disabled={isLoadingData || isSubmitting || isDeleting}
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        Hapus
-                      </button>
+                      {jurnal.teacher_id === currentTeacherId ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleEditJurnal(jurnal, true)}
+                          disabled={isLoadingData || isSubmitting || isDeleting || isLoadingEdit}
+                          className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {jurnal.refleksi ? '✨ Edit Refleksi' : '+ Refleksi'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {jurnal.refleksi ? (
+                    <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5">
+                      <h4 className="text-xs font-bold tracking-wider text-amber-900">CATATAN REFLEKSI</h4>
+                      <p className="mt-1.5 text-sm leading-6 text-amber-950">“{jurnal.refleksi}”</p>
                     </div>
                   ) : null}
                 </article>
@@ -1069,6 +1167,75 @@ export default function JurnalPage() {
           </div>
         </section>
       </div>
+      {viewDetailJurnal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isLoadingDetail) {
+              setViewDetailJurnal(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="presensi-detail-title"
+            className="my-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 text-slate-100 shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+              <div>
+                <h2 id="presensi-detail-title" className="text-lg font-bold">Rincian Presensi Siswa</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  {kelasList.find((kelas) => kelas.id === viewDetailJurnal.kelas_id)?.nama_kelas ?? 'Kelas'} • {viewDetailJurnal.mata_pelajaran} •{' '}
+                  {journalDateFormatter.format(new Date(`${viewDetailJurnal.tanggal}T00:00:00Z`))}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Tutup rincian presensi"
+                onClick={() => setViewDetailJurnal(null)}
+                disabled={isLoadingDetail}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </header>
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto p-5">
+              {isLoadingDetail ? (
+                <p className="flex items-center gap-2 py-4 text-sm text-slate-300" role="status">
+                  <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Memuat rincian presensi...
+                </p>
+              ) : detailError ? (
+                <p className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200" role="alert">
+                  {detailError}
+                </p>
+              ) : detailPresensiList.length === 0 ? (
+                <p className="py-4 text-sm text-slate-400">Tidak ada data siswa pada kelas ini.</p>
+              ) : (
+                detailPresensiList.map((student) => (
+                  <div key={student.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <span className="min-w-0 truncate text-sm font-medium">{student.full_name}</span>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusStyles[student.status]}`}>
+                      {statusLabels[student.status]}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+            <footer className="flex justify-end border-t border-white/10 p-4">
+              <button
+                type="button"
+                onClick={() => setViewDetailJurnal(null)}
+                disabled={isLoadingDetail}
+                className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-600 disabled:opacity-50"
+              >
+                Tutup
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
       <ConfirmationModal
         isOpen={isConfirmationOpen}
         title={isEditing ? 'Konfirmasi Perubahan Jurnal' : 'Konfirmasi Simpan Jurnal'}

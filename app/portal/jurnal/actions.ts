@@ -528,13 +528,23 @@ export async function getRekapJurnal(): Promise<JurnalMengajar[]> {
 
   const { data, error } = await supabase
     .from('jurnal_mengajar')
-    .select('*')
+    .select('*, presensi_siswa(status)')
     .order('tanggal', { ascending: false })
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .overrideTypes<Array<JurnalMengajar & { presensi_siswa: Array<{ status: PresensiStatus }> }>, { merge: false }>();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data ?? [];
+  return (data ?? []).map((jurnal) => {
+    const attendance = Array.isArray(jurnal.presensi_siswa) ? jurnal.presensi_siswa : [];
+    const { presensi_siswa: _presensiSiswa, ...journalFields } = jurnal;
+
+    return {
+      ...journalFields,
+      jumlah_hadir: attendance.filter((row) => row.status === 'hadir').length,
+      jumlah_absen: attendance.filter((row) => row.status !== 'hadir').length,
+    };
+  });
 }

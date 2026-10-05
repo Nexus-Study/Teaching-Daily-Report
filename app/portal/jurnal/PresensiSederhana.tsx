@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Trash2, UserPlus } from 'lucide-react';
 
+import ConfirmationModal from '../components/confirmation-modal';
 import type { PresensiStatus, Siswa } from '../../../types/database';
 
 export interface PresensiSederhanaProps {
@@ -33,6 +34,7 @@ export default function PresensiSederhana({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSiswaId, setSelectedSiswaId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<StatusTidakHadir>('sakit');
+  const [pendingDeleteSiswa, setPendingDeleteSiswa] = useState<{ id: string; name: string } | null>(null);
   const selectableSiswa = useMemo(
     () => siswaList.filter((siswa) => (presensiMap[siswa.id] ?? 'hadir') === 'hadir'),
     [presensiMap, siswaList],
@@ -66,6 +68,7 @@ export default function PresensiSederhana({
 
   const removeAbsence = (siswaId: string) => {
     onChange(buildUpdatedMap(siswaId, 'hadir'));
+    setPendingDeleteSiswa(null);
   };
 
   return (
@@ -154,8 +157,8 @@ export default function PresensiSederhana({
                 </div>
                 <button
                   type="button"
-                  onClick={() => removeAbsence(siswa.id)}
-                  aria-label={`Kembalikan ${siswa.full_name} menjadi hadir`}
+                  onClick={() => setPendingDeleteSiswa({ id: siswa.id, name: siswa.full_name })}
+                  aria-label={`Konfirmasi mengembalikan ${siswa.full_name} menjadi hadir`}
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -165,6 +168,19 @@ export default function PresensiSederhana({
           })
         )}
       </div>
+      <ConfirmationModal
+        isOpen={pendingDeleteSiswa !== null}
+        variant="danger"
+        title="Hapus dari Daftar Tidak Hadir"
+        description={`Apakah Anda yakin ingin menghapus ${pendingDeleteSiswa?.name ?? 'siswa'} dari daftar tidak hadir dan mengembalikan statusnya menjadi Hadir?`}
+        confirmLabel="Ya, Kembalikan Ke Hadir"
+        onConfirm={() => {
+          if (pendingDeleteSiswa) {
+            removeAbsence(pendingDeleteSiswa.id);
+          }
+        }}
+        onClose={() => setPendingDeleteSiswa(null)}
+      />
     </div>
   );
 }
