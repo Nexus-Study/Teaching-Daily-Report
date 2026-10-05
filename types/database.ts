@@ -86,7 +86,10 @@ export type JurnalMengajar = {
   jam_ke: string;
   materi: string;
   catatan: string | null;
+  refleksi: string | null;
   created_at: string;
+  jumlah_hadir?: number;
+  jumlah_absen?: number;
 }
 
 export type PresensiSiswa = {
@@ -287,6 +290,7 @@ export interface Database {
           jam_ke: string;
           materi: string;
           catatan?: string | null;
+          refleksi?: string | null;
           created_at?: string;
         };
         Update: {
@@ -298,6 +302,7 @@ export interface Database {
           jam_ke?: string;
           materi?: string;
           catatan?: string | null;
+          refleksi?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -318,7 +323,22 @@ export interface Database {
           status?: PresensiStatus;
           catatan?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'presensi_siswa_jurnal_id_fkey';
+            columns: ['jurnal_id'];
+            isOneToOne: false;
+            referencedRelation: 'jurnal_mengajar';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'presensi_siswa_siswa_id_fkey';
+            columns: ['siswa_id'];
+            isOneToOne: false;
+            referencedRelation: 'siswa';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       catatan_perilaku: {
         Row: CatatanPerilaku;

@@ -35,6 +35,7 @@ Teaching-Daily-Report/
 │       │   └── page.tsx
 │       ├── components/
 │       │   ├── mobile-nav.tsx
+│       │   ├── confirmation-modal.tsx
 │       │   └── sidebar.tsx
 │       ├── config/
 │       │   └── menu.ts
@@ -119,7 +120,7 @@ Teaching-Daily-Report/
 - `app/login/`: halaman autentikasi.
 - `app/portal/`: halaman dan layout area utama pengguna setelah masuk.
 - `app/portal/admin/`: halaman serta server actions untuk administrasi.
-- `app/portal/components/`: komponen navigasi portal untuk desktop dan perangkat mobile.
+- `app/portal/components/`: komponen navigasi portal untuk desktop dan perangkat mobile, serta modal konfirmasi.
 - `app/portal/config/`: konfigurasi menu portal.
 - `app/portal/jurnal/`: halaman, server actions, dan komponen presensi sederhana jurnal mengajar.
 - `app/portal/laporan/`: halaman dan server actions laporan.
