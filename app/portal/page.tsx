@@ -6,6 +6,15 @@ import { portalMenus } from '@/app/portal/config/menu';
 import { createClient } from '../../lib/supabase/server';
 import type { Profile } from '../../types/database';
 
+const menuIconContainerClasses: Record<string, string> = {
+  '/portal/jurnal/': 'bg-blue-100 text-blue-700',
+  '/portal/perilaku/': 'bg-emerald-100 text-emerald-700',
+  '/portal/laporan/': 'bg-amber-100 text-amber-700',
+  '/portal/rekap-kehadiran/': 'bg-sky-100 text-sky-700',
+  '/portal/admin/': 'bg-purple-100 text-purple-700',
+  '/portal/profil/': 'bg-slate-100 text-slate-700',
+};
+
 function getInitials(fullName: string) {
   return fullName
     .split(/\s+/)
@@ -46,35 +55,44 @@ export default async function PortalPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+    <main className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col gap-4">
-        <header className="sticky top-[max(0.75rem,env(safe-area-inset-top))] z-30 rounded-3xl border border-slate-200/10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 shadow-lg shadow-slate-950/30 backdrop-blur-xl">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white shadow-md shadow-indigo-950/30">
-              {getInitials(profile.full_name)}
-            </div>
+        <header className="rounded-3xl border-b border-border bg-card p-4 text-card-foreground shadow-lg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                {getInitials(profile.full_name)}
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200/80">Portal Madrasah</p>
-              <h1 className="mt-1 truncate text-lg font-bold tracking-tight text-white sm:text-xl">{profile.full_name}</h1>
-              <p className="mt-0.5 text-xs text-slate-300">{profile.nip_nisn ?? 'NIP/NISN belum diisi'}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Portal Madrasah</p>
+                <h1 className="mt-1 break-words text-lg font-bold tracking-tight sm:text-xl">{profile.full_name}</h1>
+                <p className="mt-0.5 break-words text-xs text-muted-foreground">{profile.nip_nisn ?? 'NIP/NISN belum diisi'}</p>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {profile.roles.map((role) => (
-                  <span
-                    key={role}
-                    className="inline-flex items-center rounded-full border border-indigo-400/30 bg-indigo-500/20 px-2.5 py-0.5 text-xs font-medium capitalize text-indigo-100"
-                  >
-                    {role.replace(/_/g, ' ')}
-                  </span>
-                ))}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-block px-1 py-1 text-xs font-semibold text-muted-foreground">Mode Akses:</span>
+                  {profile.roles.length > 0 ? (
+                    profile.roles.map((role) => (
+                      <span
+                        key={role}
+                        className="inline-block rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-800"
+                      >
+                        {role.replace(/_/g, ' ')}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="inline-block rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
+                      Belum ada peran
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <form action={handleSignOut} className="shrink-0">
+            <form action={handleSignOut} className="mt-4 shrink-0 self-end sm:ml-auto sm:mt-0 sm:self-auto">
               <button
                 type="submit"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition active:scale-95 hover:bg-rose-500/20"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-700/25 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 transition active:scale-95 hover:bg-rose-100"
               >
                 <LogOut className="h-4 w-4" />
                 Logout
@@ -86,10 +104,10 @@ export default async function PortalPage() {
         <section className="pt-1">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Navigasi Cepat</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Menu sesuai role aktif</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Navigasi Cepat</p>
+              <h2 className="mt-1 text-lg font-semibold text-foreground">Menu sesuai role aktif</h2>
             </div>
-            <p className="text-xs text-slate-400">{visibleMenus.length} menu tersedia</p>
+            <p className="shrink-0 text-xs text-muted-foreground">{visibleMenus.length} menu tersedia</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -100,13 +118,13 @@ export default async function PortalPage() {
                 <Link
                   key={menu.href}
                   href={menu.href}
-                  className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-150 active:scale-95 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                  className="group rounded-2xl border border-border bg-card p-4 text-left text-card-foreground shadow-sm transition-all duration-150 active:scale-95 hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <div className={`mb-4 inline-flex rounded-2xl p-3 ${menu.softTintClass}`}>
-                    <Icon className={`h-6 w-6 ${menu.iconClass}`} />
+                  <div className={`mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${menuIconContainerClasses[menu.href]}`}>
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{menu.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{menu.description}</p>
+                  <h3 className="break-words text-sm font-semibold text-card-foreground">{menu.title}</h3>
+                  <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{menu.description}</p>
                 </Link>
               );
             })}
