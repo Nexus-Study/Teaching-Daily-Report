@@ -153,7 +153,7 @@ export default function PerilakuPage() {
                     setSelectedKelasId(event.target.value);
                     setSelectedSiswaId('');
                   }}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
                 >
                   <option value="">Pilih kelas</option>
                   {kelasList.map((kelas) => (
@@ -170,7 +170,7 @@ export default function PerilakuPage() {
                   name="siswa_id"
                   value={selectedSiswaId}
                   onChange={(event) => setSelectedSiswaId(event.target.value)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
                 >
                   <option value="">Pilih siswa</option>
                   {siswaList.map((siswa) => (
@@ -212,7 +212,7 @@ export default function PerilakuPage() {
                   name="poin"
                   type="number"
                   defaultValue={0}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
                 />
               </label>
 
@@ -222,7 +222,7 @@ export default function PerilakuPage() {
                   name="tanggal"
                   type="date"
                   defaultValue={new Date().toISOString().slice(0, 10)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
                 />
               </label>
             </div>
@@ -234,7 +234,7 @@ export default function PerilakuPage() {
                 rows={3}
                 required
                 placeholder="Ringkas, jelas, dan faktual"
-                className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+                className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 transition focus:border-rose-400/40"
               />
             </label>
 
@@ -262,7 +262,7 @@ export default function PerilakuPage() {
                       name="tindak_lanjut"
                       rows={3}
                       placeholder="Contoh: Diperingatkan dan dipanggil setelah jam pelajaran"
-                      className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+                      className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 transition focus:border-rose-400/40"
                     />
                   </label>
 
@@ -270,7 +270,7 @@ export default function PerilakuPage() {
                     <span>Status Awal</span>
                     <select
                       name="status"
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
                     >
                       <option value="ditangani_di_tempat">Ditangani di Tempat</option>
                       <option value="diteruskan">Diteruskan ke Wali Kelas/BK</option>
@@ -467,7 +467,7 @@ function PenangananModal({
               value={tindakLanjut}
               onChange={(event) => setTindakLanjut(event.target.value)}
               rows={4}
-              className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+              className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 transition focus:border-rose-400/40"
             />
           </label>
 
@@ -476,7 +476,7 @@ function PenangananModal({
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value as PenangananStatus)}
-              className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+              className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-rose-400/40"
             >
               <option value="ditangani_di_tempat">Ditangani di Tempat</option>
               <option value="diteruskan">Diteruskan</option>

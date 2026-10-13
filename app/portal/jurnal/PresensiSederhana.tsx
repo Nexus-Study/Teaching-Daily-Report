@@ -87,7 +87,7 @@ export default function PresensiSederhana({
               }}
               placeholder="Ketik nama siswa..."
               autoComplete="off"
-              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
             />
             <label htmlFor="siswa-absence-select" className="sr-only">Pilih siswa tidak hadir</label>
           <select
@@ -95,7 +95,7 @@ export default function PresensiSederhana({
             value={selectedSiswaIsAvailable ? selectedSiswaId : ''}
             onChange={(event) => setSelectedSiswaId(event.target.value)}
             disabled={filteredSiswa.length === 0}
-            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:opacity-50"
+            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:opacity-50"
           >
             <option value="">{filteredSiswa.length === 0 ? 'Tidak ada siswa yang cocok' : 'Pilih siswa'}</option>
             {filteredSiswa.map((siswa) => (
@@ -109,7 +109,7 @@ export default function PresensiSederhana({
           <select
             value={selectedStatus}
             onChange={(event) => setSelectedStatus(event.target.value as StatusTidakHadir)}
-            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
           >
             {statusTidakHadir.map((status) => (
               <option key={status} value={status}>{status === 'alpa' ? 'Alpa / Tanpa Keterangan' : statusLabels[status]}</option>

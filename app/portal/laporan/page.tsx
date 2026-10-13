@@ -103,7 +103,7 @@ export default function LaporanPage() {
               <select
                 value={kelasId}
                 onChange={(event) => setKelasId(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-cyan-400/40"
               >
                 <option value="">Semua kelas yang relevan</option>
                 {kelasOptions.map((kelas) => (
@@ -120,7 +120,7 @@ export default function LaporanPage() {
                 type="date"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-cyan-400/40"
               />
             </label>
 
@@ -130,7 +130,7 @@ export default function LaporanPage() {
                 type="date"
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-cyan-400/40"
               />
             </label>
           </div>

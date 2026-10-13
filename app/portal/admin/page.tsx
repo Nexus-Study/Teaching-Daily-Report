@@ -401,7 +401,7 @@ export default function AdminPage() {
                         value={siswaSearchDraft}
                         onChange={(event) => setSiswaSearchDraft(event.target.value)}
                         placeholder="Cari siswa"
-                        className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50"
+                        className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/50"
                       />
                     </span>
                   </label>
@@ -411,7 +411,7 @@ export default function AdminPage() {
                       value={kelasFilterDraft}
                       onChange={(event) => setKelasFilterDraft(event.target.value)}
                       disabled={kelasLoading}
-                      className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none focus:border-cyan-400/50 disabled:opacity-60"
+                      className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white focus:border-cyan-400/50 disabled:opacity-60"
                     >
                       <option value="">Semua kelas</option>
                       {kelasOptions.map((kelas) => (
@@ -593,7 +593,7 @@ export default function AdminPage() {
                     onChange={(event) => setGuruSearch(event.target.value)}
                     placeholder="Cari nama, email, atau NIP/NISN"
                     aria-label="Cari guru"
-                    className="h-12 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50"
+                    className="h-12 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/50"
                   />
                 </label>
 
@@ -674,7 +674,7 @@ export default function AdminPage() {
                       name="default_password"
                       type="text"
                       defaultValue="Madrasah2026!"
-                      className="h-12 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                      className="h-12 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-cyan-400/40"
                     />
                   </label>
 
@@ -807,7 +807,7 @@ function SiswaFormModal({
               required
               defaultValue={student?.full_name ?? ''}
               autoComplete="name"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-200">
@@ -816,7 +816,7 @@ function SiswaFormModal({
               name="nisn"
               inputMode="numeric"
               defaultValue={student?.nisn ?? ''}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-200">
@@ -826,7 +826,7 @@ function SiswaFormModal({
               required
               defaultValue={student?.kelas_id ?? ''}
               disabled={classesLoading || classes.length === 0}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60 disabled:opacity-60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60 disabled:opacity-60"
             >
               <option value="" disabled>{classesLoading ? 'Memuat kelas...' : 'Pilih kelas'}</option>
               {classes.map((kelas) => (
@@ -965,7 +965,7 @@ function GuruFormModal({
               required
               defaultValue={profile?.full_name ?? ''}
               autoComplete="name"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-200">
@@ -976,7 +976,7 @@ function GuruFormModal({
               required
               defaultValue={profile?.email ?? ''}
               autoComplete="email"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-200">
@@ -984,7 +984,7 @@ function GuruFormModal({
             <input
               name="nip_nisn"
               defaultValue={profile?.nip_nisn ?? ''}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-200">
@@ -996,7 +996,7 @@ function GuruFormModal({
               minLength={6}
               autoComplete={profile ? 'new-password' : 'new-password'}
               placeholder={profile ? 'Tidak diubah' : 'Minimal 6 karakter'}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/60"
+              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white placeholder:text-slate-500 focus:border-cyan-400/60"
             />
           </label>
 

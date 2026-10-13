@@ -53,7 +53,7 @@ const roleOptions: Array<{ value: UserRole; label: string }> = [
   { value: 'guru_tahfidz', label: 'Guru Tahfidz' },
 ];
 
-const fieldClass = 'min-h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-70';
+const fieldClass = 'min-h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-70';
 const iconButtonClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/10 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:cursor-not-allowed disabled:opacity-50';
 
 function makeScheduleCards(jadwalList: ProfileSchedule[]): ScheduleCard[] {

@@ -360,7 +360,7 @@ export default function RekapKehadiranPage() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                 <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
                   <span>Kelas</span>
-                  <select value={kelasId} onChange={(event) => setKelasId(event.target.value)} disabled={isInitializing || tabAKelasOptions.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60 disabled:opacity-50">
+                  <select value={kelasId} onChange={(event) => setKelasId(event.target.value)} disabled={isInitializing || tabAKelasOptions.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60 disabled:opacity-50">
                     <option value="">Pilih kelas</option>
                     {tabAKelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} - {kelas.tingkat}</option>)}
                   </select>
@@ -368,7 +368,7 @@ export default function RekapKehadiranPage() {
 
                 <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-2">
                   <span>Mata Pelajaran</span>
-                  <select value={subject} onChange={(event) => setSubject(event.target.value)} disabled={!kelasId || subjects.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60 disabled:opacity-50">
+                  <select value={subject} onChange={(event) => setSubject(event.target.value)} disabled={!kelasId || subjects.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60 disabled:opacity-50">
                     <option value="">{kelasId ? 'Pilih mata pelajaran' : 'Pilih kelas terlebih dahulu'}</option>
                     {subjects.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
@@ -376,14 +376,14 @@ export default function RekapKehadiranPage() {
 
                 <label className="grid gap-2 text-sm text-slate-200">
                   <span>Bulan Mulai</span>
-                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
 
                 <label className="grid gap-2 text-sm text-slate-200">
                   <span>Bulan Selesai</span>
-                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
@@ -441,27 +441,27 @@ export default function RekapKehadiranPage() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
                   <span>Kelas</span>
-                  <select value={alertKelasId} onChange={(event) => setAlertKelasId(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={alertKelasId} onChange={(event) => setAlertKelasId(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     <option value="">Semua Kelas</option>
                     {kelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} - {kelas.tingkat}</option>)}
                   </select>
                 </label>
                 <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
                   <span>Mata Pelajaran</span>
-                  <select value={alertSubject} onChange={(event) => setAlertSubject(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={alertSubject} onChange={(event) => setAlertSubject(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     <option value="">Semua Mapel</option>
                     {alertSubjects.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm text-slate-200">
                   <span>Bulan Mulai</span>
-                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm text-slate-200">
                   <span>Bulan Selesai</span>
-                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 focus:border-indigo-400/60">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>

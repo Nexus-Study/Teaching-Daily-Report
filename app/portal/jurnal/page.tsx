@@ -74,6 +74,7 @@ export default function JurnalPage() {
   const [editingJurnalId, setEditingJurnalId] = useState<string | null>(null);
   const isEditing = Boolean(editingJurnalId);
   const [selectedTanggal, setSelectedTanggal] = useState(getTodayWIT);
+  const [formStep, setFormStep] = useState(1);
   const [selectedJadwalId, setSelectedJadwalId] = useState('');
   const [selectedKelasId, setSelectedKelasId] = useState('');
   const [selectedMapelId, setSelectedMapelId] = useState('');
@@ -299,6 +300,7 @@ export default function JurnalPage() {
 
   const resetEditMode = () => {
     setEditingJurnalId(null);
+    setFormStep(1);
     setMateri('');
     setCatatan('');
     setRefleksi('');
@@ -340,6 +342,7 @@ export default function JurnalPage() {
       }, {});
 
       setEditingJurnalId(jurnal.id);
+      setFormStep(focusRefleksi ? 3 : 1);
       setSelectedTanggal(jurnal.tanggal);
       setSelectedJadwalId('');
       setSelectedKelasId(jurnal.kelas_id);
@@ -411,8 +414,9 @@ export default function JurnalPage() {
     setError(null);
     setMessage(null);
 
-    if (!selectedKelasId || (!isEditing && !selectedMapelId) || !selectedMapel || !jamKeValue) {
-      setError('Pilih jadwal atau lengkapi kelas, mata pelajaran, dan jam mengajar.');
+    if (!selectedTanggal || !selectedKelasId || (!isEditing && !selectedMapelId) || !selectedMapel || !jamKeValue || !materi.trim()) {
+      setFormStep(1);
+      setError('Lengkapi tanggal, kelas, mata pelajaran, jam mengajar, dan topik materi sebelum menyimpan.');
       return;
     }
 
@@ -446,6 +450,16 @@ export default function JurnalPage() {
       editingJurnalId,
     });
     setIsConfirmationOpen(true);
+  };
+
+  const handleNextStep = () => {
+    setError(null);
+    if (!selectedTanggal || !selectedKelasId || (!isEditing && !selectedMapelId) || !selectedMapel || !jamKeValue || !materi.trim()) {
+      setFormStep(1);
+      setError('Lengkapi tanggal, kelas, mata pelajaran, jam mengajar, dan topik materi terlebih dahulu.');
+      return;
+    }
+    setFormStep((step) => Math.min(3, step + 1));
   };
 
   const handleConfirmedSubmit = () => {
@@ -543,7 +557,7 @@ export default function JurnalPage() {
     <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-foreground">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <header className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <BookMarked className="h-5 w-5" aria-hidden="true" />
@@ -556,21 +570,6 @@ export default function JurnalPage() {
                 </p>
               </div>
             </div>
-            <label className="grid shrink-0 gap-1.5 rounded-xl border border-border bg-background p-3 text-xs font-semibold text-card-foreground sm:min-w-48">
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                Tanggal Input
-              </span>
-              <input
-                name="tanggal"
-                form="jurnal-form"
-                type="date"
-                required
-                value={selectedTanggal}
-                onChange={(event) => setSelectedTanggal(event.target.value)}
-                className="h-9 rounded-lg border-0 bg-card px-3 text-sm font-bold text-foreground focus:ring-2 focus:ring-teal-300"
-              />
-            </label>
           </div>
           {selectedTanggal && selectedTanggal < getTodayWIT() ? (
             <p role="status" className="mt-4 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
@@ -585,12 +584,45 @@ export default function JurnalPage() {
         </header>
 
         <section ref={formSectionRef} className="scroll-mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <form id="jurnal-form" onSubmit={handleFormSubmit} className="space-y-5">
+          <form id="jurnal-form" noValidate onSubmit={handleFormSubmit} className="space-y-5">
             {isEditing ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                 <h2 className="text-lg font-bold text-foreground">Edit Jurnal Mengajar</h2>
               </div>
             ) : null}
+            <div className="space-y-2 lg:hidden" aria-live="polite">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-foreground">Langkah {formStep} dari 3</p>
+                <p className="text-xs text-muted-foreground">
+                  {formStep === 1 ? 'Informasi mengajar & materi' : formStep === 2 ? 'Presensi siswa' : 'Refleksi & catatan'}
+                </p>
+              </div>
+              <div
+                role="progressbar"
+                aria-label={`Langkah ${formStep} dari 3`}
+                aria-valuemin={1}
+                aria-valuemax={3}
+                aria-valuenow={formStep}
+                className="h-2 overflow-hidden rounded-full bg-secondary"
+              >
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(formStep / 3) * 100}%` }} />
+              </div>
+            </div>
+            <div className={formStep === 1 ? 'space-y-5' : 'hidden space-y-5 lg:block'}>
+              <label className="grid max-w-xs gap-1.5 rounded-xl border border-border bg-background p-3 text-xs font-semibold text-card-foreground">
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                  Tanggal Input
+                </span>
+                <input
+                  name="tanggal"
+                  type="date"
+                  required
+                  value={selectedTanggal}
+                  onChange={(event) => setSelectedTanggal(event.target.value)}
+                  className="h-9 rounded-lg border-0 bg-card px-3 text-sm font-bold text-foreground focus:ring-2 focus:ring-teal-300"
+                />
+              </label>
             <div className="grid gap-4 md:grid-cols-2">
               <section className="space-y-4 md:col-span-2" aria-labelledby="schedule-heading">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -790,6 +822,36 @@ export default function JurnalPage() {
               </label>
             ) : null}
 
+            <section className="space-y-4" aria-labelledby="topic-heading">
+              <div className="flex items-center gap-2">
+                <BookMarked className="h-5 w-5 text-primary" aria-hidden="true" />
+                <h2 id="topic-heading" className="text-base font-bold text-foreground">Topik / Materi</h2>
+              </div>
+              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
+                <span>Pokok Bahasan / Topik Utama <span className="text-rose-600">*</span></span>
+                <input
+                  name="materi"
+                  required
+                  value={materi}
+                  onChange={(event) => setMateri(event.target.value)}
+                  placeholder="Contoh: Bab 2 Sistem Persamaan Linear"
+                  className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
+                <span>Uraian Singkat Materi (Opsional)</span>
+                <textarea
+                  name="catatan"
+                  rows={3}
+                  value={catatan}
+                  onChange={(event) => setCatatan(event.target.value)}
+                  placeholder="Tuliskan uraian singkat materi atau kegiatan pembelajaran."
+                  className="rounded-xl border border-input bg-card p-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </label>
+            </section>
+            </div>
+
             <input type="hidden" name="kelas_id" value={selectedKelasId} />
             <input type="hidden" name="mata_pelajaran" value={selectedMapel} />
             <input type="hidden" name="mapel_id" value={selectedMapelId} />
@@ -800,6 +862,7 @@ export default function JurnalPage() {
             <input type="hidden" name="simpan_jadwal_rutin" value={String(simpanJadwalRutin && Boolean(selectedHari))} />
             <input type="hidden" name="presensi_json" value="[]" readOnly />
 
+            <div className={formStep === 2 ? 'space-y-5' : 'hidden space-y-5 lg:block'}>
             <div className="rounded-2xl border border-border bg-card p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Users className="h-5 w-5 text-teal-600" aria-hidden="true" />
@@ -886,60 +949,65 @@ export default function JurnalPage() {
                 </div>
               )}
             </div>
+            </div>
 
-            <section className="space-y-4" aria-labelledby="lesson-heading">
+            <section
+              className={formStep === 3 ? 'space-y-4' : 'hidden space-y-4 lg:block'}
+              aria-labelledby="lesson-heading"
+            >
               <div className="flex items-center gap-2">
-                <BookMarked className="h-5 w-5 text-teal-600" aria-hidden="true" />
-                <h2 id="lesson-heading" className="text-base font-bold text-foreground">3. Pokok &amp; Uraian Singkat Materi</h2>
+                <ClipboardList className="h-5 w-5 text-primary" aria-hidden="true" />
+                <h2 id="lesson-heading" className="text-base font-bold text-foreground">3. Refleksi &amp; Catatan Pembelajaran</h2>
               </div>
               <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
-                <span>Pokok Bahasan / Topik Utama <span className="text-rose-600">*</span></span>
-                <input
-                  name="materi"
-                  required
-                  value={materi}
-                  onChange={(event) => setMateri(event.target.value)}
-                  placeholder="Contoh: Bab 2 Sistem Persamaan Linear"
-                  className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                />
-              </label>
-              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
-                <span>Uraian Singkat Kegiatan / Catatan Kelas (Opsional)</span>
-                <textarea
-                  name="catatan"
-                  rows={3}
-                  value={catatan}
-                  onChange={(event) => setCatatan(event.target.value)}
-                  placeholder="Tuliskan uraian singkat materi, kegiatan, atau catatan kelas."
-                  className="rounded-xl border border-input bg-card p-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                />
-              </label>
-              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
-                <span>Refleksi Mengajar (Opsional)</span>
+                <span>Refleksi / Catatan Pembelajaran Umum (Opsional)</span>
                 <textarea
                   ref={refleksiTextareaRef}
                   name="refleksi"
                   rows={3}
                   value={refleksi}
                   onChange={(event) => setRefleksi(event.target.value)}
-                  placeholder="Tuliskan refleksi, evaluasi pembelajaran, atau tindak lanjut."
+                  placeholder="Tuliskan refleksi atau catatan umum tentang pembelajaran."
                   className="rounded-xl border border-input bg-card p-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </label>
             </section>
 
+            <div className="flex justify-between gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setFormStep((step) => Math.max(1, step - 1));
+                }}
+                disabled={formStep === 1}
+                className="min-h-11 rounded-xl border border-input bg-card px-4 text-sm font-semibold text-card-foreground transition hover:bg-background disabled:invisible"
+              >
+                Sebelumnya
+              </button>
+              {formStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                >
+                  Lanjut
+                </button>
+              ) : null}
+            </div>
+
             <div className="flex items-center gap-3">
               <button
                 type="submit"
                 disabled={isSubmitting || isLoadingData || isLoadingEdit}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition active:scale-[0.98] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${formStep === 3 ? 'inline-flex' : 'hidden lg:inline-flex'} h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition active:scale-[0.98] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSubmitting
                   ? 'Memproses...'
                   : isEditing
                     ? 'Simpan Perubahan Jurnal'
-                    : 'Simpan Jurnal & Presensi'}
+                    : 'Simpan Jurnal'}
               </button>
               {isEditing ? (
                 <button
@@ -973,7 +1041,7 @@ export default function JurnalPage() {
                   });
                 }}
                 disabled={isLoadingData}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-input bg-card px-4 text-sm font-bold text-card-foreground transition active:scale-[0.98] hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${formStep === 3 ? 'inline-flex' : 'hidden lg:inline-flex'} h-12 items-center justify-center gap-2 rounded-xl border border-input bg-card px-4 text-sm font-bold text-card-foreground transition active:scale-[0.98] hover:bg-background disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 <RefreshCw className="h-4 w-4" />
                 Muat Ulang
