@@ -540,23 +540,23 @@ export default function JurnalPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-slate-800">
+    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-foreground">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <header className="rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-5 text-white shadow-md">
+        <header className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-teal-50">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <BookMarked className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-teal-100">Jurnal Guru Mandiri</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Jurnal Guru Mandiri</p>
                 <h1 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">Presensi &amp; Pengajaran Harian</h1>
-                <p className="mt-1 max-w-xl text-sm text-teal-100">
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
                   Pilih jadwal mengajar di bawah. Riwayat jurnal akan mengikuti kelas yang dipilih.
                 </p>
               </div>
             </div>
-            <label className="grid shrink-0 gap-1.5 rounded-xl border border-white/20 bg-white/15 p-3 text-xs font-semibold text-teal-50 backdrop-blur sm:min-w-48">
+            <label className="grid shrink-0 gap-1.5 rounded-xl border border-border bg-background p-3 text-xs font-semibold text-card-foreground sm:min-w-48">
               <span className="flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
                 Tanggal Input
@@ -568,13 +568,13 @@ export default function JurnalPage() {
                 required
                 value={selectedTanggal}
                 onChange={(event) => setSelectedTanggal(event.target.value)}
-                className="h-9 rounded-lg border-0 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-300"
+                className="h-9 rounded-lg border-0 bg-card px-3 text-sm font-bold text-foreground focus:ring-2 focus:ring-teal-300"
               />
             </label>
           </div>
           {selectedTanggal && selectedTanggal < getTodayWIT() ? (
-            <p role="status" className="mt-4 flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-500/20 p-3 text-xs text-amber-50">
-              <Clock3 className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
+            <p role="status" className="mt-4 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              <Clock3 className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
               <span>
                 <strong>MODE JURNAL SUSULAN:</strong> Merekap jurnal lampau (
                 {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${selectedTanggal}T00:00:00Z`))}).
@@ -584,11 +584,11 @@ export default function JurnalPage() {
           ) : null}
         </header>
 
-        <section ref={formSectionRef} className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section ref={formSectionRef} className="scroll-mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <form id="jurnal-form" onSubmit={handleFormSubmit} className="space-y-5">
             {isEditing ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <h2 className="text-lg font-bold text-slate-900">Edit Jurnal Mengajar</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+                <h2 className="text-lg font-bold text-foreground">Edit Jurnal Mengajar</h2>
               </div>
             ) : null}
             <div className="grid gap-4 md:grid-cols-2">
@@ -596,7 +596,7 @@ export default function JurnalPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-5 w-5 text-teal-600" aria-hidden="true" />
-                    <h2 id="schedule-heading" className="text-base font-bold text-slate-900">
+                    <h2 id="schedule-heading" className="text-base font-bold text-foreground">
                       1. Pilih Jadwal Mengajar{selectedHari ? ` (${selectedHari})` : ''}
                     </h2>
                   </div>
@@ -653,26 +653,26 @@ export default function JurnalPage() {
                         className={`flex min-h-28 flex-col justify-between rounded-xl border-2 p-3.5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 ${
                           isSelected
                             ? 'border-teal-600 bg-teal-50/70 shadow-sm'
-                            : 'border-slate-200 bg-white hover:border-teal-300'
+                            : 'border-border bg-card hover:border-teal-300'
                         }`}
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-bold text-teal-800">
                             {jadwal.kelas?.nama_kelas ?? 'Kelas'}
                           </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isFilled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isFilled ? 'bg-emerald-100 text-emerald-700' : 'bg-secondary text-muted-foreground'}`}>
                             {isFilled ? 'Terisi' : 'Belum'}
                           </span>
                         </span>
                         <span className="mt-3 block">
-                          <span className="block text-sm font-bold text-slate-900">{jadwal.mata_pelajaran?.nama_mapel ?? 'Mata pelajaran'}</span>
-                          <span className="mt-0.5 block text-xs text-slate-500">Jam {jadwal.jam_mulai}-{jadwal.jam_selesai}</span>
+                          <span className="block text-sm font-bold text-foreground">{jadwal.mata_pelajaran?.nama_mapel ?? 'Mata pelajaran'}</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">Jam {jadwal.jam_mulai}-{jadwal.jam_selesai}</span>
                         </span>
                       </button>
                     );
                   })}
                   {jadwalHari.length === 0 ? (
-                    <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-medium text-slate-500 sm:col-span-3">
+                    <p className="rounded-xl border border-border bg-background p-4 text-center text-xs font-medium text-muted-foreground sm:col-span-3">
                       Tidak ada jadwal mengajar{selectedHari ? ` pada hari ${selectedHari}` : ''}. Gunakan Mode Manual / Infal.
                     </p>
                   ) : null}
@@ -681,21 +681,21 @@ export default function JurnalPage() {
 
               {isManualMode && !isEditing ? (
                 <>
-                  <label className="grid gap-2 text-sm text-slate-700">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Kelas</span>
                     <select
                       value={selectedKelasId}
                       onChange={(event) => setSelectedKelasId(event.target.value)}
                       required
                       disabled={isEditing}
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-slate-100 disabled:text-slate-600"
+                      className="h-11 rounded-xl border border-input bg-card px-3 text-sm text-foreground transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-secondary disabled:text-muted-foreground"
                     >
                       <option value="">Pilih kelas</option>
                       {kelasList.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
                     </select>
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-700">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Mata Pelajaran</span>
                     <select
                       value={selectedMapelId}
@@ -706,34 +706,34 @@ export default function JurnalPage() {
                       }}
                       required
                       disabled={isEditing}
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-slate-100 disabled:text-slate-600"
+                      className="h-11 rounded-xl border border-input bg-card px-3 text-sm text-foreground transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-secondary disabled:text-muted-foreground"
                     >
                       <option value="">Pilih mata pelajaran</option>
                       {mapelList.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.nama_mapel}</option>)}
                     </select>
                   </label>
 
-                  {!isEditing ? <label className="grid gap-2 text-sm text-slate-700">
+                  {!isEditing ? <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Jam Mulai</span>
                     <select
                       value={jamMulaiValue}
                       onChange={(event) => handleJamChange(event.target.value, '')}
                       required
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      className="h-11 rounded-xl border border-input bg-card px-3 text-sm text-foreground transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                     >
                       <option value="">Pilih jam mulai</option>
                       {Array.from({ length: 8 }, (_, index) => index + 1).map((jam) => <option key={jam} value={jam}>{jam}</option>)}
                     </select>
                   </label> : null}
 
-                  {!isEditing ? <label className="grid gap-2 text-sm text-slate-700">
+                  {!isEditing ? <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Jam Selesai</span>
                     <select
                       value={jamSelesaiValue}
                       onChange={(event) => handleJamChange(jamMulaiValue, event.target.value)}
                       disabled={!jamMulaiValue}
                       required
-                      className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-11 rounded-xl border border-input bg-card px-3 text-sm text-foreground transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">Pilih jam selesai</option>
                       {Array.from({ length: 8 }, (_, index) => index + 1)
@@ -746,17 +746,17 @@ export default function JurnalPage() {
                 <>
                   {isEditing ? (
                     <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
-                      <p className="text-sm text-slate-700">
-                        <span className="block text-xs font-semibold text-slate-500">Kelas</span>
+                      <p className="text-sm text-card-foreground">
+                        <span className="block text-xs font-semibold text-muted-foreground">Kelas</span>
                         <span className="mt-1 block font-medium">{kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'Kelas'}</span>
                       </p>
-                      <p className="text-sm text-slate-700">
-                        <span className="block text-xs font-semibold text-slate-500">Mata Pelajaran</span>
+                      <p className="text-sm text-card-foreground">
+                        <span className="block text-xs font-semibold text-muted-foreground">Mata Pelajaran</span>
                         <span className="mt-1 block font-medium">{selectedMapel}</span>
                       </p>
                     </div>
                   ) : null}
-                  <label className="grid gap-2 text-sm text-slate-700 md:col-span-2">
+                  <label className="grid gap-2 text-sm text-card-foreground md:col-span-2">
                     <span>Jam Ke</span>
                     <input
                       value={jamKeValue}
@@ -764,7 +764,7 @@ export default function JurnalPage() {
                       readOnly={!isEditing}
                       required
                       placeholder="Pilih jadwal untuk mengisi jam"
-                      className="h-11 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 outline-none read-only:cursor-default"
+                      className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-card-foreground read-only:cursor-default"
                     />
                   </label>
                 </>
@@ -800,18 +800,18 @@ export default function JurnalPage() {
             <input type="hidden" name="simpan_jadwal_rutin" value={String(simpanJadwalRutin && Boolean(selectedHari))} />
             <input type="hidden" name="presensi_json" value="[]" readOnly />
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="rounded-2xl border border-border bg-card p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Users className="h-5 w-5 text-teal-600" aria-hidden="true" />
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
+                  <h2 className="text-base font-bold text-foreground">
                     2. Presensi Cepat Siswa{selectedKelasId ? ` (${kelasList.find((kelas) => kelas.id === selectedKelasId)?.nama_kelas ?? 'Kelas'})` : ''}
                   </h2>
-                  <p className="mt-0.5 text-xs text-slate-500">Seluruh siswa otomatis berstatus hadir. Tandai siswa yang absen saja.</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Seluruh siswa otomatis berstatus hadir. Tandai siswa yang absen saja.</p>
                 </div>
               </div>
 
-              <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1" role="tablist" aria-label="Mode presensi">
+              <div className="mb-4 inline-flex rounded-xl border border-border bg-secondary p-1" role="tablist" aria-label="Mode presensi">
                 <button
                   type="button"
                   role="tab"
@@ -819,8 +819,8 @@ export default function JurnalPage() {
                   onClick={() => setModePresensi('sederhana')}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
                     modePresensi === 'sederhana'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Pengecualian (Cepat)
@@ -832,8 +832,8 @@ export default function JurnalPage() {
                   onClick={() => setModePresensi('detail')}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
                     modePresensi === 'detail'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Daftar Lengkap
@@ -841,9 +841,9 @@ export default function JurnalPage() {
               </div>
 
               {!selectedKelasId ? (
-                <p className="text-sm text-slate-500">Pilih jadwal atau kelas manual untuk memuat daftar siswa.</p>
+                <p className="text-sm text-muted-foreground">Pilih jadwal atau kelas manual untuk memuat daftar siswa.</p>
               ) : siswaList.length === 0 ? (
-                <p className="text-sm text-slate-500">Belum ada siswa pada kelas ini.</p>
+                <p className="text-sm text-muted-foreground">Belum ada siswa pada kelas ini.</p>
               ) : modePresensi === 'sederhana' ? (
                 <PresensiSederhana
                   siswaList={siswaList}
@@ -856,10 +856,10 @@ export default function JurnalPage() {
                     const status = presensiMap[siswa.id] ?? 'hadir';
 
                     return (
-                      <div key={siswa.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div key={siswa.id} className="rounded-xl border border-border bg-background p-3">
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-medium text-slate-900">{siswa.full_name}</p>
+                            <p className="font-medium text-foreground">{siswa.full_name}</p>
                           </div>
                           <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusStyles[status]}`}>{statusLabels[status]}</span>
                         </div>
@@ -873,7 +873,7 @@ export default function JurnalPage() {
                               className={`h-10 rounded-2xl border text-xs font-semibold transition active:scale-[0.98] ${
                                 status === itemStatus
                                   ? statusStyles[itemStatus]
-                                  : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50'
+                                  : 'border-border bg-card text-muted-foreground hover:border-teal-300 hover:bg-teal-50'
                               }`}
                             >
                               {statusLabels[itemStatus]}
@@ -890,9 +890,9 @@ export default function JurnalPage() {
             <section className="space-y-4" aria-labelledby="lesson-heading">
               <div className="flex items-center gap-2">
                 <BookMarked className="h-5 w-5 text-teal-600" aria-hidden="true" />
-                <h2 id="lesson-heading" className="text-base font-bold text-slate-900">3. Pokok &amp; Uraian Singkat Materi</h2>
+                <h2 id="lesson-heading" className="text-base font-bold text-foreground">3. Pokok &amp; Uraian Singkat Materi</h2>
               </div>
-              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
                 <span>Pokok Bahasan / Topik Utama <span className="text-rose-600">*</span></span>
                 <input
                   name="materi"
@@ -900,10 +900,10 @@ export default function JurnalPage() {
                   value={materi}
                   onChange={(event) => setMateri(event.target.value)}
                   placeholder="Contoh: Bab 2 Sistem Persamaan Linear"
-                  className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </label>
-              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
                 <span>Uraian Singkat Kegiatan / Catatan Kelas (Opsional)</span>
                 <textarea
                   name="catatan"
@@ -911,10 +911,10 @@ export default function JurnalPage() {
                   value={catatan}
                   onChange={(event) => setCatatan(event.target.value)}
                   placeholder="Tuliskan uraian singkat materi, kegiatan, atau catatan kelas."
-                  className="rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  className="rounded-xl border border-input bg-card p-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </label>
-              <label className="grid gap-1.5 text-xs font-bold text-slate-700">
+              <label className="grid gap-1.5 text-xs font-bold text-card-foreground">
                 <span>Refleksi Mengajar (Opsional)</span>
                 <textarea
                   ref={refleksiTextareaRef}
@@ -923,7 +923,7 @@ export default function JurnalPage() {
                   value={refleksi}
                   onChange={(event) => setRefleksi(event.target.value)}
                   placeholder="Tuliskan refleksi, evaluasi pembelajaran, atau tindak lanjut."
-                  className="rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  className="rounded-xl border border-input bg-card p-3 text-sm font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </label>
             </section>
@@ -932,7 +932,7 @@ export default function JurnalPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || isLoadingData || isLoadingEdit}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition active:scale-[0.98] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSubmitting
@@ -946,7 +946,7 @@ export default function JurnalPage() {
                   type="button"
                   onClick={resetEditMode}
                   disabled={isSubmitting}
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-input bg-card px-4 text-sm font-bold text-card-foreground transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Batal Edit
                 </button>
@@ -973,7 +973,7 @@ export default function JurnalPage() {
                   });
                 }}
                 disabled={isLoadingData}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition active:scale-[0.98] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-input bg-card px-4 text-sm font-bold text-card-foreground transition active:scale-[0.98] hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className="h-4 w-4" />
                 Muat Ulang
@@ -985,15 +985,15 @@ export default function JurnalPage() {
           </form>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
               <span className="rounded-xl border border-teal-100 bg-teal-50 p-2 text-teal-700">
                 <ClipboardList className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-bold text-slate-900">Riwayat Jurnal Lampau</h2>
+                  <h2 className="text-base font-bold text-foreground">Riwayat Jurnal Lampau</h2>
                   <span className="rounded-full border border-teal-200 bg-teal-100 px-2.5 py-0.5 text-xs font-bold text-teal-800">
                     {showAllRekap
                       ? 'Semua Kelas'
@@ -1002,7 +1002,7 @@ export default function JurnalPage() {
                         : 'Pilih Kelas'}
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   Otomatis menyaring riwayat kelas terpilih untuk mempermudah evaluasi materi sebelumnya.
                 </p>
               </div>
@@ -1011,7 +1011,7 @@ export default function JurnalPage() {
               type="button"
               aria-pressed={showAllRekap}
               onClick={() => setShowAllRekap((showAll) => !showAll)}
-              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
+              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-bold text-card-foreground transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
             >
               {showAllRekap ? 'Khusus Kelas Ini' : 'Lihat Semua Kelas'}
             </button>
@@ -1029,19 +1029,19 @@ export default function JurnalPage() {
 
           <label className="relative block">
             <span className="sr-only">Cari materi atau uraian jurnal</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <input
               type="search"
               value={rekapSearch}
               onChange={(event) => setRekapSearch(event.target.value)}
               placeholder="Cari materi atau uraian di kelas ini..."
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100"
+              className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-xs font-medium text-foreground transition placeholder:text-muted-foreground focus:border-teal-500 focus:bg-card focus:ring-2 focus:ring-teal-100"
             />
           </label>
 
           <div className="space-y-3">
             {paginatedRekap.length === 0 ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+              <p className="rounded-xl border border-border bg-background p-4 text-sm text-muted-foreground">
                 {rekapWithClass.length === 0
                   ? 'Belum ada jurnal yang tercatat.'
                   : !showAllRekap && !selectedKelasId
@@ -1050,18 +1050,18 @@ export default function JurnalPage() {
               </p>
             ) : (
               paginatedRekap.map((jurnal) => (
-                <article key={jurnal.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <article key={jurnal.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="rounded-lg bg-cyan-100 px-2.5 py-1 text-xs font-bold text-cyan-800">
                         {kelasList.find((kelas) => kelas.id === jurnal.kelas_id)?.nama_kelas ?? 'Kelas'}
                       </span>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {jurnal.mata_pelajaran} • Jam {jurnal.jam_ke}
                       </p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
-                      <time dateTime={jurnal.tanggal} className="text-xs font-medium text-slate-500">
+                      <time dateTime={jurnal.tanggal} className="text-xs font-medium text-muted-foreground">
                         {journalDateFormatter.format(new Date(`${jurnal.tanggal}T00:00:00Z`))}
                       </time>
                       {jurnal.teacher_id === currentTeacherId ? (
@@ -1072,7 +1072,7 @@ export default function JurnalPage() {
                             disabled={isLoadingData || isSubmitting || isDeleting || isLoadingEdit}
                             aria-label="Edit jurnal"
                             title="Edit jurnal"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-cyan-50 hover:text-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-cyan-50 hover:text-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isLoadingEdit ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
                           </button>
@@ -1086,7 +1086,7 @@ export default function JurnalPage() {
                             disabled={isLoadingData || isSubmitting || isDeleting}
                             aria-label="Hapus jurnal"
                             title="Hapus jurnal"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </button>
@@ -1095,8 +1095,8 @@ export default function JurnalPage() {
                     </div>
                   </div>
 
-                  <h3 className="mt-2 text-base font-bold text-slate-900">{jurnal.materi}</h3>
-                  {jurnal.catatan ? <p className="mt-1 text-xs leading-5 text-slate-600">Uraian: {jurnal.catatan}</p> : null}
+                  <h3 className="mt-2 text-base font-bold text-foreground">{jurnal.materi}</h3>
+                  {jurnal.catatan ? <p className="mt-1 text-xs leading-5 text-muted-foreground">Uraian: {jurnal.catatan}</p> : null}
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -1111,7 +1111,7 @@ export default function JurnalPage() {
                       <button
                         type="button"
                         onClick={() => void handleViewDetail(jurnal)}
-                        className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                        className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-card-foreground transition hover:bg-secondary"
                       >
                         Lihat Detail
                       </button>
@@ -1139,7 +1139,7 @@ export default function JurnalPage() {
             )}
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row">
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground sm:flex-row">
             <span>
               Menampilkan {filteredRekap.length === 0 ? '0-0' : `${(currentRekapPage - 1) * rekapPageSize + 1}-${Math.min(currentRekapPage * rekapPageSize, filteredRekap.length)}`} dari {filteredRekap.length} jurnal
             </span>
@@ -1148,18 +1148,18 @@ export default function JurnalPage() {
                 type="button"
                 onClick={() => setRekapPage((page) => Math.max(1, page - 1))}
                 disabled={currentRekapPage <= 1}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-input bg-card px-3 py-1.5 font-bold text-card-foreground transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ← Sebelumnya
               </button>
-              <span className="px-3 py-1.5 font-bold text-slate-800" aria-live="polite">
+              <span className="px-3 py-1.5 font-bold text-foreground" aria-live="polite">
                 Hal {currentRekapPage} dari {totalRekapPages}
               </span>
               <button
                 type="button"
                 onClick={() => setRekapPage((page) => Math.min(totalRekapPages, page + 1))}
                 disabled={currentRekapPage >= totalRekapPages}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-input bg-card px-3 py-1.5 font-bold text-card-foreground transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Selanjutnya →
               </button>
@@ -1169,7 +1169,7 @@ export default function JurnalPage() {
       </div>
       {viewDetailJurnal ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !isLoadingDetail) {
               setViewDetailJurnal(null);
@@ -1180,12 +1180,12 @@ export default function JurnalPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="presensi-detail-title"
-            className="my-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 text-slate-100 shadow-2xl"
+            className="my-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl"
           >
-            <header className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+            <header className="flex items-start justify-between gap-4 border-b border-border p-5">
               <div>
                 <h2 id="presensi-detail-title" className="text-lg font-bold">Rincian Presensi Siswa</h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {kelasList.find((kelas) => kelas.id === viewDetailJurnal.kelas_id)?.nama_kelas ?? 'Kelas'} • {viewDetailJurnal.mata_pelajaran} •{' '}
                   {journalDateFormatter.format(new Date(`${viewDetailJurnal.tanggal}T00:00:00Z`))}
                 </p>
@@ -1195,26 +1195,26 @@ export default function JurnalPage() {
                 aria-label="Tutup rincian presensi"
                 onClick={() => setViewDetailJurnal(null)}
                 disabled={isLoadingDetail}
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:opacity-50"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </header>
             <div className="max-h-[60vh] space-y-2 overflow-y-auto p-5">
               {isLoadingDetail ? (
-                <p className="flex items-center gap-2 py-4 text-sm text-slate-300" role="status">
+                <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground" role="status">
                   <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Memuat rincian presensi...
                 </p>
               ) : detailError ? (
-                <p className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200" role="alert">
+                <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
                   {detailError}
                 </p>
               ) : detailPresensiList.length === 0 ? (
-                <p className="py-4 text-sm text-slate-400">Tidak ada data siswa pada kelas ini.</p>
+                <p className="py-4 text-sm text-muted-foreground">Tidak ada data siswa pada kelas ini.</p>
               ) : (
                 detailPresensiList.map((student) => (
-                  <div key={student.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                  <div key={student.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2.5">
                     <span className="min-w-0 truncate text-sm font-medium">{student.full_name}</span>
                     <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusStyles[student.status]}`}>
                       {statusLabels[student.status]}
@@ -1223,12 +1223,12 @@ export default function JurnalPage() {
                 ))
               )}
             </div>
-            <footer className="flex justify-end border-t border-white/10 p-4">
+            <footer className="flex justify-end border-t border-border p-4">
               <button
                 type="button"
                 onClick={() => setViewDetailJurnal(null)}
                 disabled={isLoadingDetail}
-                className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-600 disabled:opacity-50"
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
               >
                 Tutup
               </button>
