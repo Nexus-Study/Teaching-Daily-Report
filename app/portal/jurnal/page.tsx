@@ -52,6 +52,22 @@ const statusLabels: Record<PresensiStatus, string> = {
   alpa: 'Alpa',
 };
 
+const statusShortLabels: Record<PresensiStatus, string> = {
+  hadir: 'H',
+  sakit: 'S',
+  izin: 'I',
+  alpa: 'A',
+};
+
+const statusButtonStyles: Record<PresensiStatus, string> = {
+  hadir: 'bg-emerald-600 font-bold text-white shadow-sm',
+  sakit: 'bg-sky-600 font-bold text-white shadow-sm',
+  izin: 'bg-amber-500 font-bold text-white shadow-sm',
+  alpa: 'bg-rose-600 font-bold text-white shadow-sm',
+};
+
+const attendanceStatuses: PresensiStatus[] = ['hadir', 'sakit', 'izin', 'alpa'];
+
 const journalDateFormatter = new Intl.DateTimeFormat('id-ID', {
   weekday: 'long',
   day: 'numeric',
@@ -862,8 +878,8 @@ export default function JurnalPage() {
             <input type="hidden" name="simpan_jadwal_rutin" value={String(simpanJadwalRutin && Boolean(selectedHari))} />
             <input type="hidden" name="presensi_json" value="[]" readOnly />
 
-            <div className={formStep === 2 ? 'space-y-5' : 'hidden space-y-5 lg:block'}>
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className={formStep === 2 ? 'space-y-5 pb-6' : 'hidden space-y-5 pb-6 lg:block'}>
+            <div className="space-y-4">
               <div className="mb-3 flex items-center gap-2">
                 <Users className="h-5 w-5 text-teal-600" aria-hidden="true" />
                 <div>
@@ -912,34 +928,35 @@ export default function JurnalPage() {
                   siswaList={siswaList}
                   presensiMap={presensiMap}
                   onChange={setPresensiMap}
+                  isBusy={isSubmitting}
                 />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-0">
                   {siswaList.map((siswa) => {
                     const status = presensiMap[siswa.id] ?? 'hadir';
 
                     return (
-                      <div key={siswa.id} className="rounded-xl border border-border bg-background p-3">
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium text-foreground">{siswa.full_name}</p>
-                          </div>
-                          <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusStyles[status]}`}>{statusLabels[status]}</span>
+                      <div key={siswa.id} className="flex w-full items-center justify-between gap-2 border-b border-slate-200 bg-white px-2 py-2.5">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">{siswa.full_name}</p>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2">
-                          {(Object.keys(statusLabels) as PresensiStatus[]).map((itemStatus) => (
+                        <div role="group" aria-label={`Status presensi ${siswa.full_name}`} className="flex shrink-0 items-center gap-1">
+                          {attendanceStatuses.map((itemStatus) => (
                             <button
                               key={itemStatus}
                               type="button"
                               onClick={() => handleStatusChange(siswa.id, itemStatus)}
-                              className={`h-10 rounded-2xl border text-xs font-semibold transition active:scale-[0.98] ${
+                              aria-label={`${statusLabels[itemStatus]}: ${siswa.full_name}`}
+                              aria-pressed={status === itemStatus}
+                              title={statusLabels[itemStatus]}
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                                 status === itemStatus
-                                  ? statusStyles[itemStatus]
-                                  : 'border-border bg-card text-muted-foreground hover:border-teal-300 hover:bg-teal-50'
+                                  ? statusButtonStyles[itemStatus]
+                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                               }`}
                             >
-                              {statusLabels[itemStatus]}
+                              {statusShortLabels[itemStatus]}
                             </button>
                           ))}
                         </div>
@@ -989,7 +1006,7 @@ export default function JurnalPage() {
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                  className="h-11 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   Lanjut
                 </button>
