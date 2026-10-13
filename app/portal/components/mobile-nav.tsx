@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Menu, X } from 'lucide-react';
+import { Home, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { portalMenus } from '@/app/portal/config/menu';
@@ -17,6 +17,13 @@ function normalizePath(path: string) {
   return path.replace(/\/+$/, '') || '/';
 }
 
+type BottomNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  activePaths: string[];
+};
+
 export default function MobileNav({ userRoles }: MobileNavProps) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
@@ -28,6 +35,27 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
     return currentPath === menuPath || currentPath.startsWith(`${menuPath}/`);
   });
   const headerTitle = currentPath === '/portal' ? 'Portal Madrasah' : activeMenu?.title ?? 'Portal Madrasah';
+  const findMenu = (href: string) => visibleMenus.find((menu) => normalizePath(menu.href) === href);
+  const journalMenu = findMenu('/portal/jurnal');
+  const behaviorMenu = findMenu('/portal/perilaku');
+  const reportsMenu = findMenu('/portal/laporan');
+  const attendanceMenu = findMenu('/portal/rekap-kehadiran');
+  const profileMenu = findMenu('/portal/profil');
+  const summaryMenu = reportsMenu ?? attendanceMenu;
+  const bottomNavItems: BottomNavItem[] = [
+    { href: '/portal', label: 'Home', icon: Home, activePaths: ['/portal'] },
+    ...(journalMenu ? [{ href: '/portal/jurnal', label: 'Jurnal', icon: journalMenu.icon, activePaths: ['/portal/jurnal'] }] : []),
+    ...(behaviorMenu ? [{ href: '/portal/perilaku', label: 'Perilaku', icon: behaviorMenu.icon, activePaths: ['/portal/perilaku'] }] : []),
+    ...(summaryMenu
+      ? [{
+          href: normalizePath(summaryMenu.href),
+          label: 'Rekap',
+          icon: summaryMenu.icon,
+          activePaths: ['/portal/laporan', '/portal/rekap-kehadiran'],
+        }]
+      : []),
+    ...(profileMenu ? [{ href: '/portal/profil', label: 'Profil', icon: profileMenu.icon, activePaths: ['/portal/profil'] }] : []),
+  ];
 
   async function handleLogout() {
     setIsOpen(false);
@@ -52,6 +80,32 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
       </header>
+
+      <nav
+        aria-label="Navigasi utama"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur lg:hidden"
+      >
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.activePaths.some(
+            (path) => currentPath === path || (path !== '/portal' && currentPath.startsWith(`${path}/`)),
+          );
+
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-md px-2 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                isActive ? 'font-semibold text-indigo-600' : 'text-slate-500'
+              }`}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       <div
         className={`pointer-events-none fixed inset-0 z-50 lg:hidden ${isOpen ? 'pointer-events-auto' : ''}`}

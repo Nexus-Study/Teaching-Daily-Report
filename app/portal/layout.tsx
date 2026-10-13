@@ -34,7 +34,7 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
       <div className="hidden lg:flex">
         <Sidebar userRoles={profile?.roles ?? null} />
       </div>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
     </div>
   );
 }
