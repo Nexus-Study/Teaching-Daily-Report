@@ -61,6 +61,8 @@ export default function PerilakuRekapPage() {
   const [reopenItem, setReopenItem] = useState<RekapItem | null>(null);
   const [editTarget, setEditTarget] = useState<DescriptionEditTarget | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     void refreshData();
@@ -69,13 +71,36 @@ export default function PerilakuRekapPage() {
   async function refreshData() {
     try {
       setError(null);
-      const [records, currentActor] = await Promise.all([getRekapPerilaku(), getPerilakuActor()]);
+      const [records, currentActor] = await Promise.all([getRekapPerilaku(10), getPerilakuActor()]);
       setRekapList(records);
       setActor(currentActor);
+      setHasMore(records.length === 10);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : 'Gagal memuat rekap perilaku.');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadMore() {
+    const lastRecord = rekapList[rekapList.length - 1];
+    if (!lastRecord || isLoadingMore || !hasMore) {
+      return;
+    }
+
+    try {
+      setError(null);
+      setIsLoadingMore(true);
+      const nextRecords = await getRekapPerilaku(10, lastRecord.created_at);
+      setRekapList((current) => {
+        const loadedIds = new Set(current.map((record) => record.id));
+        return [...current, ...nextRecords.filter((record) => !loadedIds.has(record.id))];
+      });
+      setHasMore(nextRecords.length === 10);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Gagal memuat rekap berikutnya.');
+    } finally {
+      setIsLoadingMore(false);
     }
   }
 
@@ -276,6 +301,17 @@ export default function PerilakuRekapPage() {
               );
             })}
           </div>
+          {hasMore ? (
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              disabled={isLoadingMore}
+              className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:cursor-wait disabled:opacity-60"
+            >
+              {isLoadingMore ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+              {isLoadingMore ? 'Memuat…' : 'Muat Lebih Banyak'}
+            </button>
+          ) : null}
         </section>
       </div>
 

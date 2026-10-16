@@ -117,6 +117,18 @@ export type CatatanPerilakuWithRelations = CatatanPerilaku & {
   isWaliKelas?: boolean;
 };
 
+export type ProfilPerilakuSiswa = {
+  siswa: Siswa;
+  kelas: Pick<Kelas, 'id' | 'nama_kelas' | 'tingkat'>;
+  rekap: {
+    poinPositif: number;
+    poinPelanggaran: number;
+    jumlahCatatanPositif: number;
+    jumlahCatatanPelanggaran: number;
+  };
+  timeline: CatatanPerilakuWithRelations[];
+};
+
 export async function getPerilakuActor(): Promise<BehaviorActor | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -317,8 +329,15 @@ export async function updateDeskripsiPerilaku(id: string, isCatatan: boolean, te
   return { success: true };
 }
 
-export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]> {
+export async function getRekapPerilaku(limit = 10, cursorDate?: string): Promise<CatatanPerilakuWithRelations[]> {
   try {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new RangeError('Batas rekap harus berupa bilangan bulat antara 1 dan 100.');
+    }
+    if (cursorDate && Number.isNaN(Date.parse(cursorDate))) {
+      throw new Error('Cursor tanggal rekap tidak valid.');
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -328,11 +347,15 @@ export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]
       return [];
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('catatan_perilaku')
       .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
-      .order('tanggal', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (cursorDate) {
+      query = query.lt('created_at', cursorDate);
+    }
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(error.message);
@@ -389,4 +412,121 @@ export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]
     console.error('Gagal memuat rekap perilaku.', error);
     throw error;
   }
+}
+
+export async function getProfilPerilakuSiswa(siswaId: string): Promise<ProfilPerilakuSiswa> {
+  if (!siswaId.trim()) {
+    throw new Error('ID siswa tidak valid.');
+  }
+
+  const { supabase, actor } = await getAuthenticatedActor();
+  const { data: studentRow, error: studentError } = await supabase
+    .from('siswa')
+    .select('id, full_name, nisn, kelas_id, created_at')
+    .eq('id', siswaId)
+    .maybeSingle();
+
+  if (studentError) {
+    throw new Error(studentError.message);
+  }
+  const student = studentRow as unknown as Siswa | null;
+  if (!student) {
+    throw new Error('Siswa tidak ditemukan atau tidak dapat diakses.');
+  }
+
+  const { data: classRow, error: classError } = await supabase
+    .from('kelas')
+    .select('id, nama_kelas, tingkat, wali_kelas_id')
+    .eq('id', student.kelas_id)
+    .maybeSingle();
+
+  if (classError) {
+    throw new Error(classError.message);
+  }
+  const studentClass = classRow as unknown as Pick<Kelas, 'id' | 'nama_kelas' | 'tingkat' | 'wali_kelas_id'> | null;
+  if (!studentClass) {
+    throw new Error('Kelas siswa tidak ditemukan atau tidak dapat diakses.');
+  }
+
+  const canViewAllStudents = actor.roles.some((role) =>
+    role === 'admin' || role === 'guru_bk' || role === 'waka_kesiswaan',
+  );
+  let canViewClass = actor.roles.includes('wali_kelas') && studentClass.wali_kelas_id === actor.id;
+
+  if (!canViewAllStudents && !canViewClass && actor.roles.includes('guru_mapel')) {
+    const { data: teachingClass, error: scheduleError } = await supabase
+      .from('jadwal_guru')
+      .select('kelas_id')
+      .eq('teacher_id', actor.id)
+      .eq('kelas_id', studentClass.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (scheduleError) {
+      throw new Error(scheduleError.message);
+    }
+    canViewClass = Boolean(teachingClass);
+  }
+
+  if (!canViewAllStudents && !canViewClass) {
+    throw new Error('Anda tidak memiliki akses untuk melihat profil perilaku siswa ini.');
+  }
+
+  const { data: records, error: recordsError } = await supabase
+    .from('catatan_perilaku')
+    .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
+    .eq('siswa_id', student.id)
+    .order('created_at', { ascending: false });
+
+  if (recordsError) {
+    throw new Error(recordsError.message);
+  }
+
+  const timeline = (records ?? []) as CatatanPerilakuWithRelations[];
+  const catatanIds = timeline.map((record) => record.id);
+  let handlerById = new Map<string, BehaviorHandler>();
+
+  if (catatanIds.length > 0) {
+    const { data: handlers, error: handlerError } = await (supabase.rpc as any)(
+      'get_perilaku_handler_profiles',
+      { p_catatan_ids: catatanIds },
+    );
+
+    if (handlerError) {
+      throw new Error(handlerError.message);
+    }
+    handlerById = new Map<string, BehaviorHandler>(
+      ((handlers ?? []) as BehaviorHandler[]).map((handler) => [handler.id, handler]),
+    );
+  }
+
+  const enrichedTimeline = timeline.map((record) => ({
+    ...record,
+    penanganan_perilaku: (record.penanganan_perilaku ?? [])
+      .map((handling) => ({
+        ...handling,
+        handler: handlerById.get(handling.handler_id),
+      }))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+  }));
+
+  return {
+    siswa: student,
+    kelas: {
+      id: studentClass.id,
+      nama_kelas: studentClass.nama_kelas,
+      tingkat: studentClass.tingkat,
+    },
+    rekap: {
+      poinPositif: enrichedTimeline
+        .filter((record) => record.jenis === 'positif')
+        .reduce((total, record) => total + record.poin, 0),
+      poinPelanggaran: enrichedTimeline
+        .filter((record) => record.jenis === 'pelanggaran')
+        .reduce((total, record) => total + Math.abs(record.poin), 0),
+      jumlahCatatanPositif: enrichedTimeline.filter((record) => record.jenis === 'positif').length,
+      jumlahCatatanPelanggaran: enrichedTimeline.filter((record) => record.jenis === 'pelanggaran').length,
+    },
+    timeline: enrichedTimeline,
+  };
 }

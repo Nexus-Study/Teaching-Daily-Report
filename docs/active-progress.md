@@ -1,14 +1,13 @@
-# Active Progress: Sprint 1 (Restrukturisasi Rute, Core WIT Standard, & Form Input Workspace)
+# Active Progress: Sprint 2 (Profil Siswa, Cursor Pagination, & Accessibility)
 
 ## Status Sprint
 - Status: IN_PROGRESS
-- Target Branch: `feature/refactor-perilaku-sprint1`
-- Target Selesai: SPRINT 1
+- Target Branch: `feature/refactor-perilaku-sprint2`
+- Target Selesai: SPRINT 2
 
 ## Daftar Tiket Active Sprint
-~- [x] [TIKET-01] Fix Server-side WIT Timezone Standard pada Submission & Action (P0)~
-~- [x] [TIKET-02] Restrukturisasi Rute Modul 3-Halaman & Searchable Combobox Siswa (P0)~
-~- [x] [TIKET-03] Enforce Penanganan Triage, Dynamic Handler, Re-open, & Versioned Edit RBAC (P1)~
+~- [x] [TIKET-04] Halaman Profil Siswa (/portal/siswa/[id]/perilaku) & Cursor-Based Pagination Rekap (P1)~
+- [ ] [TIKET-05] Refaktor Modal Penanganan, Re-open Dialog, & Integration UI Toast Feedback (P2)
 
 ## Log Catatan Pengerjaan
-- [2026-10-16] Inisialisasi Sprint 1 dan persiapan pengerjaan TIKET-01.
+- [2026-10-17] Inisialisasi Sprint 2 dan pengerjaan TIKET-04.
