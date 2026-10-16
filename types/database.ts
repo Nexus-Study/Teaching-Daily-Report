@@ -472,6 +472,25 @@ export interface Database {
           roles: UserRole[];
         }>;
       };
+      get_catatan_perilaku_activity_order: {
+        Args: {
+          p_limit: number;
+          p_cursor_activity_at?: string | null;
+          p_cursor_id?: string | null;
+        };
+        Returns: Array<{
+          catatan_id: string;
+          activity_at: string;
+        }>;
+      };
+      get_catatan_perilaku_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: Array<{
+          perlu_tindakan: number;
+          proses: number;
+          selesai: number;
+        }>;
+      };
       import_kelas_dan_siswa_json: {
         Args: {
           p_data: Json;

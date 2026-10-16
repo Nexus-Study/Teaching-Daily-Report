@@ -126,8 +126,21 @@ function isReopenActor(actor: BehaviorActor, context: CatatanContext): boolean {
 
 export type CatatanPerilakuWithRelations = CatatanPerilaku & {
   siswa?: Siswa;
+  reporter?: Pick<Profile, 'id' | 'full_name'>;
   penanganan_perilaku?: (PenangananPerilaku & { handler?: BehaviorHandler })[];
   isWaliKelas?: boolean;
+  latest_activity_at?: string;
+};
+
+export type RekapPerilakuSummaryStats = {
+  perluTindakan: number;
+  proses: number;
+  selesai: number;
+};
+
+export type RekapPerilakuResult = {
+  records: CatatanPerilakuWithRelations[];
+  summaryStats: RekapPerilakuSummaryStats;
 };
 
 export type ProfilPerilakuSiswa = {
@@ -379,13 +392,74 @@ export async function updateDeskripsiPerilaku(id: string, isCatatan: boolean, te
   return { success: true };
 }
 
-export async function getRekapPerilaku(limit = 10, cursorDate?: string): Promise<CatatanPerilakuWithRelations[]> {
+export async function deleteCatatanPerilaku(catatanId: string): Promise<void> {
+  if (!catatanId.trim()) {
+    throw new Error('ID catatan perilaku tidak valid.');
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) {
+    throw new Error(authError.message);
+  }
+  if (!user) {
+    throw new Error('Pengguna belum terautentikasi.');
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('roles')
+    .eq('id', user.id)
+    .single();
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  const roles = (profile as unknown as Pick<Profile, 'roles'>).roles;
+  const isBk = roles.includes('guru_bk');
+  const isAdmin = roles.includes('admin');
+  if (!isBk && !isAdmin) {
+    throw new Error('Otorisasi ditolak');
+  }
+
+  if (!isBk) {
+    const { data: catatan, error: catatanError } = await supabase
+      .from('catatan_perilaku')
+      .select('reporter_id')
+      .eq('id', catatanId)
+      .maybeSingle();
+    if (catatanError) {
+      throw new Error(catatanError.message);
+    }
+    const record = catatan as unknown as Pick<CatatanPerilaku, 'reporter_id'> | null;
+    if (!record || record.reporter_id !== user.id) {
+      throw new Error('Otorisasi ditolak');
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from('catatan_perilaku')
+    .delete()
+    .eq('id', catatanId)
+    .select('id')
+    .single();
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  revalidatePath('/portal/perilaku/rekap');
+}
+
+export async function getRekapPerilaku(
+  limit = 10,
+  cursor?: { activityAt: string; id: string },
+): Promise<RekapPerilakuResult> {
   try {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new RangeError('Batas rekap harus berupa bilangan bulat antara 1 dan 100.');
     }
-    if (cursorDate && Number.isNaN(Date.parse(cursorDate))) {
-      throw new Error('Cursor tanggal rekap tidak valid.');
+    if (cursor && (Number.isNaN(Date.parse(cursor.activityAt)) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id))) {
+      throw new Error('Cursor aktivitas rekap tidak valid.');
     }
 
     const supabase = await createClient();
@@ -394,26 +468,73 @@ export async function getRekapPerilaku(limit = 10, cursorDate?: string): Promise
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return [];
+      return {
+        records: [],
+        summaryStats: { perluTindakan: 0, proses: 0, selesai: 0 },
+      };
     }
 
-    let query = supabase
-      .from('catatan_perilaku')
-      .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (cursorDate) {
-      query = query.lt('created_at', cursorDate);
-    }
-    const { data, error } = await query;
+    const [recordsResult, summaryResult] = await Promise.all([
+      supabase
+        .from('catatan_perilaku')
+        .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
+        .order('updated_at', {
+          referencedTable: 'penanganan_perilaku',
+          ascending: false,
+          nullsFirst: false,
+        })
+        .order('created_at', { ascending: false }),
+      supabase.rpc('get_catatan_perilaku_summary'),
+    ]);
+    const { data, error } = recordsResult;
 
     if (error) {
       throw new Error(error.message);
     }
+    const summaryResponse = summaryResult as unknown as {
+      data: Array<{ perlu_tindakan: number; proses: number; selesai: number }> | null;
+      error: { message: string } | null;
+    };
+    if (summaryResponse.error) {
+      throw new Error(summaryResponse.error.message);
+    }
+    const summaryRow = summaryResponse.data?.[0];
+    if (!summaryRow) {
+      throw new Error('Gagal memuat ringkasan rekap perilaku.');
+    }
+    const summaryStats: RekapPerilakuSummaryStats = {
+      perluTindakan: Number(summaryRow.perlu_tindakan),
+      proses: Number(summaryRow.proses),
+      selesai: Number(summaryRow.selesai),
+    };
 
-    const result = (data ?? []) as CatatanPerilakuWithRelations[];
+    const allRecords = ((data ?? []) as CatatanPerilakuWithRelations[]).map((item) => {
+      const latestActivity = Math.max(
+        Date.parse(item.created_at),
+        ...(item.penanganan_perilaku ?? []).flatMap((handling) => [
+          Date.parse(handling.created_at),
+          Date.parse(handling.updated_at),
+        ]),
+      );
+      return { ...item, latest_activity_at: new Date(latestActivity).toISOString() };
+    });
+    const orderedRecords = allRecords
+      .sort((first, second) => (
+        Date.parse(second.latest_activity_at ?? second.created_at)
+        - Date.parse(first.latest_activity_at ?? first.created_at)
+        || second.id.localeCompare(first.id)
+      ));
+    const result = orderedRecords
+      .filter((item) => !cursor || (
+        Date.parse(item.latest_activity_at ?? item.created_at) < Date.parse(cursor.activityAt)
+        || (
+          Date.parse(item.latest_activity_at ?? item.created_at) === Date.parse(cursor.activityAt)
+          && item.id < cursor.id
+        )
+      ))
+      .slice(0, limit);
     if (!result.length) {
-      return result;
+      return { records: result, summaryStats };
     }
 
     const catatanIds = result.map((item) => item.id);
@@ -446,18 +567,20 @@ export async function getRekapPerilaku(limit = 10, cursorDate?: string): Promise
       (homeroomRows ?? []).map((row) => [row.id, row.wali_kelas_id]),
     );
 
-    return result.map((item) => ({
+    const records = result.map((item) => ({
       ...item,
+      reporter: handlerById.get(item.reporter_id),
       isWaliKelas: item.siswa ? homeroomByClassId.get(item.siswa.kelas_id) === user.id : false,
       penanganan_perilaku: (item.penanganan_perilaku ?? []).map((handling) => ({
         ...handling,
         handler: handlerById.get(handling.handler_id),
       })).sort((a, b) => {
-        const timeA = new Date(b.created_at).getTime();
-        const timeB = new Date(a.created_at).getTime();
-        return timeA - timeB;
+        const activityA = Math.max(Date.parse(a.created_at), Date.parse(a.updated_at));
+        const activityB = Math.max(Date.parse(b.created_at), Date.parse(b.updated_at));
+        return activityB - activityA || Date.parse(b.created_at) - Date.parse(a.created_at);
       }),
     }));
+    return { records, summaryStats };
   } catch (error) {
     console.error('Gagal memuat rekap perilaku.', error);
     throw error;

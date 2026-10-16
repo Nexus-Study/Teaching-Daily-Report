@@ -21,9 +21,9 @@
 ## Master Backlog: [BACKLOG-06] Refaktor UI/UX Rekap Perilaku, Searchable Filter, & Multi-Step Deletion RBAC
 
 ### SPRINT 4: Refaktor Rekap Workspace, Searchable Combobox, & Multi-Step Delete (DEP: SPRINT 3)
-- [ ] [TIKET-12] Layout Polish, Executive KPI Summary, & Searchable Combobox Filter (P1)
-- [ ] [TIKET-13] Restrukturisasi Metadata Kartu: Field "Dilaporkan Oleh" & Clean "Ditangani Oleh" (P1)
-- [ ] [TIKET-14] Modal Konfirmasi Hapus Multi-Tahap & Enforcement RBAC Deletion (P1)
+~- [x] [TIKET-12] Layout Polish, Executive KPI Summary, & Searchable Combobox Filter (P1)~
+~- [x] [TIKET-13] Restrukturisasi Metadata Kartu: Field "Dilaporkan Oleh" & Clean "Ditangani Oleh" (P1)~
+~- [x] [TIKET-14] Modal Konfirmasi Hapus Multi-Tahap & Enforcement RBAC Deletion (P1)~
 
 ## Master Backlog: [BACKLOG-03] Modul Pelaporan & Ekspor Laporan Perilaku (FUTURE ITERATION)
 

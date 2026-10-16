@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useTransition } from 'react';
-import { CheckCircle2, ChevronDown, CircleUser, LoaderCircle, Pencil, RotateCcw, Save, ShieldAlert, Users } from 'lucide-react';
+import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
+import { Check, CheckCircle2, ChevronDown, CircleUser, Clock3, LoaderCircle, Pencil, RotateCcw, Save, Search, ShieldAlert, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
-import type { BehaviorActor, BehaviorHandler, CatatanPerilakuWithRelations } from '../actions';
+import type { BehaviorActor, BehaviorHandler, CatatanPerilakuWithRelations, RekapPerilakuSummaryStats } from '../actions';
 import type { PenangananPerilaku, PenangananStatus, PerilakuType } from '../../../../types/database';
-import { getPerilakuActor, getProfileAccessContext, getRekapPerilaku, reopenKasusPerilaku, submitPenangananEskalasi, updateDeskripsiPerilaku, type ProfileAccessContext } from '../actions';
+import { deleteCatatanPerilaku, getPerilakuActor, getProfileAccessContext, getRekapPerilaku, reopenKasusPerilaku, submitPenangananEskalasi, updateDeskripsiPerilaku, type ProfileAccessContext } from '../actions';
 import BehaviorTabs from '../components/behavior-tabs';
 
 type RekapItem = CatatanPerilakuWithRelations & {
@@ -20,6 +20,10 @@ type DescriptionEditTarget = {
   text: string;
   title: string;
 };
+
+type RekapStatusFilter = 'all' | 'triage' | 'proses' | 'selesai';
+type HandlingGroup = Exclude<RekapStatusFilter, 'all'>;
+type RekapCursor = { activityAt: string; id: string };
 
 const perilakuStyles: Record<PerilakuType, string> = {
   positif: 'border-emerald-200 bg-emerald-100 text-emerald-800',
@@ -53,10 +57,46 @@ function formatWIT(dateString: string): string {
   return `${formatted} WIT`;
 }
 
+function getHandlingGroup(item: CatatanPerilakuWithRelations): HandlingGroup {
+  const latestHandling = item.penanganan_perilaku?.[0];
+  if (!latestHandling || latestHandling.status === 'diteruskan') {
+    return 'triage';
+  }
+  if (latestHandling.status === 'proses') {
+    return 'proses';
+  }
+  return 'selesai';
+}
+
+function getLatestActivityTimestamp(item: CatatanPerilakuWithRelations): number {
+  if (item.latest_activity_at) {
+    return Date.parse(item.latest_activity_at);
+  }
+  return Math.max(
+    Date.parse(item.created_at),
+    ...(item.penanganan_perilaku ?? []).flatMap((handling) => [
+      Date.parse(handling.created_at),
+      Date.parse(handling.updated_at),
+    ]),
+  );
+}
+
 export default function PerilakuRekapPage() {
   const [rekapList, setRekapList] = useState<CatatanPerilakuWithRelations[]>([]);
+  const [summaryStats, setSummaryStats] = useState<RekapPerilakuSummaryStats>({
+    perluTindakan: 0,
+    proses: 0,
+    selesai: 0,
+  });
   const [modalItem, setModalItem] = useState<RekapItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CatatanPerilakuWithRelations | null>(null);
   const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
+  const [expandedDescriptionIds, setExpandedDescriptionIds] = useState<Record<string, boolean>>({});
+  const [studentQuery, setStudentQuery] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [isStudentComboboxOpen, setIsStudentComboboxOpen] = useState(false);
+  const [activeStudentIndex, setActiveStudentIndex] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<RekapStatusFilter>('all');
   const [error, setError] = useState<string | null>(null);
   const [actor, setActor] = useState<BehaviorActor | null>(null);
   const [profileAccess, setProfileAccess] = useState<ProfileAccessContext | null>(null);
@@ -65,6 +105,7 @@ export default function PerilakuRekapPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [paginationCursor, setPaginationCursor] = useState<RekapCursor | null>(null);
 
   useEffect(() => {
     void refreshData();
@@ -73,12 +114,19 @@ export default function PerilakuRekapPage() {
   async function refreshData() {
     try {
       setError(null);
-      const [records, currentActor, currentProfileAccess] = await Promise.all([
+      const [rekapResult, currentActor, currentProfileAccess] = await Promise.all([
         getRekapPerilaku(10),
         getPerilakuActor(),
         getProfileAccessContext(),
       ]);
+      const { records, summaryStats: currentSummaryStats } = rekapResult;
       setRekapList(records);
+      setSummaryStats(currentSummaryStats);
+      const lastRecord = records[records.length - 1];
+      setPaginationCursor(lastRecord?.latest_activity_at ? {
+        activityAt: lastRecord.latest_activity_at,
+        id: lastRecord.id,
+      } : null);
       setActor(currentActor);
       setProfileAccess(currentProfileAccess);
       setHasMore(records.length === 10);
@@ -90,19 +138,24 @@ export default function PerilakuRekapPage() {
   }
 
   async function loadMore() {
-    const lastRecord = rekapList[rekapList.length - 1];
-    if (!lastRecord || isLoadingMore || !hasMore) {
+    if (!paginationCursor || isLoadingMore || !hasMore) {
       return;
     }
 
     try {
       setError(null);
       setIsLoadingMore(true);
-      const nextRecords = await getRekapPerilaku(10, lastRecord.created_at);
+      const rekapResult = await getRekapPerilaku(10, paginationCursor);
+      const { records: nextRecords, summaryStats: currentSummaryStats } = rekapResult;
       setRekapList((current) => {
         const loadedIds = new Set(current.map((record) => record.id));
         return [...current, ...nextRecords.filter((record) => !loadedIds.has(record.id))];
       });
+      setSummaryStats(currentSummaryStats);
+      const lastRecord = nextRecords[nextRecords.length - 1];
+      if (lastRecord?.latest_activity_at) {
+        setPaginationCursor({ activityAt: lastRecord.latest_activity_at, id: lastRecord.id });
+      }
       setHasMore(nextRecords.length === 10);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Gagal memuat rekap berikutnya.');
@@ -111,7 +164,63 @@ export default function PerilakuRekapPage() {
     }
   }
 
-  const timelineGroups = rekapList;
+  const students = useMemo(() => {
+    const uniqueStudents = new Map<string, { id: string; full_name: string }>();
+    rekapList.forEach((item) => {
+      if (item.siswa) {
+        uniqueStudents.set(item.siswa.id, { id: item.siswa.id, full_name: item.siswa.full_name });
+      }
+    });
+    return [...uniqueStudents.values()].sort((first, second) => first.full_name.localeCompare(second.full_name, 'id'));
+  }, [rekapList]);
+  const filteredStudents = useMemo(() => {
+    const query = studentQuery.trim().toLocaleLowerCase('id');
+    if (!query) {
+      return students;
+    }
+    return students.filter((student) => student.full_name.toLocaleLowerCase('id').includes(query));
+  }, [studentQuery, students]);
+  const timelineGroups = useMemo(() => {
+    const query = studentQuery.trim().toLocaleLowerCase('id');
+    return rekapList
+      .filter((item) => {
+        const matchesStudent = selectedStudentId
+          ? item.siswa_id === selectedStudentId
+          : !query || item.siswa?.full_name.toLocaleLowerCase('id').includes(query);
+        const matchesStatus = statusFilter === 'all' || getHandlingGroup(item) === statusFilter;
+        return matchesStudent && matchesStatus;
+      })
+      .sort((first, second) => (
+        getLatestActivityTimestamp(second) - getLatestActivityTimestamp(first)
+        || second.id.localeCompare(first.id)
+      ));
+  }, [rekapList, selectedStudentId, statusFilter, studentQuery]);
+
+  function handleStudentComboboxKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsStudentComboboxOpen(true);
+      setActiveStudentIndex((index) => (filteredStudents.length ? (index + 1) % filteredStudents.length : 0));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setIsStudentComboboxOpen(true);
+      setActiveStudentIndex((index) => (filteredStudents.length ? (index - 1 + filteredStudents.length) % filteredStudents.length : 0));
+      return;
+    }
+    if (event.key === 'Enter' && isStudentComboboxOpen && filteredStudents[activeStudentIndex]) {
+      event.preventDefault();
+      const student = filteredStudents[activeStudentIndex];
+      setSelectedStudentId(student.id);
+      setStudentQuery(student.full_name);
+      setIsStudentComboboxOpen(false);
+      return;
+    }
+    if (event.key === 'Escape') {
+      setIsStudentComboboxOpen(false);
+    }
+  }
 
   async function saveHandling(item: RekapItem, tindakLanjut: string, status: PenangananStatus) {
     try {
@@ -159,6 +268,11 @@ export default function PerilakuRekapPage() {
     }
   }
 
+  async function deleteRecord(item: CatatanPerilakuWithRelations) {
+    await deleteCatatanPerilaku(item.id);
+    await refreshData();
+  }
+
   function canManageTriage(item: CatatanPerilakuWithRelations): boolean {
     return Boolean(actor && (
       actor.roles.some((role) => role === 'admin' || role === 'guru_bk' || role === 'waka_kesiswaan')
@@ -172,6 +286,13 @@ export default function PerilakuRekapPage() {
 
   function canEditHandling(handling: PenangananPerilaku): boolean {
     return Boolean(actor && (actor.roles.includes('admin') || actor.id === handling.handler_id));
+  }
+
+  function canDeleteCatatan(item: CatatanPerilakuWithRelations): boolean {
+    return Boolean(actor && (
+      actor.roles.includes('guru_bk')
+      || (actor.roles.includes('admin') && item.reporter_id === actor.id)
+    ));
   }
 
   function canViewStudentProfile(item: CatatanPerilakuWithRelations): boolean {
@@ -202,15 +323,115 @@ export default function PerilakuRekapPage() {
         <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="mb-4 flex items-center gap-2"><Users className="h-4 w-4 text-rose-700" /><h2 className="text-sm font-semibold">Rekap Catatan Perilaku</h2></div>
           {error ? <p role="alert" className="mb-3 text-sm font-medium text-rose-700">{error}</p> : null}
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Perlu Tindakan</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums">{summaryStats.perluTindakan}</p>
+              </div>
+              <span className="rounded-full bg-amber-100 p-2 text-amber-800"><CircleUser className="h-5 w-5" aria-hidden="true" /></span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-950">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-800">Proses Konseling</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums">{summaryStats.proses}</p>
+              </div>
+              <span className="rounded-full bg-sky-100 p-2 text-sky-800"><Clock3 className="h-5 w-5" aria-hidden="true" /></span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Selesai</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums">{summaryStats.selesai}</p>
+              </div>
+              <span className="rounded-full bg-emerald-100 p-2 text-emerald-800"><CheckCircle2 className="h-5 w-5" aria-hidden="true" /></span>
+            </div>
+          </div>
+          <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.55fr)]">
+            <div className="grid gap-2 text-sm">
+              <label htmlFor="rekap-siswa-combobox" className="font-medium">Cari Siswa</label>
+              <div className="relative">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <input
+                    id="rekap-siswa-combobox"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={isStudentComboboxOpen}
+                    aria-controls="rekap-siswa-options"
+                    aria-activedescendant={isStudentComboboxOpen && filteredStudents[activeStudentIndex] ? `rekap-siswa-option-${filteredStudents[activeStudentIndex].id}` : undefined}
+                    autoComplete="off"
+                    value={studentQuery}
+                    placeholder="Cari nama siswa"
+                    onFocus={() => setIsStudentComboboxOpen(true)}
+                    onBlur={() => setIsStudentComboboxOpen(false)}
+                    onChange={(event) => {
+                      setSelectedStudentId('');
+                      setStudentQuery(event.target.value);
+                      setActiveStudentIndex(0);
+                      setIsStudentComboboxOpen(true);
+                    }}
+                    onKeyDown={handleStudentComboboxKeyDown}
+                    className="min-h-[44px] w-full rounded-2xl border border-border bg-background py-2 pl-11 pr-11 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                  />
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                </div>
+                {isStudentComboboxOpen ? (
+                  <ul id="rekap-siswa-options" role="listbox" className="absolute z-20 mt-2 max-h-60 w-full overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-xl">
+                    {filteredStudents.length ? filteredStudents.map((student, index) => (
+                      <li key={student.id} role="presentation">
+                        <button
+                          id={`rekap-siswa-option-${student.id}`}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedStudentId === student.id}
+                          onPointerDown={(event) => event.preventDefault()}
+                          onMouseEnter={() => setActiveStudentIndex(index)}
+                          onClick={() => {
+                            setSelectedStudentId(student.id);
+                            setStudentQuery(student.full_name);
+                            setIsStudentComboboxOpen(false);
+                          }}
+                          className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${activeStudentIndex === index ? 'bg-muted' : ''}`}
+                        >
+                          <span className="truncate font-medium text-card-foreground">{student.full_name}</span>
+                          {selectedStudentId === student.id ? <Check className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" /> : null}
+                        </button>
+                      </li>
+                    )) : (
+                      <li className="px-3 py-4 text-center text-sm text-muted-foreground">Siswa tidak ditemukan.</li>
+                    )}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+            <label className="grid content-start gap-2 text-sm">
+              <span className="font-medium">Status Penanganan</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as RekapStatusFilter)}
+                className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+              >
+                <option value="all">Semua Status</option>
+                <option value="triage">Perlu Tindakan</option>
+                <option value="proses">Proses</option>
+                <option value="selesai">Selesai</option>
+              </select>
+            </label>
+          </div>
           <div className="space-y-3">
             {isLoading ? <p className="text-sm text-muted-foreground">Memuat rekap perilaku…</p> : null}
-            {!isLoading && timelineGroups.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada catatan perilaku.</p> : null}
+            {!isLoading && timelineGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {studentQuery || statusFilter !== 'all' ? 'Tidak ada catatan yang sesuai dengan filter.' : 'Belum ada catatan perilaku.'}
+              </p>
+            ) : null}
             {timelineGroups.map((item) => {
               const handlings = item.penanganan_perilaku ?? [];
               const latestHandling = handlings.length > 0 ? handlings[0] : null;
               const historyHandlings = handlings.length > 1 ? handlings.slice(1) : [];
               const cardItem: RekapItem = { ...item, latestHandling };
               const isExpanded = expandedCardIds[item.id] ?? false;
+              const isDescriptionExpanded = expandedDescriptionIds[item.id] ?? false;
               const hasMoreHistory = historyHandlings.length > 0;
               const canTriage = canManageTriage(item);
               const canAddInitialHandling = canTriage || actor?.id === item.reporter_id;
@@ -226,8 +447,18 @@ export default function PerilakuRekapPage() {
                       ) : item.siswa ? (
                         <p className="text-base font-semibold text-card-foreground">{item.siswa.full_name}</p>
                       ) : <p className="text-base font-semibold text-card-foreground">Siswa tidak ditemukan</p>}
-                      <p className="mt-1 text-xs font-medium text-muted-foreground">{item.tanggal} • Poin {item.poin}</p>
-                      <p className="mt-2 text-sm leading-5 text-foreground">{item.deskripsi}</p>
+                      <p className="mt-1 text-xs font-medium text-muted-foreground">{item.tanggal} • {item.poin} Poin • Dilaporkan oleh: {item.reporter?.full_name ?? 'Pengguna'}</p>
+                      <p className={`mt-2 text-sm leading-5 text-foreground ${isDescriptionExpanded ? '' : 'line-clamp-3'}`}>{item.deskripsi}</p>
+                      {item.deskripsi.length > 120 ? (
+                        <button
+                          type="button"
+                          aria-expanded={isDescriptionExpanded}
+                          onClick={() => setExpandedDescriptionIds((current) => ({ ...current, [item.id]: !current[item.id] }))}
+                          className="mt-1 inline-flex min-h-[36px] items-center gap-1 text-xs font-semibold text-indigo-700 hover:underline"
+                        >
+                          {isDescriptionExpanded ? 'Lebih Sedikit' : 'Selengkapnya'}
+                        </button>
+                      ) : null}
                       {canEditCatatan(item) ? (
                         <button
                           type="button"
@@ -245,6 +476,17 @@ export default function PerilakuRekapPage() {
                       ) : (
                         <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700">Belum ada tindak lanjut</span>
                       )}
+                      {canDeleteCatatan(item) ? (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(item)}
+                          className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600"
+                          aria-label={`Hapus catatan perilaku ${item.siswa?.full_name ?? ''}`}
+                          title="Hapus catatan"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Hapus
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 
@@ -253,7 +495,7 @@ export default function PerilakuRekapPage() {
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Timeline Eskalasi Terbaru</p>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{formatWIT(latestHandling.created_at)}</p>
                       <p className="mt-1 inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-800">
-                        Ditangani oleh: {latestHandling.handler?.full_name ?? 'Pengguna'} ({latestHandling.handler?.roles.map((role) => role.replace(/_/g, ' ')).join(', ') ?? 'peran tidak tersedia'})
+                        Ditangani oleh: {latestHandling.handler?.full_name ?? 'Pengguna'}
                       </p>
                       <p className="mt-2 text-sm leading-5">{latestHandling.tindak_lanjut}</p>
                       {canEditHandling(latestHandling) ? (
@@ -301,7 +543,7 @@ export default function PerilakuRekapPage() {
                                 <div className="flex-1">
                                   <p className="text-xs font-medium text-muted-foreground">{formatWIT(handling.created_at)}</p>
                                   <p className="mt-1 text-sm">{handling.tindak_lanjut}</p>
-                                  <p className="mt-1 text-xs text-indigo-700">Ditangani oleh: {handling.handler?.full_name ?? 'Pengguna'} ({handling.handler?.roles.map((role) => role.replace(/_/g, ' ')).join(', ') ?? 'peran tidak tersedia'})</p>
+                                  <p className="mt-1 text-xs text-indigo-700">Ditangani oleh: {handling.handler?.full_name ?? 'Pengguna'}</p>
                                   {canEditHandling(handling) ? (
                                     <button type="button" onClick={() => setEditTarget({ id: handling.id, isCatatan: false, text: handling.tindak_lanjut, title: 'Edit Deskripsi Penanganan' })} className="mt-1 inline-flex min-h-[44px] items-center gap-2 rounded-xl px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">
                                       <Pencil className="h-4 w-4" /> Edit Deskripsi
@@ -344,7 +586,87 @@ export default function PerilakuRekapPage() {
       {modalItem ? <PenangananModal item={modalItem} actor={actor} canManageTriage={canManageTriage(modalItem)} error={error} onClose={() => setModalItem(null)} onSave={(tindakLanjut, status) => saveHandling(modalItem, tindakLanjut, status)} /> : null}
       {reopenItem ? <ReopenDialog item={reopenItem} error={error} onClose={() => setReopenItem(null)} onSave={(reason, status) => reopenCase(reopenItem, reason, status)} /> : null}
       {editTarget ? <DescriptionEditDialog target={editTarget} error={error} onClose={() => setEditTarget(null)} onSave={saveDescription} /> : null}
+      {deleteTarget ? <DeleteCatatanModal item={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={deleteRecord} /> : null}
     </main>
+  );
+}
+
+function DeleteCatatanModal({
+  item,
+  onClose,
+  onConfirm,
+}: {
+  item: CatatanPerilakuWithRelations;
+  onClose: () => void;
+  onConfirm: (item: CatatanPerilakuWithRelations) => Promise<void>;
+}) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const canConfirm = confirmationText === 'HAPUS';
+
+  async function handleDelete() {
+    if (!canConfirm || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await onConfirm(item);
+      toast.success('Catatan perilaku berhasil dihapus.');
+      onClose();
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : 'Gagal menghapus catatan perilaku.';
+      toast.error('Gagal menghapus catatan perilaku.', { description: message });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-2 pt-2 backdrop-blur-sm md:items-center md:p-6">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="delete-catatan-title" aria-describedby="delete-catatan-description" className="w-full max-w-lg rounded-t-3xl border border-border bg-card p-5 text-card-foreground shadow-xl md:rounded-3xl">
+        <div className="flex items-start gap-3">
+          <span className="rounded-2xl bg-rose-100 p-3 text-rose-800"><Trash2 className="h-5 w-5" aria-hidden="true" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 id="delete-catatan-title" className="text-lg font-semibold">Hapus Catatan Perilaku</h2>
+            <p id="delete-catatan-description" className="mt-2 text-sm leading-6 text-muted-foreground">
+              {step === 1
+                ? 'Apakah Anda yakin ingin menghapus catatan ini? Tindakan ini permanen.'
+                : "Ketik frasa 'HAPUS' untuk mengonfirmasi."}
+            </p>
+            {step === 2 ? (
+              <label htmlFor="delete-catatan-confirmation" className="mt-4 grid gap-2 text-sm font-medium">
+                Ketik HAPUS untuk melanjutkan
+                <input
+                  id="delete-catatan-confirmation"
+                  autoFocus
+                  autoComplete="off"
+                  value={confirmationText}
+                  onChange={(event) => setConfirmationText(event.target.value)}
+                  className="min-h-[44px] rounded-xl border border-border bg-background px-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600"
+                />
+              </label>
+            ) : null}
+          </div>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} disabled={isDeleting} className="min-h-[44px] rounded-xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:opacity-60">
+            Batal
+          </button>
+          {step === 1 ? (
+            <button type="button" onClick={() => setStep(2)} className="min-h-[44px] rounded-xl bg-rose-700 px-4 text-sm font-semibold text-white hover:bg-rose-800">
+              Lanjutkan
+            </button>
+          ) : (
+            <button type="button" onClick={() => void handleDelete()} disabled={!canConfirm || isDeleting} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-rose-700 px-4 text-sm font-semibold text-white hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50">
+              {isDeleting ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+              Hapus Permanen
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
