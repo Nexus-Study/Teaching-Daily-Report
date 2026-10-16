@@ -53,12 +53,12 @@ export default async function ProfilPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 pb-10 pt-6 text-slate-100 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background px-4 pb-10 pt-6 text-slate-900 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
-        <header className="border-b border-white/10 pb-5">
-          <p className="text-sm font-semibold text-cyan-300">Akun dan kegiatan mengajar</p>
-          <h1 className="mt-1 text-2xl font-semibold text-white">Profil Saya</h1>
-          <p className="mt-2 break-all text-sm text-slate-400">{user.email ?? profile.email ?? 'Email belum tersedia'}</p>
+        <header className="border-b border-border pb-5">
+          <p className="text-sm font-semibold text-indigo-700">Akun dan kegiatan mengajar</p>
+          <h1 className="mt-1 text-2xl font-semibold text-slate-900">Profil Saya</h1>
+          <p className="mt-2 break-all text-sm text-slate-600">{user.email ?? profile.email ?? 'Email belum tersedia'}</p>
         </header>
 
         <ProfileTabs

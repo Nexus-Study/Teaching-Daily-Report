@@ -20,15 +20,15 @@ interface RekapItem extends CatatanPerilaku {
 };
 
 const perilakuStyles: Record<PerilakuType, string> = {
-  positif: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100',
-  pelanggaran: 'border-rose-400/30 bg-rose-500/15 text-rose-100',
+  positif: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+  pelanggaran: 'border-rose-200 bg-rose-100 text-rose-800',
 };
 
 const statusStyles: Record<PenangananStatus, string> = {
-  ditangani_di_tempat: 'border-slate-400/30 bg-slate-400/15 text-slate-100',
-  diteruskan: 'border-amber-400/30 bg-amber-500/15 text-amber-100',
-  proses: 'border-sky-400/30 bg-sky-500/15 text-sky-100',
-  selesai: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100',
+  ditangani_di_tempat: 'border-slate-200 bg-slate-100 text-slate-800',
+  diteruskan: 'border-amber-200 bg-amber-100 text-amber-800',
+  proses: 'border-sky-200 bg-sky-100 text-sky-800',
+  selesai: 'border-emerald-200 bg-emerald-100 text-emerald-800',
 };
 
 const statusLabel: Record<PenangananStatus, string> = {
@@ -127,25 +127,25 @@ export default function PerilakuPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-        <header className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-rose-500/15 p-3 text-rose-100">
+            <div className="rounded-2xl bg-rose-100 p-3 text-rose-800">
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-300">Catatan Perilaku</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Input perilaku & eskalasi penanganan</h1>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Sederhana di layar ponsel, tetap siap untuk alur kolaboratif BK, wali kelas, dan kesiswaan.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-700">Catatan Perilaku</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Input perilaku & eskalasi penanganan</h1>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Sederhana di layar ponsel, tetap siap untuk alur kolaboratif BK, wali kelas, dan kesiswaan.</p>
             </div>
           </div>
         </header>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <form action={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm text-card-foreground">
                 <span>Kelas</span>
                 <select
                   value={selectedKelasId}
@@ -153,7 +153,7 @@ export default function PerilakuPage() {
                     setSelectedKelasId(event.target.value);
                     setSelectedSiswaId('');
                   }}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 >
                   <option value="">Pilih kelas</option>
                   {kelasList.map((kelas) => (
@@ -164,13 +164,13 @@ export default function PerilakuPage() {
                 </select>
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm text-card-foreground">
                 <span>Siswa</span>
                 <select
                   name="siswa_id"
                   value={selectedSiswaId}
                   onChange={(event) => setSelectedSiswaId(event.target.value)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 >
                   <option value="">Pilih siswa</option>
                   {siswaList.map((siswa) => (
@@ -186,8 +186,8 @@ export default function PerilakuPage() {
               <button
                 type="button"
                 onClick={() => setJenis('positif')}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition active:scale-[0.98] ${
-                  jenis === 'positif' ? perilakuStyles.positif : 'border-white/10 bg-slate-900/70 text-slate-300'
+                className={`min-h-[44px] rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                  jenis === 'positif' ? perilakuStyles.positif : 'border-border bg-background text-card-foreground'
                 }`}
               >
                 Positif
@@ -195,8 +195,8 @@ export default function PerilakuPage() {
               <button
                 type="button"
                 onClick={() => setJenis('pelanggaran')}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition active:scale-[0.98] ${
-                  jenis === 'pelanggaran' ? perilakuStyles.pelanggaran : 'border-white/10 bg-slate-900/70 text-slate-300'
+                className={`min-h-[44px] rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                  jenis === 'pelanggaran' ? perilakuStyles.pelanggaran : 'border-border bg-background text-card-foreground'
                 }`}
               >
                 Pelanggaran
@@ -206,71 +206,71 @@ export default function PerilakuPage() {
             <input type="hidden" name="jenis" value={jenis} readOnly />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm text-card-foreground">
                 <span>Poin</span>
                 <input
                   name="poin"
                   type="number"
                   defaultValue={0}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 />
               </label>
 
-              <label className="grid gap-2 text-sm text-slate-200">
+              <label className="grid gap-2 text-sm text-card-foreground">
                 <span>Tanggal</span>
                 <input
                   name="tanggal"
                   type="date"
                   defaultValue={new Date().toISOString().slice(0, 10)}
-                  className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                  className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                 />
               </label>
             </div>
 
-            <label className="grid gap-2 text-sm text-slate-200">
+            <label className="grid gap-2 text-sm text-card-foreground">
               <span>Deskripsi Kejadian</span>
               <textarea
                 name="deskripsi"
                 rows={3}
                 required
                 placeholder="Ringkas, jelas, dan faktual"
-                className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+                className="min-h-[44px] rounded-2xl border border-border bg-background px-4 py-3 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               />
             </label>
 
-            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-4 text-sm text-slate-200">
+            <label className="flex min-h-[44px] items-center gap-3 rounded-2xl border border-border bg-background p-4 text-sm text-card-foreground">
               <input
                 type="checkbox"
                 checked={tambahTindakLanjut}
                 onChange={(event) => setTambahTindakLanjut(event.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-slate-900 text-rose-500"
+                className="h-4 w-4 rounded border-border bg-card text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               />
               Tindakan langsung / eskalasi awal
             </label>
 
             {tambahTindakLanjut ? (
-              <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-4">
+              <div className="rounded-3xl border border-border bg-background p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-rose-300" />
-                  <h2 className="text-sm font-semibold text-white">Tindakan Awal</h2>
+                  <Filter className="h-4 w-4 text-rose-700" />
+                  <h2 className="text-sm font-semibold text-card-foreground">Tindakan Awal</h2>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Tindak Lanjut</span>
                     <textarea
                       name="tindak_lanjut"
                       rows={3}
                       placeholder="Contoh: Diperingatkan dan dipanggil setelah jam pelajaran"
-                      className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+                      className="min-h-[44px] rounded-2xl border border-border bg-card px-4 py-3 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                     />
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Status Awal</span>
                     <select
                       name="status"
-                      className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+                      className="min-h-[44px] rounded-2xl border border-border bg-card px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                     >
                       <option value="ditangani_di_tempat">Ditangani di Tempat</option>
                       <option value="diteruskan">Diteruskan ke Wali Kelas/BK</option>
@@ -284,7 +284,7 @@ export default function PerilakuPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedSiswaId}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Simpan Catatan Perilaku
@@ -293,27 +293,27 @@ export default function PerilakuPage() {
               <button
                 type="button"
                 onClick={refreshData}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 text-sm font-semibold text-card-foreground transition active:scale-[0.98] hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               >
                 <RefreshCw className="h-4 w-4" />
                 Muat Ulang
               </button>
             </div>
 
-            {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+            {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
+            {error ? <p className="text-sm font-medium text-rose-700">{error}</p> : null}
           </form>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Users className="h-4 w-4 text-rose-300" />
-            <h2 className="text-sm font-semibold text-white">Rekap & Timeline Eskalasi</h2>
+            <Users className="h-4 w-4 text-rose-700" />
+            <h2 className="text-sm font-semibold text-card-foreground">Rekap & Timeline Eskalasi</h2>
           </div>
 
           <div className="space-y-3">
             {timelineGroups.length === 0 ? (
-              <p className="text-sm text-slate-400">Belum ada catatan perilaku.</p>
+              <p className="text-sm text-muted-foreground">Belum ada catatan perilaku.</p>
             ) : (
               timelineGroups.map((item) => {
                 const latestHandling = item.latestHandling;
@@ -322,12 +322,15 @@ export default function PerilakuPage() {
                 const hasMoreHistory = totalHandling > 1;
 
                 return (
-                  <article key={item.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                  <article key={item.id} className="rounded-2xl border border-border bg-background p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{item.siswa?.full_name ?? 'Siswa tidak ditemukan'}</p>
-                        <p className="text-xs text-slate-400">
-                          {item.tanggal} • Poin {item.poin} • {item.deskripsi}
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold text-card-foreground">{item.siswa?.full_name ?? 'Siswa tidak ditemukan'}</p>
+                        <p className="mt-1 text-xs font-medium text-muted-foreground">
+                          {item.tanggal} • Poin {item.poin}
+                        </p>
+                        <p className="mt-2 text-sm leading-5 text-foreground">
+                          {item.deskripsi}
                         </p>
                       </div>
 
@@ -342,12 +345,12 @@ export default function PerilakuPage() {
                     </div>
 
                     {latestHandling ? (
-                      <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <div className="mt-3 rounded-2xl border border-border bg-card p-3">
                         <div className="flex flex-col gap-2">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Timeline Eskalasi Terbaru</p>
-                            <p className="mt-1 text-xs text-slate-300">{formatWIT(latestHandling.status === 'selesai' ? latestHandling.tanggal ?? new Date().toISOString() : new Date().toISOString())}</p>
-                            <p className="mt-2 text-sm text-slate-200">{latestHandling.tindak_lanjut}</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Timeline Eskalasi Terbaru</p>
+                            <p className="mt-1 text-xs font-medium text-muted-foreground">{formatWIT(latestHandling.status === 'selesai' ? latestHandling.tanggal ?? new Date().toISOString() : new Date().toISOString())}</p>
+                            <p className="mt-2 text-sm leading-5 text-card-foreground">{latestHandling.tindak_lanjut}</p>
                           </div>
 
                           <div className="flex flex-wrap gap-2">
@@ -355,7 +358,7 @@ export default function PerilakuPage() {
                               <button
                                 type="button"
                                 onClick={() => setModalItem(item)}
-                                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-border bg-background px-4 text-xs font-semibold text-card-foreground transition active:scale-[0.98] hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                               >
                                 <CircleUser className="h-4 w-4" />
                                 Ubah Status
@@ -366,7 +369,7 @@ export default function PerilakuPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleExpanded(item.id)}
-                                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-border bg-background px-4 text-xs font-semibold text-card-foreground transition active:scale-[0.98] hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                               >
                                 <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 Selengkapnya ({totalHandling - 1} riwayat)
@@ -374,20 +377,20 @@ export default function PerilakuPage() {
                             )}
 
                             {latestHandling.status === 'selesai' && (
-                              <span className="text-xs text-emerald-300 font-semibold">Status terkunci (Selesai)</span>
+                              <span className="text-xs font-semibold text-emerald-700">Status terkunci (Selesai)</span>
                             )}
                           </div>
                         </div>
 
                         {isExpanded && hasMoreHistory && (
-                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Riwayat Perubahan Status</p>
+                          <div className="mt-4 space-y-3 border-t border-border pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Riwayat Perubahan Status</p>
                             {item.penanganan_perilaku?.slice(1).map((handling, index) => (
-                              <div key={`${item.id}-history-${index}`} className="rounded-2xl border border-white/10 bg-slate-900/50 p-3">
+                              <div key={`${item.id}-history-${index}`} className="rounded-2xl border border-border bg-background p-3">
                                 <div className="flex justify-between items-start gap-2">
                                   <div className="flex-1">
-                                    <p className="text-xs text-slate-300">{formatWIT(handling.updated_at ?? handling.tanggal)}</p>
-                                    <p className="mt-1 text-xs text-slate-200">{handling.tindak_lanjut}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">{formatWIT(handling.updated_at ?? handling.tanggal)}</p>
+                                    <p className="mt-1 text-sm text-card-foreground">{handling.tindak_lanjut}</p>
                                   </div>
                                   <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold whitespace-nowrap ${statusStyles[handling.status]}`}>
                                     {statusLabel[handling.status]}
@@ -399,12 +402,12 @@ export default function PerilakuPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-dashed border-white/10 bg-white/5 p-3">
-                        <p className="text-sm text-slate-300">Belum ada tindak lanjut.</p>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-dashed border-border bg-card p-3">
+                        <p className="text-sm text-muted-foreground">Belum ada tindak lanjut.</p>
                         <button
                           type="button"
                           onClick={() => setModalItem(item)}
-                          className="inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-slate-100 transition active:scale-[0.98] hover:bg-white/10"
+                          className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-border bg-background px-4 text-xs font-semibold text-card-foreground transition active:scale-[0.98] hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           Tambah Penanganan
@@ -448,35 +451,39 @@ function PenangananModal({
   const [isSubmitting, startSubmitting] = useTransition();
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/70 px-4 pb-4 pt-10 backdrop-blur-sm md:place-items-center md:p-6">
-      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-slate-950 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.55)]">
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 px-4 pb-4 pt-10 backdrop-blur-sm md:place-items-center md:p-6">
+      <div className="w-full max-w-xl rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-300">Penanganan Eskalasi</p>
-            <h3 className="mt-1 text-lg font-semibold text-white">{item.siswa?.full_name ?? 'Siswa'}</h3>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-700">Penanganan Eskalasi</p>
+            <h3 className="mt-1 text-lg font-semibold text-card-foreground">{item.siswa?.full_name ?? 'Siswa'}</h3>
           </div>
-          <button onClick={onClose} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-100 hover:bg-white/10">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] rounded-2xl border border-border bg-background px-3 py-2 text-xs font-medium text-card-foreground transition hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
             Tutup
           </button>
         </div>
 
         <div className="grid gap-4">
-          <label className="grid gap-2 text-sm text-slate-200">
+          <label className="grid gap-2 text-sm text-card-foreground">
             <span>Tindak Lanjut</span>
             <textarea
               value={tindakLanjut}
               onChange={(event) => setTindakLanjut(event.target.value)}
               rows={4}
-              className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-rose-400/40"
+              className="min-h-[44px] rounded-2xl border border-border bg-background px-4 py-3 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             />
           </label>
 
-          <label className="grid gap-2 text-sm text-slate-200">
+          <label className="grid gap-2 text-sm text-card-foreground">
             <span>Status Eskalasi</span>
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value as PenangananStatus)}
-              className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-rose-400/40"
+              className="min-h-[44px] rounded-2xl border border-border bg-background px-4 text-foreground transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             >
               <option value="ditangani_di_tempat">Ditangani di Tempat</option>
               <option value="diteruskan">Diteruskan</option>
@@ -493,7 +500,7 @@ function PenangananModal({
                 void onSave(tindakLanjut, status);
               });
             }}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan Penanganan

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, CalendarRange, ClipboardList, LoaderCircle, Users } from 'lucide-react';
+import { AlertCircle, ArrowLeftRight, CalendarRange, ClipboardList, LoaderCircle, Users } from 'lucide-react';
 
 import { createClient } from '../../../lib/supabase/client';
 import type { AlertKehadiranSiswa, Database, Kelas, Profile, RekapKehadiranSiswa, UserRole } from '../../../types/database';
@@ -32,14 +32,12 @@ const monthNames = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 
-function getCountBadgeClass(count: number, status: 'sakit' | 'izin' | 'alpa') {
+function getCountBadgeClass(count: number) {
   if (count >= 3) {
-    return status === 'alpa'
-      ? 'border-rose-400/40 bg-rose-500/20 text-rose-100'
-      : 'border-amber-400/40 bg-amber-500/20 text-amber-100';
+    return 'border-primary/30 bg-primary/10 text-primary';
   }
 
-  return 'border-slate-700 bg-slate-800/80 text-slate-200';
+  return 'border-border bg-muted text-muted-foreground';
 }
 
 export default function RekapKehadiranPage() {
@@ -291,23 +289,23 @@ export default function RekapKehadiranPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-        <header className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
+        <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-indigo-500/20 p-3 text-indigo-200">
+            <div className="rounded-2xl bg-muted p-3 text-primary">
               <CalendarRange className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-200">Kehadiran Siswa</p>
-              <h1 className="mt-1 text-2xl font-semibold text-white">Rekap Kehadiran Siswa</h1>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Akumulasi hadir, sakit, izin, dan alpa per mata pelajaran.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Kehadiran Siswa</p>
+              <h1 className="mt-1 text-2xl font-semibold text-card-foreground">Rekap Kehadiran Siswa</h1>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Akumulasi hadir, sakit, izin, dan alpa per mata pelajaran.</p>
             </div>
           </div>
         </header>
 
         {showTabBar ? (
-          <div role="tablist" aria-label="Tampilan rekap kehadiran" className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-slate-900 p-1">
+          <div role="tablist" aria-label="Tampilan rekap kehadiran" className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-muted p-1">
             {hasTabAAccess ? (
               <button
                 id="tab-mapel"
@@ -315,7 +313,7 @@ export default function RekapKehadiranPage() {
                 role="tab"
                 aria-selected={activeView === 'mapel'}
                 onClick={() => setActiveView('mapel')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${activeView === 'mapel' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${activeView === 'mapel' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Rekap Mapel Saya
               </button>
@@ -327,7 +325,7 @@ export default function RekapKehadiranPage() {
                 role="tab"
                 aria-selected={activeView === 'alert'}
                 onClick={() => setActiveView('alert')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${activeView === 'alert' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${activeView === 'alert' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Alert Kehadiran Siswa
               </button>
@@ -336,95 +334,101 @@ export default function RekapKehadiranPage() {
         ) : null}
 
         {error ? (
-          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div role="alert" className="flex items-start gap-2 rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-card-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>{error}</span>
           </div>
         ) : null}
 
         {isInitializing && roles.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 rounded-3xl border border-white/10 bg-slate-900/80 px-4 py-12 text-sm text-slate-400">
+          <div className="flex items-center justify-center gap-2 rounded-3xl border border-border bg-card px-4 py-12 text-sm text-muted-foreground">
             <LoaderCircle className="h-4 w-4 animate-spin" /> Memuat akses rekap...
           </div>
         ) : null}
 
         {activeView === 'mapel' && hasTabAAccess ? (
           <>
-            <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/20">
+            <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
               <div className="mb-4 flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-indigo-300" />
-                <h2 className="text-sm font-semibold text-white">Filter Rekap Mapel Saya</h2>
-                <span className="ml-auto text-xs text-slate-400">Tahun {currentYear}</span>
+                <ClipboardList className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-card-foreground">Filter Rekap Mapel Saya</h2>
+                <span className="ml-auto text-xs text-muted-foreground">Tahun {currentYear}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
+                <label className="col-span-2 grid gap-2 text-sm text-card-foreground md:col-span-1">
                   <span>Kelas</span>
-                  <select value={kelasId} onChange={(event) => setKelasId(event.target.value)} disabled={isInitializing || tabAKelasOptions.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60 disabled:opacity-50">
+                  <select value={kelasId} onChange={(event) => setKelasId(event.target.value)} disabled={isInitializing || tabAKelasOptions.length === 0} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50">
                     <option value="">Pilih kelas</option>
                     {tabAKelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} - {kelas.tingkat}</option>)}
                   </select>
                 </label>
 
-                <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-2">
+                <label className="col-span-2 grid gap-2 text-sm text-card-foreground md:col-span-2">
                   <span>Mata Pelajaran</span>
-                  <select value={subject} onChange={(event) => setSubject(event.target.value)} disabled={!kelasId || subjects.length === 0} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60 disabled:opacity-50">
+                  <select value={subject} onChange={(event) => setSubject(event.target.value)} disabled={!kelasId || subjects.length === 0} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50">
                     <option value="">{kelasId ? 'Pilih mata pelajaran' : 'Pilih kelas terlebih dahulu'}</option>
                     {subjects.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </label>
 
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm text-card-foreground">
                   <span>Bulan Mulai</span>
-                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
 
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm text-card-foreground">
                   <span>Bulan Selesai</span>
-                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
               </div>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button type="button" onClick={loadReport} disabled={isInitializing || isLoading || !kelasId || !subject} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                <button type="button" onClick={loadReport} disabled={isInitializing || isLoading || !kelasId || !subject} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                   {isLoading || isInitializing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
                   Tampilkan Rekap
                 </button>
-                <p className="text-xs text-slate-400">Periode {monthNames[monthFrom - 1]} - {monthNames[monthTo - 1]}</p>
+                <p className="text-xs text-muted-foreground">Periode {monthNames[monthFrom - 1]} - {monthNames[monthTo - 1]}</p>
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80 shadow-xl shadow-slate-950/20">
-              <div className="flex items-center gap-2 border-b border-white/10 px-4 py-4">
-                <Users className="h-4 w-4 text-indigo-300" />
-                <h2 className="text-sm font-semibold text-white">Rekap per Siswa</h2>
-                <span className="ml-auto text-xs text-slate-400">{rows.length} siswa</span>
+            <section className="overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-4">
+                <Users className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-card-foreground">Rekap per Siswa</h2>
+                <span className="ml-auto text-xs text-muted-foreground">{rows.length} siswa</span>
               </div>
               {isLoading ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-slate-400"><LoaderCircle className="h-4 w-4 animate-spin" /> Memuat rekap...</div>
+                <div className="flex items-center justify-center gap-2 bg-card px-4 py-12 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> Memuat rekap...</div>
               ) : rows.length === 0 ? (
-                <div className="px-4 py-12 text-center text-sm text-slate-400">{kelasId && subject ? 'Tidak ada data kehadiran untuk filter ini.' : 'Pilih kelas dan mata pelajaran untuk melihat rekap.'}</div>
+                <div className="bg-muted px-4 py-12 text-center text-sm text-muted-foreground">{kelasId && subject ? 'Tidak ada data kehadiran untuk filter ini.' : 'Pilih kelas dan mata pelajaran untuk melihat rekap.'}</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] border-collapse text-left text-sm">
-                    <thead className="bg-slate-950/70 text-xs font-semibold uppercase text-slate-400"><tr><th scope="col" className="px-4 py-3">Nama Siswa</th><th scope="col" className="px-4 py-3 text-center">Hadir</th><th scope="col" className="px-4 py-3 text-center">Sakit</th><th scope="col" className="px-4 py-3 text-center">Izin</th><th scope="col" className="px-4 py-3 text-center">Alpa</th></tr></thead>
-                    <tbody className="divide-y divide-white/5">
+                <>
+                  <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2 text-xs font-medium text-muted-foreground sm:hidden">
+                    <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Geser horizontal untuk melihat semua kolom</span>
+                  </div>
+                  <div role="region" aria-label="Tabel rekap kehadiran per siswa. Gulir horizontal untuk melihat semua kolom." tabIndex={0} className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                    <thead className="bg-muted text-xs font-semibold uppercase text-muted-foreground"><tr><th scope="col" className="px-4 py-3">Nama Siswa</th><th scope="col" className="px-4 py-3 text-center">Hadir</th><th scope="col" className="px-4 py-3 text-center">Sakit</th><th scope="col" className="px-4 py-3 text-center">Izin</th><th scope="col" className="px-4 py-3 text-center">Alpa</th></tr></thead>
+                    <tbody className="divide-y divide-border">
                       {rows.map((row) => (
-                        <tr key={row.siswa_id} className="transition hover:bg-white/[0.03]">
-                          <th scope="row" className="px-4 py-3 font-medium text-slate-100">{row.full_name}</th>
-                          <td className="px-4 py-3 text-center font-semibold text-emerald-300">{row.hadir}</td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.sakit, 'sakit')}`}>{row.sakit}</span></td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.izin, 'izin')}`}>{row.izin}</span></td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.alpa, 'alpa')}`}>{row.alpa}</span></td>
+                        <tr key={row.siswa_id} className="transition hover:bg-muted/70">
+                          <th scope="row" className="px-4 py-3 font-medium text-card-foreground">{row.full_name}</th>
+                          <td className="px-4 py-3 text-center font-semibold text-primary">{row.hadir}</td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.sakit)}`}>{row.sakit}</span></td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.izin)}`}>{row.izin}</span></td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.alpa)}`}>{row.alpa}</span></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+                </>
               )}
             </section>
           </>
@@ -432,74 +436,80 @@ export default function RekapKehadiranPage() {
 
         {activeView === 'alert' && hasTabBAccess ? (
           <>
-            <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/20">
+            <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
               <div className="mb-4 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-300" />
-                <h2 className="text-sm font-semibold text-white">Filter Alert Kehadiran</h2>
-                <span className="ml-auto text-xs text-slate-400">Tahun {currentYear}</span>
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-card-foreground">Filter Alert Kehadiran</h2>
+                <span className="ml-auto text-xs text-muted-foreground">Tahun {currentYear}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
+                <label className="col-span-2 grid gap-2 text-sm text-card-foreground md:col-span-1">
                   <span>Kelas</span>
-                  <select value={alertKelasId} onChange={(event) => setAlertKelasId(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={alertKelasId} onChange={(event) => setAlertKelasId(event.target.value)} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     <option value="">Semua Kelas</option>
                     {kelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} - {kelas.tingkat}</option>)}
                   </select>
                 </label>
-                <label className="col-span-2 grid gap-2 text-sm text-slate-200 md:col-span-1">
+                <label className="col-span-2 grid gap-2 text-sm text-card-foreground md:col-span-1">
                   <span>Mata Pelajaran</span>
-                  <select value={alertSubject} onChange={(event) => setAlertSubject(event.target.value)} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={alertSubject} onChange={(event) => setAlertSubject(event.target.value)} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     <option value="">Semua Mapel</option>
                     {alertSubjects.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </label>
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm text-card-foreground">
                   <span>Bulan Mulai</span>
-                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthFrom} onChange={(event) => handleMonthFromChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
-                <label className="grid gap-2 text-sm text-slate-200">
+                <label className="grid gap-2 text-sm text-card-foreground">
                   <span>Bulan Selesai</span>
-                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 text-slate-100 outline-none focus:border-indigo-400/60">
+                  <select value={monthTo} onChange={(event) => handleMonthToChange(Number(event.target.value))} className="h-12 min-w-0 rounded-xl border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
                     {semesterMonths.map((month) => <option key={month.value} value={month.value}>{month.name}</option>)}
                   </select>
                 </label>
               </div>
-              <p className="mt-4 text-xs text-slate-400">Periode {monthNames[monthFrom - 1]} - {monthNames[monthTo - 1]}</p>
+              <p className="mt-4 text-xs text-muted-foreground">Periode {monthNames[monthFrom - 1]} - {monthNames[monthTo - 1]}</p>
             </section>
 
-            {alertError ? <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{alertError}</span></div> : null}
+            {alertError ? <div role="alert" className="flex items-start gap-2 rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-card-foreground"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{alertError}</span></div> : null}
 
-            <section className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80 shadow-xl shadow-slate-950/20">
-              <div className="flex items-center gap-2 border-b border-white/10 px-4 py-4">
-                <Users className="h-4 w-4 text-amber-300" />
-                <h2 className="text-sm font-semibold text-white">Alert Kehadiran Siswa</h2>
-                <span className="ml-auto text-xs text-slate-400">{alertRows.length} siswa</span>
+            <section className="overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-4">
+                <Users className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-card-foreground">Alert Kehadiran Siswa</h2>
+                <span className="ml-auto text-xs text-muted-foreground">{alertRows.length} siswa</span>
               </div>
               {isLoadingAlerts ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-slate-400"><LoaderCircle className="h-4 w-4 animate-spin" /> Memuat alert...</div>
+                <div className="flex items-center justify-center gap-2 bg-card px-4 py-12 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> Memuat alert...</div>
               ) : alertRows.length === 0 ? (
-                <div className="px-4 py-12 text-center text-sm text-slate-400">Tidak ada alert kehadiran untuk periode ini.</div>
+                <div className="bg-muted px-4 py-12 text-center text-sm text-muted-foreground">Tidak ada alert kehadiran untuk periode ini.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                    <thead className="bg-slate-950/70 text-xs font-semibold uppercase text-slate-400"><tr><th scope="col" className="px-4 py-3">Nama Siswa</th><th scope="col" className="px-4 py-3">Kelas</th><th scope="col" className="px-4 py-3">Mata Pelajaran</th><th scope="col" className="px-4 py-3 text-center">Hadir</th><th scope="col" className="px-4 py-3 text-center">Sakit</th><th scope="col" className="px-4 py-3 text-center">Izin</th><th scope="col" className="px-4 py-3 text-center">Alpa</th></tr></thead>
-                    <tbody className="divide-y divide-white/5">
+                <>
+                  <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2 text-xs font-medium text-muted-foreground sm:hidden">
+                    <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Geser horizontal untuk melihat semua kolom</span>
+                  </div>
+                  <div role="region" aria-label="Tabel alert kehadiran siswa. Gulir horizontal untuk melihat semua kolom." tabIndex={0} className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+                    <thead className="bg-muted text-xs font-semibold uppercase text-muted-foreground"><tr><th scope="col" className="px-4 py-3">Nama Siswa</th><th scope="col" className="px-4 py-3">Kelas</th><th scope="col" className="px-4 py-3">Mata Pelajaran</th><th scope="col" className="px-4 py-3 text-center">Hadir</th><th scope="col" className="px-4 py-3 text-center">Sakit</th><th scope="col" className="px-4 py-3 text-center">Izin</th><th scope="col" className="px-4 py-3 text-center">Alpa</th></tr></thead>
+                    <tbody className="divide-y divide-border">
                       {alertRows.map((row) => (
-                        <tr key={`${row.siswa_id}-${row.kelas_nama}-${row.mata_pelajaran}`} className="transition hover:bg-white/[0.03]">
-                          <th scope="row" className="px-4 py-3 font-medium text-slate-100">{row.full_name}</th>
-                          <td className="px-4 py-3 text-slate-300">{row.kelas_nama}</td>
-                          <td className="px-4 py-3 text-slate-300">{row.mata_pelajaran}</td>
-                          <td className="px-4 py-3 text-center font-semibold text-emerald-300">{row.hadir}</td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.sakit, 'sakit')}`}>{row.sakit}</span></td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.izin, 'izin')}`}>{row.izin}</span></td>
-                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.alpa, 'alpa')}`}>{row.alpa}</span></td>
+                        <tr key={`${row.siswa_id}-${row.kelas_nama}-${row.mata_pelajaran}`} className="transition hover:bg-muted/70">
+                          <th scope="row" className="px-4 py-3 font-medium text-card-foreground">{row.full_name}</th>
+                          <td className="px-4 py-3 text-muted-foreground">{row.kelas_nama}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{row.mata_pelajaran}</td>
+                          <td className="px-4 py-3 text-center font-semibold text-primary">{row.hadir}</td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.sakit)}`}>{row.sakit}</span></td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.izin)}`}>{row.izin}</span></td>
+                          <td className="px-4 py-3 text-center"><span className={`inline-flex min-w-9 justify-center rounded-lg border px-2.5 py-1 font-semibold ${getCountBadgeClass(row.alpa)}`}>{row.alpa}</span></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+                </>
               )}
             </section>
           </>

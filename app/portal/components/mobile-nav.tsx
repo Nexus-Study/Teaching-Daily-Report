@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Menu, X } from 'lucide-react';
+import { Home, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { portalMenus } from '@/app/portal/config/menu';
@@ -17,6 +17,13 @@ function normalizePath(path: string) {
   return path.replace(/\/+$/, '') || '/';
 }
 
+type BottomNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  activePaths: string[];
+};
+
 export default function MobileNav({ userRoles }: MobileNavProps) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
@@ -28,6 +35,27 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
     return currentPath === menuPath || currentPath.startsWith(`${menuPath}/`);
   });
   const headerTitle = currentPath === '/portal' ? 'Portal Madrasah' : activeMenu?.title ?? 'Portal Madrasah';
+  const findMenu = (href: string) => visibleMenus.find((menu) => normalizePath(menu.href) === href);
+  const journalMenu = findMenu('/portal/jurnal');
+  const behaviorMenu = findMenu('/portal/perilaku');
+  const reportsMenu = findMenu('/portal/laporan');
+  const attendanceMenu = findMenu('/portal/rekap-kehadiran');
+  const profileMenu = findMenu('/portal/profil');
+  const summaryMenu = reportsMenu ?? attendanceMenu;
+  const bottomNavItems: BottomNavItem[] = [
+    { href: '/portal', label: 'Home', icon: Home, activePaths: ['/portal'] },
+    ...(journalMenu ? [{ href: '/portal/jurnal', label: 'Jurnal', icon: journalMenu.icon, activePaths: ['/portal/jurnal'] }] : []),
+    ...(behaviorMenu ? [{ href: '/portal/perilaku', label: 'Perilaku', icon: behaviorMenu.icon, activePaths: ['/portal/perilaku'] }] : []),
+    ...(summaryMenu
+      ? [{
+          href: normalizePath(summaryMenu.href),
+          label: 'Rekap',
+          icon: summaryMenu.icon,
+          activePaths: ['/portal/laporan', '/portal/rekap-kehadiran'],
+        }]
+      : []),
+    ...(profileMenu ? [{ href: '/portal/profil', label: 'Profil', icon: profileMenu.icon, activePaths: ['/portal/profil'] }] : []),
+  ];
 
   async function handleLogout() {
     setIsOpen(false);
@@ -39,19 +67,45 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden dark:border-slate-800 dark:bg-slate-950/95">
-        <h1 className="truncate pr-3 text-sm font-semibold text-slate-900 dark:text-white">{headerTitle}</h1>
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden">
+        <h1 className="truncate pr-3 text-sm font-semibold text-slate-900">{headerTitle}</h1>
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
           aria-label={isOpen ? 'Tutup navigasi' : 'Buka navigasi'}
           aria-expanded={isOpen}
           aria-controls="mobile-navigation-drawer"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
       </header>
+
+      <nav
+        aria-label="Navigasi utama"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur lg:hidden"
+      >
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.activePaths.some(
+            (path) => currentPath === path || (path !== '/portal' && currentPath.startsWith(`${path}/`)),
+          );
+
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-md px-2 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                isActive ? 'font-semibold text-indigo-600' : 'text-slate-500'
+              }`}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       <div
         className={`pointer-events-none fixed inset-0 z-50 lg:hidden ${isOpen ? 'pointer-events-auto' : ''}`}
@@ -69,18 +123,18 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
           role="dialog"
           aria-modal={isOpen}
           aria-label="Navigasi portal"
-          className={`absolute inset-y-0 right-0 flex w-[min(20rem,85vw)] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950 ${
+          className={`absolute inset-y-0 right-0 flex w-[min(20rem,85vw)] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
             isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-            <span className="text-sm font-semibold text-slate-900 dark:text-white">Navigasi</span>
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
+            <span className="text-sm font-semibold text-slate-900">Navigasi</span>
             <button
               type="button"
               tabIndex={isOpen ? 0 : -1}
               onClick={() => setIsOpen(false)}
               aria-label="Tutup navigasi"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -102,22 +156,22 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
                   className={`flex min-h-12 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                     isActive
                       ? 'bg-indigo-600 font-medium text-white'
-                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                      : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : menu.iconClass}`} aria-hidden="true" />
+                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-600'}`} aria-hidden="true" />
                   <span>{menu.title}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="shrink-0 border-t border-slate-200 p-3 dark:border-slate-800">
+          <div className="shrink-0 border-t border-slate-200 p-3">
             <button
               type="button"
               tabIndex={isOpen ? 0 : -1}
               onClick={handleLogout}
-              className="flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 dark:text-rose-400 dark:hover:bg-rose-950/40"
+              className="flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
             >
               <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span>Logout</span>

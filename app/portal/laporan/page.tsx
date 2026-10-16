@@ -62,10 +62,10 @@ export default function LaporanPage() {
   const summaryCards = useMemo(() => {
     if (!report) {
       return [
-        { label: 'Total Jurnal Terisi', value: '0', tone: 'cyan' },
-        { label: '% Kehadiran Siswa', value: '0%', tone: 'emerald' },
-        { label: 'Total Catatan Pelanggaran', value: '0', tone: 'rose' },
-        { label: 'Status Eskalasi Aktif', value: '0', tone: 'amber' },
+        { label: 'Total Jurnal Terisi', value: '0' },
+        { label: '% Kehadiran Siswa', value: '0%' },
+        { label: 'Total Catatan Pelanggaran', value: '0' },
+        { label: 'Status Eskalasi Aktif', value: '0' },
       ];
     }
 
@@ -73,37 +73,37 @@ export default function LaporanPage() {
     const aktif = report.eskalasi.diteruskan + report.eskalasi.proses;
 
     return [
-      { label: 'Total Jurnal Terisi', value: String(report.totalJurnal), tone: 'cyan' },
-      { label: '% Kehadiran Siswa', value: `${kehadiran}%`, tone: 'emerald' },
-      { label: 'Total Catatan Pelanggaran', value: String(report.perilaku.totalCatatanPelanggaran), tone: 'rose' },
-      { label: 'Status Eskalasi Aktif', value: String(aktif), tone: 'amber' },
+      { label: 'Total Jurnal Terisi', value: String(report.totalJurnal) },
+      { label: '% Kehadiran Siswa', value: `${kehadiran}%` },
+      { label: 'Total Catatan Pelanggaran', value: String(report.perilaku.totalCatatanPelanggaran) },
+      { label: 'Status Eskalasi Aktif', value: String(aktif) },
     ];
   }, [report]);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-        <header className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-100">
+            <div className="rounded-2xl bg-muted p-3 text-primary">
               <BarChart3 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Rekap & Laporan</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Dashboard laporan ringkas</h1>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Ringkas, cepat dibaca, dan cocok dipakai dari layar ponsel.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Rekap & Laporan</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Dashboard laporan ringkas</h1>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Ringkas, cepat dibaca, dan cocok dipakai dari layar ponsel.</p>
             </div>
           </div>
         </header>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="grid gap-2 text-sm text-slate-200 md:col-span-1">
+        <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <label className="grid min-w-0 gap-2 text-sm text-card-foreground sm:col-span-2 md:col-span-2">
               <span>Kelas</span>
               <select
                 value={kelasId}
                 onChange={(event) => setKelasId(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="min-h-[44px] w-full min-w-0 rounded-2xl border border-border bg-card px-4 text-card-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
                 <option value="">Semua kelas yang relevan</option>
                 {kelasOptions.map((kelas) => (
@@ -114,74 +114,75 @@ export default function LaporanPage() {
               </select>
             </label>
 
-            <label className="grid gap-2 text-sm text-slate-200">
+            <label className="grid min-w-0 gap-2 text-sm text-card-foreground">
               <span>Mulai</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="min-h-[44px] w-full min-w-0 rounded-2xl border border-border bg-card px-4 text-card-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               />
             </label>
 
-            <label className="grid gap-2 text-sm text-slate-200">
+            <label className="grid min-w-0 gap-2 text-sm text-card-foreground">
               <span>Sampai</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
-                className="h-12 rounded-2xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 outline-none transition focus:border-cyan-400/40"
+                className="min-h-[44px] w-full min-w-0 rounded-2xl border border-border bg-card px-4 text-card-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               />
             </label>
           </div>
 
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={loadReport}
-              className="inline-flex h-12 items-center gap-2 rounded-2xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-[0.98]"
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
-              <RefreshCw className="h-4 w-4" />
-              Terapkan Filter
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Memuat...' : 'Terapkan Filter'}
             </button>
           </div>
         </section>
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
-            <article key={card.label} className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{card.label}</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{card.value}</p>
+            <article key={card.label} className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{card.label}</p>
+              <p className="mt-3 text-3xl font-semibold text-card-foreground">{card.value}</p>
             </article>
           ))}
         </section>
 
-        {error ? <p className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p> : null}
+        {error ? <p role="alert" className="rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-card-foreground">{error}</p> : null}
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-cyan-300" />
-            <h2 className="text-sm font-semibold text-white">Laporan Jurnal & Presensi</h2>
+            <ClipboardList className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-card-foreground">Laporan Jurnal & Presensi</h2>
           </div>
 
           <div className="space-y-3">
             {!report || report.jurnalList.length === 0 ? (
-              <p className="text-sm text-slate-400">Belum ada jurnal pada filter terpilih.</p>
+              <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Belum ada jurnal pada filter terpilih.</p>
             ) : (
               report.jurnalList.map((item) => (
-                <article key={item.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                <article key={item.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-white">{item.mata_pelajaran}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-card-foreground">{item.mata_pelajaran}</p>
+                      <p className="text-xs text-muted-foreground">
                         {item.kelas_nama} • {item.tanggal} • Jam {item.jam_ke}
                       </p>
                     </div>
-                    <div className="flex gap-2 text-[11px] font-semibold text-slate-200">
-                      <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1">Hadir {item.hadir}</span>
-                      <span className="rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1">Izin {item.izin}</span>
-                      <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1">Sakit {item.sakit}</span>
-                      <span className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1">Alpa {item.alpa}</span>
+                    <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-card-foreground">
+                      <span className="rounded-full border border-border bg-muted px-3 py-1">Hadir {item.hadir}</span>
+                      <span className="rounded-full border border-border bg-muted px-3 py-1">Izin {item.izin}</span>
+                      <span className="rounded-full border border-border bg-muted px-3 py-1">Sakit {item.sakit}</span>
+                      <span className="rounded-full border border-border bg-muted px-3 py-1">Alpa {item.alpa}</span>
                     </div>
                   </div>
                 </article>
@@ -191,34 +192,34 @@ export default function LaporanPage() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+          <article className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <Users className="h-4 w-4 text-cyan-300" />
-              <h2 className="text-sm font-semibold text-white">Laporan Perilaku</h2>
+              <Users className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-card-foreground">Laporan Perilaku</h2>
             </div>
 
             <div className="space-y-3">
               {!report || report.perilakuList.length === 0 ? (
-                <p className="text-sm text-slate-400">Belum ada catatan perilaku pada filter terpilih.</p>
+                <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Belum ada catatan perilaku pada filter terpilih.</p>
               ) : (
                 report.perilakuList.slice(0, 8).map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                  <div key={item.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">{item.siswa_nama}</p>
-                        <p className="text-xs text-slate-400">{item.tanggal} • Poin {item.poin}</p>
+                        <p className="text-sm font-semibold text-card-foreground">{item.siswa_nama}</p>
+                        <p className="text-xs text-muted-foreground">{item.tanggal} • Poin {item.poin}</p>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                      <span className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold text-card-foreground">
                         {item.jenis}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{item.deskripsi}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.deskripsi}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100">
+                      <span className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold text-card-foreground">
                         Eskalasi {eskalasiLabel[item.status_eskalasi as keyof typeof eskalasiLabel] ?? item.status_eskalasi}
                       </span>
                       {item.tindak_lanjut ? (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                        <span className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold text-card-foreground">
                           {item.tindak_lanjut}
                         </span>
                       ) : null}
@@ -229,14 +230,14 @@ export default function LaporanPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+          <article className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <TriangleAlert className="h-4 w-4 text-amber-300" />
-              <h2 className="text-sm font-semibold text-white">Progress Eskalasi Tindakan</h2>
+              <TriangleAlert className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-card-foreground">Progress Eskalasi Tindakan</h2>
             </div>
 
             {!report ? (
-              <p className="text-sm text-slate-400">Memuat ringkasan eskalasi...</p>
+              <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Memuat ringkasan eskalasi...</p>
             ) : (
               <div className="space-y-3">
                 {(['ditangani_di_tempat', 'diteruskan', 'proses', 'selesai'] as const).map((status) => {
@@ -244,22 +245,14 @@ export default function LaporanPage() {
                   const width = Math.min(100, Math.max(8, value * 20 + 8));
 
                   return (
-                    <div key={status} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                    <div key={status} className="rounded-2xl border border-border bg-card p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-slate-200">{eskalasiLabel[status]}</span>
-                        <span className="text-sm font-semibold text-white">{value}</span>
+                        <span className="text-sm font-medium text-card-foreground">{eskalasiLabel[status]}</span>
+                        <span className="text-sm font-semibold text-card-foreground">{value}</span>
                       </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                         <div
-                          className={`h-full rounded-full ${
-                            status === 'ditangani_di_tempat'
-                              ? 'bg-emerald-400'
-                              : status === 'diteruskan'
-                                ? 'bg-amber-400'
-                                : status === 'proses'
-                                  ? 'bg-sky-400'
-                                  : 'bg-emerald-300'
-                          }`}
+                          className="h-full rounded-full bg-primary"
                           style={{ width: `${width}%` }}
                         />
                       </div>
@@ -272,7 +265,7 @@ export default function LaporanPage() {
         </section>
 
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div role="status" className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             <LoaderCircle className="h-4 w-4 animate-spin" />
             Memuat laporan...
           </div>
