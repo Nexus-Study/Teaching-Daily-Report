@@ -248,11 +248,28 @@ export default function AdminPage() {
   };
 
   const tabButtonClass = (tab: ActiveTab) =>
-    `rounded-2xl px-4 py-3 text-sm font-semibold transition active:scale-95 ${
+    `min-h-11 min-w-11 rounded-2xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-95 ${
       activeTab === tab
-        ? 'border border-cyan-400/20 bg-cyan-500 text-slate-950 shadow-sm'
-        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+        ? 'border border-primary bg-primary text-primary-foreground shadow-sm'
+        : 'border border-border bg-card text-card-foreground hover:bg-muted'
     }`;
+
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+
+    const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const currentIndex = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (currentIndex < 0 || tabs.length === 0) return;
+
+    event.preventDefault();
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? tabs.length - 1
+        : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[nextIndex].focus();
+    tabs[nextIndex].click();
+  };
 
   const siswaFeedback = useMemo(() => {
     if (!siswaResult) {
@@ -323,18 +340,18 @@ export default function AdminPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+    <main className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-        <header className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+        <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300">Dashboard Admin &amp; Kelola Data Master</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Dashboard Admin &amp; Kelola Data Master</h1>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Dashboard Admin &amp; Kelola Data Master</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Dashboard Admin &amp; Kelola Data Master</h1>
             </div>
 
             <Link
               href="/portal/"
-              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition active:scale-95 hover:bg-white/10"
+              className="inline-flex min-h-11 min-w-11 items-center gap-2 rounded-2xl border border-border bg-card px-4 text-sm font-semibold text-card-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-95"
             >
               <ArrowLeft className="h-4 w-4" />
               Kembali ke Portal
@@ -342,31 +359,41 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-3 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
-            <button type="button" onClick={() => setActiveTab('siswa')} className={tabButtonClass('siswa')}>
+        <section className="rounded-3xl border border-border bg-card p-3 text-card-foreground shadow-sm">
+          <div role="tablist" aria-label="Kelola data master" onKeyDown={handleTabKeyDown} className="grid grid-cols-2 gap-2">
+            <button id="tab-siswa" type="button" role="tab" aria-selected={activeTab === 'siswa'} aria-controls={activeTab === 'siswa' ? 'panel-siswa' : undefined} tabIndex={activeTab === 'siswa' ? 0 : -1} onClick={() => setActiveTab('siswa')} className={tabButtonClass('siswa')}>
               Kelola Siswa &amp; Kelas
             </button>
-            <button type="button" onClick={() => setActiveTab('guru')} className={tabButtonClass('guru')}>
+            <button id="tab-guru" type="button" role="tab" aria-selected={activeTab === 'guru'} aria-controls={activeTab === 'guru' ? 'panel-guru' : undefined} tabIndex={activeTab === 'guru' ? 0 : -1} onClick={() => setActiveTab('guru')} className={tabButtonClass('guru')}>
               Impor Guru &amp; Staf
             </button>
           </div>
         </section>
 
         {activeTab === 'siswa' ? (
-          <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-1.5">
+          <section id="panel-siswa" role="tabpanel" aria-labelledby="tab-siswa" tabIndex={0} className="space-y-4 rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+            <div role="tablist" aria-label="Tampilan data siswa" onKeyDown={handleTabKeyDown} className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted p-1.5">
               <button
                 type="button"
+                id="tab-siswa-manage"
+                role="tab"
+                aria-selected={siswaSubTab === 'manage'}
+                aria-controls={siswaSubTab === 'manage' ? 'panel-siswa-manage' : undefined}
+                tabIndex={siswaSubTab === 'manage' ? 0 : -1}
                 onClick={() => setSiswaSubTab('manage')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${siswaSubTab === 'manage' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 min-w-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${siswaSubTab === 'manage' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Daftar &amp; Kelola Siswa
               </button>
               <button
                 type="button"
+                id="tab-siswa-import"
+                role="tab"
+                aria-selected={siswaSubTab === 'import'}
+                aria-controls={siswaSubTab === 'import' ? 'panel-siswa-import' : undefined}
+                tabIndex={siswaSubTab === 'import' ? 0 : -1}
                 onClick={() => setSiswaSubTab('import')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${siswaSubTab === 'import' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 min-w-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${siswaSubTab === 'import' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Impor CSV Siswa
               </button>
@@ -375,43 +402,43 @@ export default function AdminPage() {
             {siswaNotice && <AlertBox tone={siswaNotice.tone} message={siswaNotice.message} />}
 
             {siswaSubTab === 'manage' ? (
-              <div className="space-y-4">
+              <div id="panel-siswa-manage" role="tabpanel" aria-labelledby="tab-siswa-manage" tabIndex={0} className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Daftar Siswa</h2>
-                    <p className="mt-1 text-sm text-slate-400">{siswaTotalCount} siswa terdata</p>
+                    <h2 className="text-lg font-semibold text-card-foreground">Daftar Siswa</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{siswaTotalCount} siswa terdata</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setEditingSiswa(null); setSiswaFormError(null); setSiswaFormOpen(true); }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                   >
                     <Plus className="h-4 w-4" />
                     Tambah Siswa
                   </button>
                 </div>
 
-                <form onSubmit={handleSiswaFilterSubmit} className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.7fr)_auto] sm:items-end">
-                  <label className="grid gap-1.5 text-sm text-slate-300">
+                <form onSubmit={handleSiswaFilterSubmit} className="grid gap-3 rounded-2xl border border-border bg-muted p-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.7fr)_auto] sm:items-end">
+                  <label className="grid gap-1.5 text-sm text-card-foreground">
                     Nama atau NISN
                     <span className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
                         type="search"
                         value={siswaSearchDraft}
                         onChange={(event) => setSiswaSearchDraft(event.target.value)}
                         placeholder="Cari siswa"
-                        className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/50"
+                        className="min-h-11 w-full rounded-lg border border-border bg-card pl-10 pr-3 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                       />
                     </span>
                   </label>
-                  <label className="grid gap-1.5 text-sm text-slate-300">
+                  <label className="grid gap-1.5 text-sm text-card-foreground">
                     Kelas
                     <select
                       value={kelasFilterDraft}
                       onChange={(event) => setKelasFilterDraft(event.target.value)}
                       disabled={kelasLoading}
-                      className="h-11 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white focus:border-cyan-400/50 disabled:opacity-60"
+                      className="min-h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
                     >
                       <option value="">Semua kelas</option>
                       {kelasOptions.map((kelas) => (
@@ -421,53 +448,53 @@ export default function AdminPage() {
                   </label>
                   <button
                     type="submit"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                   >
                     <Search className="h-4 w-4" /> Cari
                   </button>
                 </form>
 
                 {siswaLoading ? (
-                  <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-slate-400">
+                  <div role="status" className="flex min-h-36 items-center justify-center gap-2 text-sm text-muted-foreground">
                     <LoaderCircle className="h-5 w-5 animate-spin" /> Memuat data siswa...
                   </div>
                 ) : siswaRows.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {siswaRows.map((siswa) => (
-                      <article key={siswa.id} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                      <article key={siswa.id} className="rounded-2xl border border-border bg-card p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="break-words font-semibold text-white">{siswa.full_name}</h3>
+                            <h3 className="break-words font-semibold text-card-foreground">{siswa.full_name}</h3>
                             <div className="mt-2">
                               {siswa.nisn ? (
-                                <span className="inline-flex rounded-md border border-slate-500/20 bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-200">
+                                <span className="inline-flex rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-card-foreground">
                                   NISN {siswa.nisn}
                                 </span>
                               ) : (
-                                <span className="inline-flex rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-xs font-medium text-orange-200">
+                                <span className="inline-flex rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                                   Belum ada NISN
                                 </span>
                               )}
                             </div>
-                            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
-                              <School className="h-4 w-4 shrink-0 text-cyan-300" />
+                            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                              <School className="h-4 w-4 shrink-0 text-primary" />
                               {siswa.kelas?.nama_kelas ?? 'Kelas tidak tersedia'}
-                              {siswa.kelas && <span className="text-slate-500">· Tingkat {siswa.kelas.tingkat}</span>}
+                              {siswa.kelas && <span>· Tingkat {siswa.kelas.tingkat}</span>}
                             </p>
                           </div>
                         </div>
-                        <div className="mt-4 flex gap-2 border-t border-white/5 pt-3">
+                        <div className="mt-4 flex gap-2 border-t border-border pt-3">
                           <button
                             type="button"
                             onClick={() => { setEditingSiswa(siswa); setSiswaFormError(null); setSiswaFormOpen(true); }}
-                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10"
+                            className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-3 text-sm font-medium text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                           >
                             <Pencil className="h-4 w-4" /> Edit NISN/Data
                           </button>
                           <button
                             type="button"
                             onClick={() => { setSiswaDeleteError(null); setSiswaToDelete(siswa); }}
-                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/5 px-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/10"
+                            className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-3 text-sm font-medium text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                           >
                             <Trash2 className="h-4 w-4" /> Hapus
                           </button>
@@ -476,13 +503,13 @@ export default function AdminPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-white/15 px-4 py-10 text-center text-sm text-slate-400">
+                  <div className="rounded-xl border border-dashed border-border bg-muted px-4 py-10 text-center text-sm text-muted-foreground">
                     {siswaSearch || kelasFilter ? 'Tidak ada siswa yang cocok dengan filter.' : 'Belum ada data siswa.'}
                   </div>
                 )}
 
-                <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-center text-sm text-slate-400 sm:text-left">
+                <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-center text-sm text-muted-foreground sm:text-left">
                     Halaman {siswaPage} dari {siswaTotalPages} · Total {siswaTotalCount} siswa
                   </p>
                   <div className="flex gap-2">
@@ -491,7 +518,7 @@ export default function AdminPage() {
                       onClick={() => setSiswaPage((page) => Math.max(1, page - 1))}
                       disabled={siswaLoading || siswaPage <= 1}
                       aria-label="Halaman sebelumnya"
-                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-3 text-sm font-medium text-slate-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                      className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                     >
                       <ChevronLeft className="h-4 w-4" /> Sebelumnya
                     </button>
@@ -500,7 +527,7 @@ export default function AdminPage() {
                       onClick={() => setSiswaPage((page) => Math.min(siswaTotalPages, page + 1))}
                       disabled={siswaLoading || siswaPage >= siswaTotalPages}
                       aria-label="Halaman berikutnya"
-                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-3 text-sm font-medium text-slate-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                      className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                     >
                       Berikutnya <ChevronRight className="h-4 w-4" />
                     </button>
@@ -508,37 +535,40 @@ export default function AdminPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div id="panel-siswa-import" role="tabpanel" aria-labelledby="tab-siswa-import" tabIndex={0} className="space-y-4">
                 <InfoCard
                   icon={<School className="h-5 w-5" />}
                   title="Format CSV / Excel Siswa"
                   description="Gunakan header: full_name,nisn,nama_kelas,tingkat. Kolom nisn boleh dikosongkan. Setiap baris akan diproses menjadi data siswa dan kelas terkait."
+                  descriptionId="siswa-csv-instructions"
                 />
 
                 <a
                   href="/template_siswa.csv"
                   download
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/20"
+                  className="inline-flex min-h-11 min-w-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted px-4 py-3 text-sm font-semibold text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                   <FileDown className="h-4 w-4" />
                   Unduh template CSV / Excel sampel siswa
                 </a>
 
                 <form onSubmit={handleSiswaSubmit} className="space-y-4">
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>File CSV / Excel Siswa</span>
                     <input
                       name="csv_file"
                       type="file"
                       accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
+                      aria-describedby="siswa-csv-instructions siswa-csv-help"
+                      className="min-h-11 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-card-foreground file:mr-4 file:min-h-11 file:min-w-11 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     />
+                    <span id="siswa-csv-help" className="text-xs text-muted-foreground">Pilih file CSV atau Excel (.xls, .xlsx).</span>
                   </label>
 
                   <button
                     type="submit"
                     disabled={isSubmittingSiswa}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 min-w-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmittingSiswa ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
                     Proses Impor Siswa
@@ -550,35 +580,45 @@ export default function AdminPage() {
             )}
           </section>
         ) : (
-          <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-1.5">
+          <section id="panel-guru" role="tabpanel" aria-labelledby="tab-guru" tabIndex={0} className="space-y-4 rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+            <div role="tablist" aria-label="Tampilan data guru" onKeyDown={handleTabKeyDown} className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted p-1.5">
               <button
                 type="button"
+                id="tab-guru-manage"
+                role="tab"
+                aria-selected={guruSubTab === 'manage'}
+                aria-controls={guruSubTab === 'manage' ? 'panel-guru-manage' : undefined}
+                tabIndex={guruSubTab === 'manage' ? 0 : -1}
                 onClick={() => setGuruSubTab('manage')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${guruSubTab === 'manage' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 min-w-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${guruSubTab === 'manage' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Daftar &amp; Kelola Guru
               </button>
               <button
                 type="button"
+                id="tab-guru-import"
+                role="tab"
+                aria-selected={guruSubTab === 'import'}
+                aria-controls={guruSubTab === 'import' ? 'panel-guru-import' : undefined}
+                tabIndex={guruSubTab === 'import' ? 0 : -1}
                 onClick={() => setGuruSubTab('import')}
-                className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition ${guruSubTab === 'import' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-white/5'}`}
+                className={`min-h-11 min-w-11 rounded-xl px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${guruSubTab === 'import' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card'}`}
               >
                 Impor CSV Guru
               </button>
             </div>
 
             {guruSubTab === 'manage' ? (
-              <div className="space-y-4">
+              <div id="panel-guru-manage" role="tabpanel" aria-labelledby="tab-guru-manage" tabIndex={0} className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Daftar Guru &amp; Staf</h2>
-                    <p className="mt-1 text-sm text-slate-400">{guruProfiles.length} akun aktif</p>
+                    <h2 className="text-lg font-semibold text-card-foreground">Daftar Guru &amp; Staf</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{guruProfiles.length} akun aktif</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setEditingGuru(null); setGuruFormError(null); setGuruFormOpen(true); }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                   >
                     <Plus className="h-4 w-4" />
                     Tambah Guru Baru
@@ -586,57 +626,57 @@ export default function AdminPage() {
                 </div>
 
                 <label className="relative block">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="search"
                     value={guruSearch}
                     onChange={(event) => setGuruSearch(event.target.value)}
                     placeholder="Cari nama, email, atau NIP/NISN"
                     aria-label="Cari guru"
-                    className="h-12 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/50"
+                    className="min-h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                   />
                 </label>
 
                 {guruNotice && <AlertBox tone={guruNotice.tone} message={guruNotice.message} />}
 
                 {guruLoading ? (
-                  <div className="flex min-h-32 items-center justify-center gap-2 text-sm text-slate-400">
+                  <div role="status" className="flex min-h-32 items-center justify-center gap-2 text-sm text-muted-foreground">
                     <LoaderCircle className="h-5 w-5 animate-spin" /> Memuat data guru...
                   </div>
                 ) : filteredGuruProfiles.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {filteredGuruProfiles.map((profile) => (
-                      <article key={profile.id} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                      <article key={profile.id} className="rounded-2xl border border-border bg-card p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="break-words font-semibold text-white">{profile.full_name}</h3>
-                            <p className="mt-2 flex min-w-0 items-center gap-2 break-all text-sm text-slate-300">
-                              <Mail className="h-4 w-4 shrink-0 text-cyan-300" /> {profile.email || 'Email belum tersedia'}
+                            <h3 className="break-words font-semibold text-card-foreground">{profile.full_name}</h3>
+                            <p className="mt-2 flex min-w-0 items-center gap-2 break-all text-sm text-muted-foreground">
+                              <Mail className="h-4 w-4 shrink-0 text-primary" /> {profile.email || 'Email belum tersedia'}
                             </p>
-                            <p className="mt-1 flex items-center gap-2 text-sm text-slate-400">
+                            <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                               <IdCard className="h-4 w-4 shrink-0" /> {profile.nip_nisn || 'NIP/NISN belum tersedia'}
                             </p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {profile.roles.map((role) => (
-                            <span key={role} className="rounded-md border border-cyan-400/15 bg-cyan-400/10 px-2 py-1 text-xs font-medium text-cyan-100">
+                            <span key={role} className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-card-foreground">
                               {role.replace(/_/g, ' ')}
                             </span>
                           ))}
                         </div>
-                        <div className="mt-4 flex gap-2 border-t border-white/5 pt-3">
+                        <div className="mt-4 flex gap-2 border-t border-border pt-3">
                           <button
                             type="button"
                             onClick={() => { setEditingGuru(profile); setGuruFormError(null); setGuruFormOpen(true); }}
-                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10"
+                            className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-3 text-sm font-medium text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                           >
                             <Pencil className="h-4 w-4" /> Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => setGuruToDelete(profile)}
-                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/5 px-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/10"
+                            className="inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-3 text-sm font-medium text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                           >
                             <Trash2 className="h-4 w-4" /> Hapus
                           </button>
@@ -645,53 +685,56 @@ export default function AdminPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-white/15 px-4 py-10 text-center text-sm text-slate-400">
+                  <div className="rounded-xl border border-dashed border-border bg-muted px-4 py-10 text-center text-sm text-muted-foreground">
                     {guruSearch ? 'Tidak ada guru yang cocok dengan pencarian.' : 'Belum ada data guru aktif.'}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div id="panel-guru-import" role="tabpanel" aria-labelledby="tab-guru-import" tabIndex={0} className="space-y-4">
                 <InfoCard
                   icon={<ShieldPlus className="h-5 w-5" />}
                   title="Format CSV / Excel Guru"
                   description="Gunakan header: email,full_name,nip_nisn,roles. Kolom roles dapat dipisahkan dengan titik koma, misalnya guru_mapel;wali_kelas;waka_kesiswaan."
+                  descriptionId="guru-csv-instructions"
                 />
 
                 <a
                   href="/template_guru.csv"
                   download
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/20"
+                  className="inline-flex min-h-11 min-w-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted px-4 py-3 text-sm font-semibold text-card-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                   <FileDown className="h-4 w-4" />
                   Unduh template CSV / Excel sampel guru
                 </a>
 
                 <form onSubmit={handleGuruSubmit} className="space-y-4">
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>Password Default Guru</span>
                     <input
                       name="default_password"
                       type="text"
                       defaultValue="Madrasah2026!"
-                      className="h-12 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-slate-100 transition focus:border-cyan-400/40"
+                      className="min-h-11 w-full rounded-xl border border-border bg-card px-4 text-card-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     />
                   </label>
 
-                  <label className="grid gap-2 text-sm text-slate-200">
+                  <label className="grid gap-2 text-sm text-card-foreground">
                     <span>File CSV / Excel Guru</span>
                     <input
                       name="csv_file"
                       type="file"
                       accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
+                      aria-describedby="guru-csv-instructions guru-csv-help"
+                      className="min-h-11 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-card-foreground file:mr-4 file:min-h-11 file:min-w-11 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     />
+                    <span id="guru-csv-help" className="text-xs text-muted-foreground">Pilih file CSV atau Excel (.xls, .xlsx).</span>
                   </label>
 
                   <button
                     type="submit"
                     disabled={isSubmittingGuru}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-slate-950 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 min-w-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmittingGuru ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldPlus className="h-4 w-4" />}
                     Proses Impor Guru
@@ -773,17 +816,17 @@ function SiswaFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="siswa-form-title"
-        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Manajemen Siswa</p>
-            <h2 id="siswa-form-title" className="mt-1 text-xl font-semibold text-white">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manajemen Siswa</p>
+            <h2 id="siswa-form-title" className="mt-1 text-xl font-semibold text-card-foreground">
               {student ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}
             </h2>
           </div>
@@ -792,7 +835,7 @@ function SiswaFormModal({
             onClick={onClose}
             disabled={isPending}
             aria-label="Tutup form siswa"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
+            className="inline-flex h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-5 w-5" />
           </button>
@@ -800,40 +843,40 @@ function SiswaFormModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {student && <input type="hidden" name="siswa_id" value={student.id} />}
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
             Nama Lengkap
             <input
               name="full_name"
               required
               defaultValue={student?.full_name ?? ''}
               autoComplete="name"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
-            NISN <span className="font-normal text-slate-400">(opsional)</span>
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+            NISN <span className="font-normal text-muted-foreground">(opsional)</span>
             <input
               name="nisn"
               inputMode="numeric"
               defaultValue={student?.nisn ?? ''}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
             Kelas
             <select
               name="kelas_id"
               required
               defaultValue={student?.kelas_id ?? ''}
               disabled={classesLoading || classes.length === 0}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60 disabled:opacity-60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
             >
               <option value="" disabled>{classesLoading ? 'Memuat kelas...' : 'Pilih kelas'}</option>
               {classes.map((kelas) => (
                 <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} · Tingkat {kelas.tingkat}</option>
               ))}
             </select>
-            {!classesLoading && classes.length === 0 && <span className="text-xs text-orange-200">Belum ada pilihan kelas.</span>}
+            {!classesLoading && classes.length === 0 && <span className="text-xs text-muted-foreground">Belum ada pilihan kelas.</span>}
           </label>
 
           {error && <AlertBox tone="error" message={error} />}
@@ -843,14 +886,14 @@ function SiswaFormModal({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isPending || classesLoading || classes.length === 0}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
             >
               {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
               {isPending ? 'Menyimpan...' : 'Simpan Data'}
@@ -876,16 +919,16 @@ function SiswaDeleteModal({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <section
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="delete-siswa-title"
-        className="w-full max-w-md rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+        className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
-        <h2 id="delete-siswa-title" className="text-lg font-semibold text-white">Hapus data siswa?</h2>
-        <p className="mt-2 break-words text-sm leading-6 text-slate-300">
-          Data <span className="font-semibold text-white">{fullName}</span> akan dihapus secara permanen.
+        <h2 id="delete-siswa-title" className="text-lg font-semibold text-card-foreground">Hapus data siswa?</h2>
+        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">
+          Data <span className="font-semibold text-card-foreground">{fullName}</span> akan dihapus secara permanen.
         </p>
         {error && <div className="mt-4"><AlertBox tone="error" message={error} /></div>}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -893,7 +936,7 @@ function SiswaDeleteModal({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+            className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50"
           >
             Batal
           </button>
@@ -901,7 +944,7 @@ function SiswaDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-60"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
           >
             {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {isPending ? 'Menghapus...' : 'Ya, hapus siswa'}
@@ -931,17 +974,17 @@ function GuruFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="guru-form-title"
-        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Manajemen Guru</p>
-            <h2 id="guru-form-title" className="mt-1 text-xl font-semibold text-white">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manajemen Guru</p>
+            <h2 id="guru-form-title" className="mt-1 text-xl font-semibold text-card-foreground">
               {profile ? 'Edit Data Guru' : 'Tambah Guru Baru'}
             </h2>
           </div>
@@ -950,7 +993,7 @@ function GuruFormModal({
             onClick={onClose}
             disabled={isPending}
             aria-label="Tutup form"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
+            className="inline-flex h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-5 w-5" />
           </button>
@@ -958,17 +1001,17 @@ function GuruFormModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {profile && <input type="hidden" name="user_id" value={profile.id} />}
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
             Nama Lengkap
             <input
               name="full_name"
               required
               defaultValue={profile?.full_name ?? ''}
               autoComplete="name"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
             Email
             <input
               name="email"
@@ -976,19 +1019,19 @@ function GuruFormModal({
               required
               defaultValue={profile?.email ?? ''}
               autoComplete="email"
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
             NIP/NISN
             <input
               name="nip_nisn"
               defaultValue={profile?.nip_nisn ?? ''}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-200">
-            Password {profile && <span className="font-normal text-slate-400">(kosongkan jika tidak diubah)</span>}
+          <label className="grid gap-1.5 text-sm font-medium text-card-foreground">
+            Password {profile && <span className="font-normal text-muted-foreground">(kosongkan jika tidak diubah)</span>}
             <input
               name="password"
               type="password"
@@ -996,23 +1039,23 @@ function GuruFormModal({
               minLength={6}
               autoComplete={profile ? 'new-password' : 'new-password'}
               placeholder={profile ? 'Tidak diubah' : 'Minimal 6 karakter'}
-              className="h-11 rounded-lg border border-white/10 bg-slate-950 px-3 text-white placeholder:text-slate-500 focus:border-cyan-400/60"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             />
           </label>
 
           {error && <AlertBox tone="error" message={error} />}
 
-          <fieldset className="rounded-xl border border-white/10 p-3">
-            <legend className="px-1 text-sm font-medium text-slate-200">Role</legend>
+          <fieldset className="rounded-xl border border-border p-3">
+            <legend className="px-1 text-sm font-medium text-card-foreground">Role</legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {guruRoles.map((role) => (
-                <label key={role} className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-slate-300 hover:bg-white/5">
+                <label key={role} className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm text-card-foreground hover:bg-muted">
                   <input
                     type="checkbox"
                     name="roles"
                     value={role}
                     defaultChecked={profile?.roles.includes(role) ?? role === 'guru_mapel'}
-                    className="h-4 w-4 accent-cyan-400"
+                    className="h-4 w-4 accent-primary"
                   />
                   <span>{role.replace(/_/g, ' ')}</span>
                 </label>
@@ -1025,14 +1068,14 @@ function GuruFormModal({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
             >
               {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
               {isPending ? 'Menyimpan...' : 'Simpan Data'}
@@ -1058,16 +1101,16 @@ function ConfirmDeleteModal({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <section
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="delete-guru-title"
-        className="w-full max-w-md rounded-t-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl"
+        className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
-        <h2 id="delete-guru-title" className="text-lg font-semibold text-white">Nonaktifkan akun guru?</h2>
-        <p className="mt-2 break-words text-sm leading-6 text-slate-300">
-          Akun <span className="font-semibold text-white">{fullName}</span> akan dihapus dari daftar aktif dan akses masuknya dibekukan.
+        <h2 id="delete-guru-title" className="text-lg font-semibold text-card-foreground">Nonaktifkan akun guru?</h2>
+        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">
+          Akun <span className="font-semibold text-card-foreground">{fullName}</span> akan dihapus dari daftar aktif dan akses masuknya dibekukan.
         </p>
         {error && <div className="mt-4"><AlertBox tone="error" message={error} /></div>}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -1075,7 +1118,7 @@ function ConfirmDeleteModal({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50"
+            className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold text-card-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-50"
           >
             Batal
           </button>
@@ -1083,7 +1126,7 @@ function ConfirmDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-60"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60"
           >
             {isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {isPending ? 'Menghapus...' : 'Ya, nonaktifkan'}
@@ -1094,21 +1137,18 @@ function ConfirmDeleteModal({
   );
 }
 
-function InfoCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function InfoCard({ icon, title, description, descriptionId }: { icon: React.ReactNode; title: string; description: string; descriptionId?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-      <div className="mb-3 inline-flex rounded-2xl bg-cyan-500/10 p-3 text-cyan-300">{icon}</div>
-      <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{description}</p>
+    <div className="rounded-2xl border border-border bg-card p-4 text-card-foreground">
+      <div className="mb-3 inline-flex rounded-2xl bg-muted p-3 text-primary">{icon}</div>
+      <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+      <p id={descriptionId} className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   );
 }
 
 function AlertBox({ tone, message }: { tone: 'success' | 'error'; message: string }) {
-  const styles =
-    tone === 'success'
-      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
-      : 'border-rose-500/20 bg-rose-500/10 text-rose-200';
+  const styles = 'border-border bg-muted text-card-foreground';
 
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${styles}`}>{message}</div>;
+  return <div role={tone === 'error' ? 'alert' : 'status'} className={`rounded-2xl border px-4 py-3 text-sm ${styles}`}>{message}</div>;
 }
