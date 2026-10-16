@@ -1,6 +1,7 @@
 import '@/app/globals.css';
 
 import type { ReactNode } from 'react';
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'Portal Perkembangan Murid',
@@ -16,7 +17,10 @@ export const viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster position="top-center" richColors closeButton />
+      </body>
     </html>
   );
 }

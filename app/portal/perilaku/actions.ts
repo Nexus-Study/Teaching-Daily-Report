@@ -19,6 +19,19 @@ type CatatanContext = {
 };
 
 const TRIAGE_ROLES: UserRole[] = ['admin', 'guru_bk', 'waka_kesiswaan'];
+const PROFILE_GLOBAL_SCOPE_ROLES: UserRole[] = [
+  'admin',
+  'guru_bk',
+  'waka_kurikulum',
+  'waka_kesiswaan',
+  'kamad',
+];
+
+export type ProfileAccessContext = {
+  roles: UserRole[];
+  canViewAllStudents: boolean;
+  accessibleClassIds: string[];
+};
 
 function getWITDateString(): string {
   const parts = new Intl.DateTimeFormat('en', {
@@ -148,6 +161,43 @@ export async function getPerilakuActor(): Promise<BehaviorActor | null> {
   }
 
   return data as BehaviorActor;
+}
+
+export async function getProfileAccessContext(): Promise<ProfileAccessContext> {
+  const { supabase, actor } = await getAuthenticatedActor();
+  const canViewAllStudents = actor.roles.some((role) => PROFILE_GLOBAL_SCOPE_ROLES.includes(role));
+
+  if (canViewAllStudents) {
+    return { roles: actor.roles, canViewAllStudents, accessibleClassIds: [] };
+  }
+
+  const [homeroomResult, teachingResult] = await Promise.all([
+    actor.roles.includes('wali_kelas')
+      ? supabase.from('kelas').select('id').eq('wali_kelas_id', actor.id)
+      : Promise.resolve({ data: [] as { id: string }[], error: null }),
+    actor.roles.includes('guru_mapel')
+      ? supabase.from('jadwal_guru').select('kelas_id').eq('teacher_id', actor.id)
+      : Promise.resolve({ data: [] as { kelas_id: string }[], error: null }),
+  ]);
+
+  if (homeroomResult.error) {
+    throw new Error(homeroomResult.error.message);
+  }
+
+  if (teachingResult.error) {
+    throw new Error(teachingResult.error.message);
+  }
+
+  return {
+    roles: actor.roles,
+    canViewAllStudents,
+    accessibleClassIds: [
+      ...new Set([
+        ...(homeroomResult.data ?? []).map(({ id }) => id),
+        ...(teachingResult.data ?? []).map(({ kelas_id }) => kelas_id),
+      ]),
+    ],
+  };
 }
 
 export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
@@ -448,9 +498,7 @@ export async function getProfilPerilakuSiswa(siswaId: string): Promise<ProfilPer
     throw new Error('Kelas siswa tidak ditemukan atau tidak dapat diakses.');
   }
 
-  const canViewAllStudents = actor.roles.some((role) =>
-    role === 'admin' || role === 'guru_bk' || role === 'waka_kesiswaan',
-  );
+  const canViewAllStudents = actor.roles.some((role) => PROFILE_GLOBAL_SCOPE_ROLES.includes(role));
   let canViewClass = actor.roles.includes('wali_kelas') && studentClass.wali_kelas_id === actor.id;
 
   if (!canViewAllStudents && !canViewClass && actor.roles.includes('guru_mapel')) {

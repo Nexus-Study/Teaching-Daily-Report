@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 import type { BehaviorActor, BehaviorHandler, CatatanPerilakuWithRelations } from '../actions';
 import type { PenangananPerilaku, PenangananStatus, PerilakuType } from '../../../../types/database';
-import { getPerilakuActor, getRekapPerilaku, reopenKasusPerilaku, submitPenangananEskalasi, updateDeskripsiPerilaku } from '../actions';
+import { getPerilakuActor, getProfileAccessContext, getRekapPerilaku, reopenKasusPerilaku, submitPenangananEskalasi, updateDeskripsiPerilaku, type ProfileAccessContext } from '../actions';
 import BehaviorTabs from '../components/behavior-tabs';
 
 type RekapItem = CatatanPerilakuWithRelations & {
@@ -59,6 +59,7 @@ export default function PerilakuRekapPage() {
   const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [actor, setActor] = useState<BehaviorActor | null>(null);
+  const [profileAccess, setProfileAccess] = useState<ProfileAccessContext | null>(null);
   const [reopenItem, setReopenItem] = useState<RekapItem | null>(null);
   const [editTarget, setEditTarget] = useState<DescriptionEditTarget | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,9 +73,14 @@ export default function PerilakuRekapPage() {
   async function refreshData() {
     try {
       setError(null);
-      const [records, currentActor] = await Promise.all([getRekapPerilaku(10), getPerilakuActor()]);
+      const [records, currentActor, currentProfileAccess] = await Promise.all([
+        getRekapPerilaku(10),
+        getPerilakuActor(),
+        getProfileAccessContext(),
+      ]);
       setRekapList(records);
       setActor(currentActor);
+      setProfileAccess(currentProfileAccess);
       setHasMore(records.length === 10);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : 'Gagal memuat rekap perilaku.');
@@ -168,6 +174,14 @@ export default function PerilakuRekapPage() {
     return Boolean(actor && (actor.roles.includes('admin') || actor.id === handling.handler_id));
   }
 
+  function canViewStudentProfile(item: CatatanPerilakuWithRelations): boolean {
+    return Boolean(
+      profileAccess &&
+      item.siswa &&
+      (profileAccess.canViewAllStudents || profileAccess.accessibleClassIds.includes(item.siswa.kelas_id)),
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
@@ -205,10 +219,12 @@ export default function PerilakuRekapPage() {
                 <article key={item.id} className="rounded-2xl border border-border bg-background p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      {item.siswa ? (
+                      {item.siswa && canViewStudentProfile(item) ? (
                         <Link href={`/portal/siswa/${item.siswa_id}/perilaku`} className="text-base font-semibold text-card-foreground underline-offset-4 hover:underline">
                           {item.siswa.full_name}
                         </Link>
+                      ) : item.siswa ? (
+                        <p className="text-base font-semibold text-card-foreground">{item.siswa.full_name}</p>
                       ) : <p className="text-base font-semibold text-card-foreground">Siswa tidak ditemukan</p>}
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{item.tanggal} • Poin {item.poin}</p>
                       <p className="mt-2 text-sm leading-5 text-foreground">{item.deskripsi}</p>

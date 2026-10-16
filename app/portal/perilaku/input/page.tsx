@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
+import Link from 'next/link';
 import { Check, ChevronDown, Filter, LoaderCircle, RefreshCw, Save, Search, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Kelas, PerilakuType, Siswa } from '../../../../types/database';
-import { getKelasAndSiswaList, getPerilakuActor, submitCatatanPerilaku, type BehaviorActor } from '../actions';
+import { getKelasAndSiswaList, getPerilakuActor, getProfileAccessContext, submitCatatanPerilaku, type BehaviorActor, type ProfileAccessContext } from '../actions';
 import BehaviorTabs from '../components/behavior-tabs';
 
 type KelasWithSiswa = Kelas & {
@@ -41,14 +42,18 @@ export default function PerilakuInputPage() {
   const [tambahTindakLanjut, setTambahTindakLanjut] = useState(true);
   const [tanggal, setTanggal] = useState('');
   const [actor, setActor] = useState<BehaviorActor | null>(null);
+  const [profileAccess, setProfileAccess] = useState<ProfileAccessContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
 
   useEffect(() => {
     setTanggal(getWITDateString());
     void refreshClasses();
-    void getPerilakuActor()
-      .then(setActor)
+    void Promise.all([getPerilakuActor(), getProfileAccessContext()])
+      .then(([currentActor, currentProfileAccess]) => {
+        setActor(currentActor);
+        setProfileAccess(currentProfileAccess);
+      })
       .catch((actorError: unknown) => {
         setError(actorError instanceof Error ? actorError.message : 'Gagal memuat identitas pengguna.');
       });
@@ -57,6 +62,16 @@ export default function PerilakuInputPage() {
   const selectedKelas = useMemo(
     () => kelasList.find((kelas) => kelas.id === selectedKelasId),
     [kelasList, selectedKelasId],
+  );
+  const selectedSiswa = useMemo(
+    () => selectedKelas?.siswa.find((siswa) => siswa.id === selectedSiswaId) ?? null,
+    [selectedKelas, selectedSiswaId],
+  );
+  const canViewSelectedProfile = Boolean(
+    selectedSiswa &&
+    selectedKelas &&
+    profileAccess &&
+    (profileAccess.canViewAllStudents || profileAccess.accessibleClassIds.includes(selectedKelas.id)),
   );
   const siswaList = selectedKelas?.siswa ?? [];
   const filteredSiswa = useMemo(() => {
@@ -240,6 +255,24 @@ export default function PerilakuInputPage() {
                   ) : null}
                 </div>
                 <input type="hidden" name="siswa_id" value={selectedSiswaId} />
+                {selectedSiswa ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{selectedSiswa.full_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        NISN {selectedSiswa.nisn ?? 'Tidak tersedia'} · {selectedKelas?.nama_kelas}
+                      </p>
+                    </div>
+                    {canViewSelectedProfile ? (
+                      <Link
+                        href={`/portal/siswa/${selectedSiswa.id}/perilaku`}
+                        className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                      >
+                        Lihat Profil 360
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   User,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,15 @@ export const portalMenus: PortalMenu[] = [
     roles: ['admin', 'guru_bk', 'wali_kelas', 'waka_kesiswaan', 'guru_mapel', 'guru_tahfidz'],
     iconClass: 'text-emerald-600 dark:text-emerald-400',
     softTintClass: 'bg-emerald-50 dark:bg-emerald-950/50',
+  },
+  {
+    title: 'Daftar Siswa',
+    description: 'Telusuri direktori siswa sesuai cakupan kelas Anda.',
+    href: '/portal/siswa',
+    icon: Users,
+    roles: ['admin', 'guru_bk', 'waka_kurikulum', 'waka_kesiswaan', 'kamad', 'wali_kelas', 'guru_mapel'],
+    iconClass: 'text-violet-600 dark:text-violet-400',
+    softTintClass: 'bg-violet-50 dark:bg-violet-950/50',
   },
   {
     title: 'Rekap & Laporan',
