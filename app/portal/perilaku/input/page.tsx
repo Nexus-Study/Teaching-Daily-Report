@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
 import { Check, ChevronDown, Filter, LoaderCircle, RefreshCw, Save, Search, ShieldAlert } from 'lucide-react';
+import { toast } from 'sonner';
 
 import type { Kelas, PerilakuType, Siswa } from '../../../../types/database';
 import { getKelasAndSiswaList, getPerilakuActor, submitCatatanPerilaku, type BehaviorActor } from '../actions';
@@ -41,7 +42,6 @@ export default function PerilakuInputPage() {
   const [tanggal, setTanggal] = useState('');
   const [actor, setActor] = useState<BehaviorActor | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
 
   useEffect(() => {
@@ -125,16 +125,18 @@ export default function PerilakuInputPage() {
 
   function handleSubmit(formData: FormData) {
     setError(null);
-    setMessage(null);
     formData.set('siswa_id', selectedSiswaId);
     formData.set('jenis', jenis);
 
-    startSubmitting(() => {
-      void submitCatatanPerilaku(formData)
-        .then(() => setMessage('Catatan perilaku berhasil disimpan.'))
-        .catch((submitError: unknown) => {
-          setError(submitError instanceof Error ? submitError.message : 'Gagal menyimpan catatan perilaku.');
-        });
+    startSubmitting(async () => {
+      try {
+        await submitCatatanPerilaku(formData);
+        toast.success('Catatan perilaku berhasil disimpan.');
+      } catch (submitError: unknown) {
+        const message = submitError instanceof Error ? submitError.message : 'Gagal menyimpan catatan perilaku.';
+        setError(message);
+        toast.error('Gagal menyimpan catatan perilaku.', { description: message });
+      }
     });
   }
 
@@ -302,7 +304,6 @@ export default function PerilakuInputPage() {
                 <RefreshCw className="h-4 w-4" /> Muat Ulang
               </button>
             </div>
-            {message ? <p role="status" className="text-sm font-medium text-emerald-700">{message}</p> : null}
             {error ? <p role="alert" className="text-sm font-medium text-rose-700">{error}</p> : null}
           </form>
         </section>

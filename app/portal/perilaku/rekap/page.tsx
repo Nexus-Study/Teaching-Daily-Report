@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
 import { CheckCircle2, ChevronDown, CircleUser, LoaderCircle, Pencil, RotateCcw, Save, ShieldAlert, Users } from 'lucide-react';
+import { toast } from 'sonner';
 
 import type { BehaviorActor, BehaviorHandler, CatatanPerilakuWithRelations } from '../actions';
 import type { PenangananPerilaku, PenangananStatus, PerilakuType } from '../../../../types/database';
@@ -111,9 +112,12 @@ export default function PerilakuRekapPage() {
       setError(null);
       await submitPenangananEskalasi(item.id, tindakLanjut, status);
       setModalItem(null);
+      toast.success('Status penanganan berhasil diperbarui.');
       await refreshData();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Gagal menyimpan penanganan.');
+      const message = saveError instanceof Error ? saveError.message : 'Gagal menyimpan penanganan.';
+      setError(message);
+      toast.error('Gagal memperbarui status penanganan.', { description: message });
     }
   }
 
@@ -122,9 +126,12 @@ export default function PerilakuRekapPage() {
       setError(null);
       await reopenKasusPerilaku(item.id, reason, targetStatus);
       setReopenItem(null);
+      toast.success('Kasus berhasil dibuka kembali.');
       await refreshData();
     } catch (reopenError) {
-      setError(reopenError instanceof Error ? reopenError.message : 'Gagal membuka kembali kasus.');
+      const message = reopenError instanceof Error ? reopenError.message : 'Gagal membuka kembali kasus.';
+      setError(message);
+      toast.error('Gagal membuka kembali kasus.', { description: message });
     }
   }
 
@@ -137,9 +144,12 @@ export default function PerilakuRekapPage() {
       setError(null);
       await updateDeskripsiPerilaku(editTarget.id, editTarget.isCatatan, text);
       setEditTarget(null);
+      toast.success('Deskripsi berhasil diperbarui.');
       await refreshData();
     } catch (editError) {
-      setError(editError instanceof Error ? editError.message : 'Gagal mengedit deskripsi.');
+      const message = editError instanceof Error ? editError.message : 'Gagal mengedit deskripsi.';
+      setError(message);
+      toast.error('Gagal mengedit deskripsi.', { description: message });
     }
   }
 
@@ -342,16 +352,16 @@ function PenangananModal({
   const [isSubmitting, startSubmitting] = useTransition();
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 px-4 pb-4 pt-10 backdrop-blur-sm md:place-items-center md:p-6">
-      <div role="dialog" aria-modal="true" aria-labelledby="handling-dialog-title" className="w-full max-w-xl rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-2 pt-2 backdrop-blur-sm md:items-center md:p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="handling-dialog-title" className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl md:max-h-[calc(100dvh-3rem)] md:rounded-3xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-700">Penanganan Eskalasi</p>
             <h2 id="handling-dialog-title" className="mt-1 text-lg font-semibold">{item.siswa?.full_name ?? 'Siswa'}</h2>
           </div>
           <button type="button" onClick={onClose} className="min-h-[44px] rounded-2xl border border-border bg-background px-3 py-2 text-xs font-medium">Tutup</button>
         </div>
-        <div className="grid gap-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
           {error ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p> : null}
           <div className="grid gap-2 text-sm">
             <span>Ditangani Oleh</span>
@@ -374,11 +384,13 @@ function PenangananModal({
               </> : null}
             </select>
           </label>
+        </div>
+        <div className="shrink-0 border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             disabled={isSubmitting || !tindakLanjut.trim()}
-            onClick={() => startSubmitting(() => { void onSave(tindakLanjut, status); })}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => startSubmitting(async () => { await onSave(tindakLanjut, status); })}
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Penanganan
           </button>
@@ -404,20 +416,20 @@ function ReopenDialog({
   const [isSubmitting, startSubmitting] = useTransition();
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 px-4 pb-4 pt-10 backdrop-blur-sm md:place-items-center md:p-6">
-      <div role="dialog" aria-modal="true" aria-labelledby="reopen-dialog-title" className="w-full max-w-xl rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-2 pt-2 backdrop-blur-sm md:items-center md:p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="reopen-dialog-title" className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl md:max-h-[calc(100dvh-3rem)] md:rounded-3xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-800">Workflow Re-open</p>
             <h2 id="reopen-dialog-title" className="mt-1 text-lg font-semibold">Buka kembali kasus {item.siswa?.full_name ?? ''}</h2>
           </div>
           <button type="button" onClick={onClose} className="min-h-[44px] rounded-2xl border border-border bg-background px-3 py-2 text-xs font-medium">Tutup</button>
         </div>
-        <div className="grid gap-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
           {error ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p> : null}
           <label className="grid gap-2 text-sm">
-            <span>Alasan Pembukaan Kembali</span>
-            <textarea required value={reason} onChange={(event) => setReason(event.target.value)} rows={4} placeholder="Jelaskan alasan kasus perlu dibuka kembali" className="min-h-[44px] rounded-2xl border border-border bg-background px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500" />
+            <span>Alasan Buka Kembali</span>
+            <textarea required value={reason} onChange={(event) => setReason(event.target.value)} rows={4} placeholder="Jelaskan alasan kasus perlu dibuka kembali" className="min-h-28 rounded-2xl border border-border bg-background px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500" />
           </label>
           <label className="grid gap-2 text-sm">
             <span>Status Tujuan</span>
@@ -426,11 +438,13 @@ function ReopenDialog({
               <option value="diteruskan">Diteruskan</option>
             </select>
           </label>
+        </div>
+        <div className="shrink-0 border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             disabled={isSubmitting || !reason.trim()}
-            onClick={() => startSubmitting(() => { void onSave(reason, status); })}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-amber-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => startSubmitting(async () => { await onSave(reason, status); })}
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-amber-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />} Buka Kembali Kasus
           </button>
@@ -455,24 +469,26 @@ function DescriptionEditDialog({
   const [isSubmitting, startSubmitting] = useTransition();
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 px-4 pb-4 pt-10 backdrop-blur-sm md:place-items-center md:p-6">
-      <div role="dialog" aria-modal="true" aria-labelledby="description-dialog-title" className="w-full max-w-xl rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-2 pt-2 backdrop-blur-sm md:items-center md:p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="description-dialog-title" className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl md:max-h-[calc(100dvh-3rem)] md:rounded-3xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
           <h2 id="description-dialog-title" className="text-lg font-semibold">{target.title}</h2>
           <button type="button" onClick={onClose} className="min-h-[44px] rounded-2xl border border-border bg-background px-3 py-2 text-xs font-medium">Tutup</button>
         </div>
-        <div className="grid gap-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
           {error ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p> : null}
           <label className="grid gap-2 text-sm">
             <span>Deskripsi Baru</span>
             <textarea required value={text} onChange={(event) => setText(event.target.value)} rows={5} className="min-h-[44px] rounded-2xl border border-border bg-background px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500" />
           </label>
           <p className="text-xs text-muted-foreground">Perubahan setelah 15 menit akan menyimpan versi terdahulu di log audit.</p>
+        </div>
+        <div className="shrink-0 border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             disabled={isSubmitting || !text.trim() || text.trim() === target.text.trim()}
-            onClick={() => startSubmitting(() => { void onSave(text); })}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => startSubmitting(async () => { await onSave(text); })}
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-indigo-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Deskripsi
           </button>
