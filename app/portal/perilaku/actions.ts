@@ -11,6 +11,24 @@ type KelasWithSiswa = Kelas & {
 
 type PenangananRow = Pick<PenangananPerilaku, 'catatan_id' | 'handler_id' | 'tanggal' | 'tindak_lanjut' | 'status'>;
 
+function getWITDateString(): string {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Jayapura',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    throw new Error('Gagal menentukan tanggal WIT.');
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export type CatatanPerilakuWithRelations = CatatanPerilaku & {
   siswa?: Siswa;
   penanganan_perilaku?: PenangananPerilaku[];
@@ -61,7 +79,7 @@ export async function submitCatatanPerilaku(formData: FormData) {
   }
 
   const siswaId = String(formData.get('siswa_id') ?? '').trim();
-  const tanggal = String(formData.get('tanggal') ?? '').trim() || undefined;
+  const tanggal = String(formData.get('tanggal') ?? '').trim() || getWITDateString();
   const poin = Number(formData.get('poin') ?? 0);
   const jenis = String(formData.get('jenis') ?? 'pelanggaran') as PerilakuType;
   const deskripsi = String(formData.get('deskripsi') ?? '').trim();
@@ -105,7 +123,7 @@ export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: 
   const payload: PenangananRow = {
     catatan_id: catatanId,
     handler_id: user.id,
-    tanggal: new Date().toISOString().slice(0, 10),
+    tanggal: getWITDateString(),
     tindak_lanjut: tindakLanjut,
     status,
   };
