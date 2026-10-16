@@ -3,13 +3,22 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '../../../lib/supabase/server';
-import type { CatatanPerilaku, Kelas, PenangananPerilaku, PenangananStatus, PerilakuType, Siswa } from '../../../types/database';
+import type { CatatanPerilaku, Kelas, PenangananPerilaku, PenangananStatus, PerilakuType, Profile, Siswa, UserRole } from '../../../types/database';
 
 type KelasWithSiswa = Kelas & {
   siswa: Siswa[];
 };
 
-type PenangananRow = Pick<PenangananPerilaku, 'catatan_id' | 'handler_id' | 'tanggal' | 'tindak_lanjut' | 'status'>;
+export type BehaviorActor = Pick<Profile, 'id' | 'full_name' | 'roles'>;
+export type BehaviorHandler = Pick<Profile, 'id' | 'full_name' | 'roles'>;
+
+type CatatanContext = {
+  reporterId: string;
+  siswaId: string;
+  waliKelasId: string | null;
+};
+
+const TRIAGE_ROLES: UserRole[] = ['admin', 'guru_bk', 'waka_kesiswaan'];
 
 function getWITDateString(): string {
   const parts = new Intl.DateTimeFormat('en', {
@@ -29,10 +38,105 @@ function getWITDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+async function getAuthenticatedActor() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Pengguna belum terautentikasi.');
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, roles')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { supabase, actor: profile as BehaviorActor };
+}
+
+async function getCatatanContext(catatanId: string): Promise<CatatanContext> {
+  const supabase = await createClient();
+  const { data: catatan, error: catatanError } = await supabase
+    .from('catatan_perilaku')
+    .select('id, reporter_id, siswa_id')
+    .eq('id', catatanId)
+    .single();
+  const caseData = catatan as unknown as { reporter_id: string; siswa_id: string } | null;
+
+  if (catatanError || !caseData) {
+    throw new Error(catatanError?.message ?? 'Catatan perilaku tidak ditemukan.');
+  }
+
+  const { data: siswa, error: siswaError } = await supabase
+    .from('siswa')
+    .select('kelas_id')
+    .eq('id', caseData.siswa_id)
+    .single();
+  const studentData = siswa as unknown as { kelas_id: string } | null;
+
+  if (siswaError || !studentData) {
+    throw new Error(siswaError?.message ?? 'Data siswa tidak ditemukan.');
+  }
+
+  const { data: kelas, error: kelasError } = await supabase
+    .from('kelas')
+    .select('wali_kelas_id')
+    .eq('id', studentData.kelas_id)
+    .single();
+  const classData = kelas as unknown as { wali_kelas_id: string | null } | null;
+
+  if (kelasError || !classData) {
+    throw new Error(kelasError?.message ?? 'Data kelas siswa tidak ditemukan.');
+  }
+
+  return {
+    reporterId: caseData.reporter_id,
+    siswaId: caseData.siswa_id,
+    waliKelasId: classData.wali_kelas_id,
+  };
+}
+
+function isTriageActor(actor: BehaviorActor, context: CatatanContext): boolean {
+  return TRIAGE_ROLES.some((role) => actor.roles.includes(role))
+    || (actor.roles.includes('wali_kelas') && context.waliKelasId === actor.id);
+}
+
+function isReopenActor(actor: BehaviorActor, context: CatatanContext): boolean {
+  return actor.roles.some((role) => role === 'admin' || role === 'guru_bk' || role === 'waka_kesiswaan')
+    || (actor.roles.includes('wali_kelas') && context.waliKelasId === actor.id);
+}
+
 export type CatatanPerilakuWithRelations = CatatanPerilaku & {
   siswa?: Siswa;
-  penanganan_perilaku?: PenangananPerilaku[];
+  penanganan_perilaku?: (PenangananPerilaku & { handler?: BehaviorHandler })[];
+  isWaliKelas?: boolean;
 };
+
+export async function getPerilakuActor(): Promise<BehaviorActor | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, roles')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as BehaviorActor;
+}
 
 export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
   const supabase = await createClient();
@@ -90,6 +194,10 @@ export async function submitCatatanPerilaku(formData: FormData) {
     throw new Error('Lengkapi siswa dan deskripsi kejadian.');
   }
 
+  if (tindakLanjut && status && status !== 'ditangani_di_tempat' && status !== 'diteruskan') {
+    throw new Error('Tindakan awal hanya dapat berstatus Ditangani di Tempat atau Diteruskan.');
+  }
+
   const { error } = await (supabase.rpc as any)('submit_catatan_perilaku', {
     p_reporter_id: user.id,
     p_siswa_id: siswaId,
@@ -106,67 +214,179 @@ export async function submitCatatanPerilaku(formData: FormData) {
   }
 
   revalidatePath('/portal/perilaku/');
+  revalidatePath('/portal/perilaku/input');
+  revalidatePath('/portal/perilaku/rekap');
+  revalidatePath('/portal/siswa/[id]/perilaku', 'page');
 
   return { success: true };
 }
 
 export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: string, status: PenangananStatus) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Pengguna belum terautentikasi.');
+  if (!['ditangani_di_tempat', 'diteruskan', 'proses', 'selesai'].includes(status)) {
+    throw new Error('Status penanganan tidak valid.');
   }
 
-  const payload: PenangananRow = {
-    catatan_id: catatanId,
-    handler_id: user.id,
-    tanggal: getWITDateString(),
-    tindak_lanjut: tindakLanjut,
-    status,
-  };
+  const { supabase, actor } = await getAuthenticatedActor();
+  const context = await getCatatanContext(catatanId);
+  const canManageTriage = isTriageActor(actor, context);
 
-  const { error } = await (supabase.from('penanganan_perilaku') as any).insert(payload);
+  if (!canManageTriage && (context.reporterId !== actor.id || status !== 'ditangani_di_tempat')) {
+    throw new Error('Anda tidak berwenang mengubah status penanganan kasus ini.');
+  }
+
+  const cleanedFollowUp = tindakLanjut.trim();
+  if (!cleanedFollowUp) {
+    throw new Error('Tindak lanjut wajib diisi.');
+  }
+
+  const { error } = await (supabase.rpc as any)('submit_penanganan_eskalasi', {
+    p_catatan_id: catatanId,
+    p_tindak_lanjut: cleanedFollowUp,
+    p_status: status,
+    p_tanggal: getWITDateString(),
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 
   revalidatePath('/portal/perilaku/');
+  revalidatePath('/portal/perilaku/rekap');
+  revalidatePath(`/portal/siswa/${context.siswaId}/perilaku`);
 
   return { success: true };
 }
 
-export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return [];
+export async function reopenKasusPerilaku(catatanId: string, alasan: string, targetStatus: PenangananStatus) {
+  const cleanedReason = alasan.trim();
+  if (!cleanedReason) {
+    throw new Error('Alasan pembukaan kembali wajib diisi.');
   }
 
-  const { data, error } = await supabase
-    .from('catatan_perilaku')
-    .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, updated_at)')
-    .order('tanggal', { ascending: false })
-    .order('created_at', { ascending: false });
+  if (targetStatus !== 'proses' && targetStatus !== 'diteruskan') {
+    throw new Error('Status pembukaan kembali harus Proses atau Diteruskan.');
+  }
+
+  const { supabase, actor } = await getAuthenticatedActor();
+  const context = await getCatatanContext(catatanId);
+  if (!isReopenActor(actor, context)) {
+    throw new Error('Anda tidak berwenang membuka kembali kasus ini.');
+  }
+
+  const { error } = await (supabase.rpc as any)('reopen_kasus_perilaku', {
+    p_catatan_id: catatanId,
+    p_alasan: cleanedReason,
+    p_target_status: targetStatus,
+    p_tanggal: getWITDateString(),
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const result = (data ?? []) as CatatanPerilakuWithRelations[];
+  revalidatePath('/portal/perilaku/');
+  revalidatePath('/portal/perilaku/rekap');
+  revalidatePath(`/portal/siswa/${context.siswaId}/perilaku`);
 
-  return result.map((item) => ({
-    ...item,
-    penanganan_perilaku: item.penanganan_perilaku ? [...item.penanganan_perilaku].sort((a, b) => {
-      const timeA = new Date(b.updated_at ?? b.tanggal).getTime();
-      const timeB = new Date(a.updated_at ?? a.tanggal).getTime();
-      return timeA - timeB;
-    }) : [],
-  }));
+  return { success: true };
+}
+
+export async function updateDeskripsiPerilaku(id: string, isCatatan: boolean, textBaru: string) {
+  if (!id.trim() || !textBaru.trim()) {
+    throw new Error('Deskripsi wajib diisi.');
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Pengguna belum terautentikasi.');
+  }
+
+  const { error } = await (supabase.rpc as any)('update_perilaku_description', {
+    p_id: id,
+    p_is_catatan: isCatatan,
+    p_text_baru: textBaru.trim(),
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/portal/perilaku/');
+  revalidatePath('/portal/perilaku/rekap');
+  revalidatePath('/portal/siswa/[id]/perilaku', 'page');
+  return { success: true };
+}
+
+export async function getRekapPerilaku(): Promise<CatatanPerilakuWithRelations[]> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('catatan_perilaku')
+      .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
+      .order('tanggal', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const result = (data ?? []) as CatatanPerilakuWithRelations[];
+    if (!result.length) {
+      return result;
+    }
+
+    const catatanIds = result.map((item) => item.id);
+    let handlerRows: BehaviorHandler[] = [];
+    if (catatanIds.length > 0) {
+      const { data: rows, error: handlerError } = await (supabase.rpc as any)(
+        'get_perilaku_handler_profiles',
+        { p_catatan_ids: catatanIds },
+      );
+
+      if (handlerError) {
+        throw new Error(handlerError.message);
+      }
+
+      handlerRows = (rows ?? []) as BehaviorHandler[];
+    }
+    const handlerById = new Map<string, BehaviorHandler>(
+      handlerRows.map((handler) => [handler.id, handler]),
+    );
+
+    const siswaClassIds = [...new Set(result.map((item) => item.siswa?.kelas_id).filter((id): id is string => Boolean(id)))];
+    const { data: classRows, error: classError } = siswaClassIds.length
+      ? await supabase.from('kelas').select('id, wali_kelas_id').in('id', siswaClassIds)
+      : { data: [], error: null };
+    if (classError) {
+      throw new Error(classError.message);
+    }
+    const homeroomRows = classRows as unknown as { id: string; wali_kelas_id: string | null }[] | null;
+    const homeroomByClassId = new Map(
+      (homeroomRows ?? []).map((row) => [row.id, row.wali_kelas_id]),
+    );
+
+    return result.map((item) => ({
+      ...item,
+      isWaliKelas: item.siswa ? homeroomByClassId.get(item.siswa.kelas_id) === user.id : false,
+      penanganan_perilaku: (item.penanganan_perilaku ?? []).map((handling) => ({
+        ...handling,
+        handler: handlerById.get(handling.handler_id),
+      })).sort((a, b) => {
+        const timeA = new Date(b.created_at).getTime();
+        const timeB = new Date(a.created_at).getTime();
+        return timeA - timeB;
+      }),
+    }));
+  } catch (error) {
+    console.error('Gagal memuat rekap perilaku.', error);
+    throw error;
+  }
 }

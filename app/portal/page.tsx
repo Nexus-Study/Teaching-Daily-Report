@@ -8,7 +8,7 @@ import type { Profile } from '../../types/database';
 
 const menuIconContainerClasses: Record<string, string> = {
   '/portal/jurnal/': 'bg-blue-100 text-blue-700',
-  '/portal/perilaku/': 'bg-emerald-100 text-emerald-700',
+  '/portal/perilaku/input': 'bg-emerald-100 text-emerald-700',
   '/portal/laporan/': 'bg-amber-100 text-amber-700',
   '/portal/rekap-kehadiran/': 'bg-sky-100 text-sky-700',
   '/portal/admin/': 'bg-purple-100 text-purple-700',

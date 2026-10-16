@@ -129,7 +129,7 @@ export default function SiswaPerilakuProfilePage() {
                           {record.penanganan_perilaku.map((handling) => (
                             <li key={handling.id} className="relative">
                               <span className="absolute -left-[calc(1rem+5px)] top-1 h-2 w-2 rounded-full bg-indigo-500" />
-                              <p className="text-xs font-medium text-muted-foreground">{formatWIT(handling.updated_at ?? handling.tanggal)}</p>
+                              <p className="text-xs font-medium text-muted-foreground">{formatWIT(handling.created_at)}</p>
                               <p className="mt-1 text-sm">{handling.tindak_lanjut}</p>
                               <p className="mt-1 text-xs font-semibold text-indigo-700">{handling.status.replace(/_/g, ' ')}</p>
                             </li>

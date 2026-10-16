@@ -37,7 +37,7 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
   const headerTitle = currentPath === '/portal' ? 'Portal Madrasah' : activeMenu?.title ?? 'Portal Madrasah';
   const findMenu = (href: string) => visibleMenus.find((menu) => normalizePath(menu.href) === href);
   const journalMenu = findMenu('/portal/jurnal');
-  const behaviorMenu = findMenu('/portal/perilaku');
+  const behaviorMenu = visibleMenus.find((menu) => normalizePath(menu.href).startsWith('/portal/perilaku'));
   const reportsMenu = findMenu('/portal/laporan');
   const attendanceMenu = findMenu('/portal/rekap-kehadiran');
   const profileMenu = findMenu('/portal/profil');
@@ -45,7 +45,7 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
   const bottomNavItems: BottomNavItem[] = [
     { href: '/portal', label: 'Home', icon: Home, activePaths: ['/portal'] },
     ...(journalMenu ? [{ href: '/portal/jurnal', label: 'Jurnal', icon: journalMenu.icon, activePaths: ['/portal/jurnal'] }] : []),
-    ...(behaviorMenu ? [{ href: '/portal/perilaku', label: 'Perilaku', icon: behaviorMenu.icon, activePaths: ['/portal/perilaku'] }] : []),
+    ...(behaviorMenu ? [{ href: '/portal/perilaku/input', label: 'Perilaku', icon: behaviorMenu.icon, activePaths: ['/portal/perilaku'] }] : []),
     ...(summaryMenu
       ? [{
           href: normalizePath(summaryMenu.href),

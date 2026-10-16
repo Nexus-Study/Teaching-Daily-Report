@@ -139,6 +139,7 @@ export type PenangananPerilaku = {
   tanggal: string;
   tindak_lanjut: string;
   status: PenangananStatus;
+  created_at: string;
   updated_at: string;
 }
 
@@ -373,6 +374,7 @@ export interface Database {
           tanggal?: string;
           tindak_lanjut: string;
           status?: PenangananStatus;
+          created_at?: string;
           updated_at?: string;
         };
         Update: {
@@ -382,6 +384,7 @@ export interface Database {
           tanggal?: string;
           tindak_lanjut?: string;
           status?: PenangananStatus;
+          created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -434,6 +437,40 @@ export interface Database {
           p_status?: PenangananStatus | null;
         };
         Returns: string;
+      };
+      submit_penanganan_eskalasi: {
+        Args: {
+          p_catatan_id: string;
+          p_tindak_lanjut: string;
+          p_status: PenangananStatus;
+          p_tanggal: string;
+        };
+        Returns: string;
+      };
+      reopen_kasus_perilaku: {
+        Args: {
+          p_catatan_id: string;
+          p_alasan: string;
+          p_target_status: PenangananStatus;
+          p_tanggal: string;
+        };
+        Returns: string;
+      };
+      update_perilaku_description: {
+        Args: {
+          p_id: string;
+          p_is_catatan: boolean;
+          p_text_baru: string;
+        };
+        Returns: undefined;
+      };
+      get_perilaku_handler_profiles: {
+        Args: { p_catatan_ids: string[] };
+        Returns: Array<{
+          id: string;
+          full_name: string;
+          roles: UserRole[];
+        }>;
       };
       import_kelas_dan_siswa_json: {
         Args: {

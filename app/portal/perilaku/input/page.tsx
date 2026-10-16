@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 
 import { Check, ChevronDown, Filter, LoaderCircle, RefreshCw, Save, Search, ShieldAlert } from 'lucide-react';
 
 import type { Kelas, PerilakuType, Siswa } from '../../../../types/database';
-import { getKelasAndSiswaList, submitCatatanPerilaku } from '../actions';
+import { getKelasAndSiswaList, getPerilakuActor, submitCatatanPerilaku, type BehaviorActor } from '../actions';
 import BehaviorTabs from '../components/behavior-tabs';
 
 type KelasWithSiswa = Kelas & {
@@ -39,6 +39,7 @@ export default function PerilakuInputPage() {
   const [jenis, setJenis] = useState<PerilakuType>('pelanggaran');
   const [tambahTindakLanjut, setTambahTindakLanjut] = useState(true);
   const [tanggal, setTanggal] = useState('');
+  const [actor, setActor] = useState<BehaviorActor | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
@@ -46,6 +47,11 @@ export default function PerilakuInputPage() {
   useEffect(() => {
     setTanggal(getWITDateString());
     void refreshClasses();
+    void getPerilakuActor()
+      .then(setActor)
+      .catch((actorError: unknown) => {
+        setError(actorError instanceof Error ? actorError.message : 'Gagal memuat identitas pengguna.');
+      });
   }, []);
 
   const selectedKelas = useMemo(
@@ -266,6 +272,12 @@ export default function PerilakuInputPage() {
               <div className="rounded-3xl border border-border bg-background p-4">
                 <div className="mb-3 flex items-center gap-2"><Filter className="h-4 w-4 text-rose-700" /><h2 className="text-sm font-semibold">Tindakan Awal</h2></div>
                 <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid content-start gap-2 text-sm">
+                    <span>Ditangani Oleh</span>
+                    <div className="flex min-h-[44px] items-center rounded-2xl border border-border bg-card px-4 text-foreground">
+                      {actor ? `${actor.full_name} (${actor.roles.map((role) => role.replace(/_/g, ' ')).join(', ')})` : 'Memuat pengguna…'}
+                    </div>
+                  </div>
                   <label className="grid gap-2 text-sm">
                     <span>Tindak Lanjut</span>
                     <textarea name="tindak_lanjut" rows={3} placeholder="Contoh: Diperingatkan dan dipanggil setelah jam pelajaran" className="min-h-[44px] rounded-2xl border border-border bg-card px-4 py-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500" />
