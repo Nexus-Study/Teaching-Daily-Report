@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 type ConfirmationModalProps = {
   isOpen: boolean;
@@ -27,21 +27,80 @@ export default function ConfirmationModal({
 }: ConfirmationModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const dialogRef = useRef<HTMLElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
+    const activeElement = document.activeElement;
+    triggerRef.current =
+      activeElement instanceof HTMLElement ? activeElement : null;
+
+    const initialFocus = confirmButtonRef.current?.disabled
+      ? cancelButtonRef.current
+      : confirmButtonRef.current;
+    (initialFocus ?? dialogRef.current)?.focus();
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onClose();
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.closest('[hidden], [aria-hidden="true"]'));
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const currentElement = document.activeElement;
+
+      if (!dialog.contains(currentElement)) {
+        event.preventDefault();
+        (event.shiftKey ? lastElement : firstElement).focus();
+      } else if (event.shiftKey && currentElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && currentElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (triggerRef.current?.isConnected) {
+        triggerRef.current.focus();
+      }
+      triggerRef.current = null;
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -50,33 +109,40 @@ export default function ConfirmationModal({
   const confirmButtonClass =
     variant === 'danger'
       ? 'bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-rose-400'
-      : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 focus-visible:outline-cyan-300';
+      : 'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-ring';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="w-full max-w-md rounded-xl border border-white/10 bg-slate-900 p-6 text-slate-100 shadow-2xl"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl"
       >
         <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>
-        <p id={descriptionId} className="mt-2 text-sm leading-6 text-slate-300">
+        <p
+          id={descriptionId}
+          className="mt-2 text-sm leading-6 text-muted-foreground"
+        >
           {description}
         </p>
 
         <div className="mt-6 flex justify-end gap-3">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-300"
+            className="min-h-11 min-w-11 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {cancelLabel}
           </button>
           <button
+            ref={confirmButtonRef}
             type="button"
             onClick={() => {
               if (!isLoading) {
@@ -84,7 +150,7 @@ export default function ConfirmationModal({
               }
             }}
             disabled={isLoading}
-            className={`rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${confirmButtonClass}`}
+            className={`min-h-11 min-w-11 rounded-md px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${confirmButtonClass}`}
           >
             {isLoading ? 'Memproses...' : confirmLabel}
           </button>
