@@ -1,18 +1,15 @@
-# Active Progress: Sprint 3 (Navigasi Profil Siswa & Portal Directory UI)
+# Active Progress: Sprint 4 (Refaktor Rekap Workspace, Searchable Combobox, & Multi-Step Delete)
 
 ## Status Sprint
-- Status: COMPLETED
-- Target Branch: `feature/refactor-perilaku-sprint3`
-- Target Selesai: SPRINT 3
+- Status: IN_PROGRESS
+- Target Branch: `feature/refactor-perilaku-sprint4`
+- Target Selesai: SPRINT 4
 
 ## Daftar Tiket Active Sprint
-~- [x] [TIKET-06] Halaman Direktori Siswa Portal (/portal/siswa) & Dynamic Menu RBAC (P1)~
-~- [x] [TIKET-07] Integration UI Touchpoints ke Profil 360 pada Rekap & Form Input (P1)~
-~- [x] [TIKET-08] Server-Side Route Guard & Layout Polish Halaman Profil Siswa 360 (P1)~
+- [ ] [TIKET-12] Layout Polish, Executive KPI Summary, & Searchable Combobox Filter (P1)
+- [ ] [TIKET-13] Restrukturisasi Metadata Kartu: Field "Dilaporkan Oleh" & Clean "Ditangani Oleh" (P1)
+- [ ] [TIKET-14] Modal Konfirmasi Hapus Multi-Tahap & Enforcement RBAC Deletion (P1)
 
 ## Log Catatan Pengerjaan
-- [2026-10-17] Inisialisasi Sprint 3 dan pengerjaan TIKET-06.
-- [2026-10-17] Pembaruan dokumen pelacak progres untuk BACKLOG-02 hingga BACKLOG-05.
-- [2026-10-17] Penyelesaian TIKET-07: tautan Profil 360 pada Rekap dan Form Input mengikuti skop akses kelas.
-- [2026-10-17] Penyelesaian TIKET-08: guard server-side dan layout responsif Profil 360; Sprint 3 selesai.
-- [2026-10-17] Penyelesaian Sprint 3, rilis v1.3.0 (Direktori Siswa, Navigasi Profil 360, & Server Route Guard).
+- [2026-10-17] Inisialisasi Sprint 4 pasca rilis v1.3.0.
+- [2026-10-17] Pembaruan berkas pelacak progres untuk BACKLOG-06 dan BACKLOG-07.

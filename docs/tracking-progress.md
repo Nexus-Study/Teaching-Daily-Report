@@ -18,17 +18,29 @@
 ~- [x] [TIKET-07] Integration UI Touchpoints ke Profil 360 pada Rekap & Form Input (P1)~
 ~- [x] [TIKET-08] Server-Side Route Guard & Layout Polish Halaman Profil Siswa 360 (P1)~
 
+## Master Backlog: [BACKLOG-06] Refaktor UI/UX Rekap Perilaku, Searchable Filter, & Multi-Step Deletion RBAC
+
+### SPRINT 4: Refaktor Rekap Workspace, Searchable Combobox, & Multi-Step Delete (DEP: SPRINT 3)
+- [ ] [TIKET-12] Layout Polish, Executive KPI Summary, & Searchable Combobox Filter (P1)
+- [ ] [TIKET-13] Restrukturisasi Metadata Kartu: Field "Dilaporkan Oleh" & Clean "Ditangani Oleh" (P1)
+- [ ] [TIKET-14] Modal Konfirmasi Hapus Multi-Tahap & Enforcement RBAC Deletion (P1)
+
 ## Master Backlog: [BACKLOG-03] Modul Pelaporan & Ekspor Laporan Perilaku (FUTURE ITERATION)
 
-### SPRINT 4: Ekspor Laporan PDF/Excel & Analytics (DEP: SPRINT 3)
+### SPRINT 5: Ekspor Laporan PDF/Excel & Analytics (DEP: SPRINT 4)
 - [ ] [TIKET-09] Fitur Ekspor Laporan Rekap Perilaku (PDF/CSV) untuk BK & Kesiswaan (P2)
 
 ## Master Backlog: [BACKLOG-04] Modul Catatan Bimbingan Khusus BK (FUTURE ITERATION)
 
-### SPRINT 5: BK Confidential Counseling & Wali Kelas Visibility Toggle (DEP: SPRINT 3)
+### SPRINT 6: BK Confidential Counseling & Wali Kelas Visibility Toggle (DEP: SPRINT 3)
 - [ ] [TIKET-10] Skema & UI Catatan Bimbingan Khusus dengan Toggle Akses Wali Kelas (P2)
 
 ## Master Backlog: [BACKLOG-05] Dashboard Rekomendasi Penanganan BK untuk Guru Mapel (FUTURE ITERATION)
 
-### SPRINT 6: Widget Rekomendasi Penanganan Siswa pada Portal Dashboard (DEP: SPRINT 5)
+### SPRINT 7: Widget Rekomendasi Penanganan Siswa pada Portal Dashboard (DEP: SPRINT 6)
 - [ ] [TIKET-11] Widget Rekomendasi Penanganan Siswa pada Portal Dashboard (`/portal/page.tsx`) (P2)
+
+## Master Backlog: [BACKLOG-07] Penambahan Metadata Pelapor pada Form Input Workspace (FUTURE ITERATION)
+
+### SPRINT 8: Input Form Reporter Selection & Schema Integration (DEP: SPRINT 4)
+- [ ] [TIKET-15] Field Combobox "Dilaporkan Oleh" pada Form Input Perilaku (`/portal/perilaku/input`) (P2)
