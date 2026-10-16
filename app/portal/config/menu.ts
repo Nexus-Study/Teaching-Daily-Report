@@ -33,7 +33,7 @@ export const portalMenus: PortalMenu[] = [
   {
     title: 'Catatan & Penanganan Perilaku',
     description: 'Catat perilaku dan tindak lanjut kolaboratif.',
-    href: '/portal/perilaku/',
+    href: '/portal/perilaku/input',
     icon: ShieldAlert,
     roles: ['admin', 'guru_bk', 'wali_kelas', 'waka_kesiswaan', 'guru_mapel', 'guru_tahfidz'],
     iconClass: 'text-emerald-600 dark:text-emerald-400',
