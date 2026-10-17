@@ -41,6 +41,15 @@ export const portalMenus: PortalMenu[] = [
     softTintClass: 'bg-emerald-50 dark:bg-emerald-950/50',
   },
   {
+    title: 'Rekap Perilaku',
+    description: 'Tinjau catatan dan tindak lanjut perilaku.',
+    href: '/portal/perilaku/rekap',
+    icon: ShieldAlert,
+    roles: ['kamad'],
+    iconClass: 'text-emerald-600 dark:text-emerald-400',
+    softTintClass: 'bg-emerald-50 dark:bg-emerald-950/50',
+  },
+  {
     title: 'Daftar Siswa',
     description: 'Telusuri direktori siswa sesuai cakupan kelas Anda.',
     href: '/portal/siswa',

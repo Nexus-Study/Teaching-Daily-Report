@@ -5,10 +5,18 @@ const tabs = [
   { href: '/portal/perilaku/rekap', label: 'Rekap & Eskalasi' },
 ];
 
-export default function BehaviorTabs({ activeHref }: { activeHref: string }) {
+export default function BehaviorTabs({
+  activeHref,
+  showInput = true,
+}: {
+  activeHref: string;
+  showInput?: boolean;
+}) {
+  const visibleTabs = showInput ? tabs : tabs.filter((tab) => tab.href !== '/portal/perilaku/input');
+
   return (
-    <nav aria-label="Navigasi modul perilaku" className="grid grid-cols-2 rounded-2xl border border-border bg-card p-1 shadow-sm">
-      {tabs.map((tab) => {
+    <nav aria-label="Navigasi modul perilaku" className={`grid ${showInput ? 'grid-cols-2' : 'grid-cols-1'} rounded-2xl border border-border bg-card p-1 shadow-sm`}>
+      {visibleTabs.map((tab) => {
         const isActive = tab.href === activeHref;
 
         return (

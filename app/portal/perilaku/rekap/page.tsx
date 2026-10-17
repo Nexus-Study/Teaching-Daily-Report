@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
 import { Check, CheckCircle2, ChevronDown, CircleUser, Clock3, LoaderCircle, Pencil, RotateCcw, Save, Search, ShieldAlert, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { BehaviorActor, BehaviorHandler, CatatanPerilakuWithRelations, RekapPerilakuSummaryStats } from '../actions';
-import type { PenangananPerilaku, PenangananStatus, PerilakuType } from '../../../../types/database';
+import type { PenangananPerilaku, PenangananStatus, PerilakuType, UserRole } from '../../../../types/database';
 import { deleteCatatanPerilaku, getPerilakuActor, getProfileAccessContext, getRekapPerilaku, reopenKasusPerilaku, submitPenangananEskalasi, updateDeskripsiPerilaku, type ProfileAccessContext } from '../actions';
 import BehaviorTabs from '../components/behavior-tabs';
 
@@ -24,6 +25,15 @@ type DescriptionEditTarget = {
 type RekapStatusFilter = 'all' | 'triage' | 'proses' | 'selesai';
 type HandlingGroup = Exclude<RekapStatusFilter, 'all'>;
 type RekapCursor = { activityAt: string; id: string };
+
+const BEHAVIOR_INPUT_ROLES: UserRole[] = [
+  'admin',
+  'guru_bk',
+  'wali_kelas',
+  'waka_kesiswaan',
+  'guru_mapel',
+  'guru_tahfidz',
+];
 
 const perilakuStyles: Record<PerilakuType, string> = {
   positif: 'border-emerald-200 bg-emerald-100 text-emerald-800',
@@ -82,6 +92,7 @@ function getLatestActivityTimestamp(item: CatatanPerilakuWithRelations): number 
 }
 
 export default function PerilakuRekapPage() {
+  const router = useRouter();
   const [rekapList, setRekapList] = useState<CatatanPerilakuWithRelations[]>([]);
   const [summaryStats, setSummaryStats] = useState<RekapPerilakuSummaryStats>({
     perluTindakan: 0,
@@ -131,7 +142,12 @@ export default function PerilakuRekapPage() {
       setProfileAccess(currentProfileAccess);
       setHasMore(records.length === 10);
     } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Gagal memuat rekap perilaku.');
+      const message = refreshError instanceof Error ? refreshError.message : 'Gagal memuat rekap perilaku.';
+      if (message === 'Akses rekap perilaku tidak diizinkan.') {
+        router.replace('/portal');
+        return;
+      }
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -281,11 +297,17 @@ export default function PerilakuRekapPage() {
   }
 
   function canEditCatatan(item: CatatanPerilakuWithRelations): boolean {
-    return Boolean(actor && (actor.roles.includes('admin') || actor.id === item.reporter_id));
+    return Boolean(actor && (
+      actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))
+      && (actor.roles.includes('admin') || actor.id === item.reporter_id)
+    ));
   }
 
   function canEditHandling(handling: PenangananPerilaku): boolean {
-    return Boolean(actor && (actor.roles.includes('admin') || actor.id === handling.handler_id));
+    return Boolean(actor && (
+      actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))
+      && (actor.roles.includes('admin') || actor.id === handling.handler_id)
+    ));
   }
 
   function canDeleteCatatan(item: CatatanPerilakuWithRelations): boolean {
@@ -316,7 +338,10 @@ export default function PerilakuRekapPage() {
             </div>
           </div>
           <div className="mt-4">
-            <BehaviorTabs activeHref="/portal/perilaku/rekap" />
+            <BehaviorTabs
+              activeHref="/portal/perilaku/rekap"
+              showInput={Boolean(actor?.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role)))}
+            />
           </div>
         </header>
 

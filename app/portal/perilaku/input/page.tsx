@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition, type KeyboardEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, Filter, LoaderCircle, RefreshCw, Save, Search, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,6 +33,7 @@ function getWITDateString(): string {
 }
 
 export default function PerilakuInputPage() {
+  const router = useRouter();
   const [kelasList, setKelasList] = useState<KelasWithSiswa[]>([]);
   const [selectedKelasId, setSelectedKelasId] = useState('');
   const [selectedSiswaId, setSelectedSiswaId] = useState('');
@@ -92,7 +94,12 @@ export default function PerilakuInputPage() {
       setKelasList(classes);
       setSelectedKelasId((current) => current || classes[0]?.id || '');
     } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Gagal memuat daftar siswa.');
+      const message = refreshError instanceof Error ? refreshError.message : 'Gagal memuat daftar siswa.';
+      if (message === 'Akses input perilaku tidak diizinkan.') {
+        router.replace('/portal');
+        return;
+      }
+      setError(message);
     }
   }
 

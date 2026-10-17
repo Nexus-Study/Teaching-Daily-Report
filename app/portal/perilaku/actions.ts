@@ -26,6 +26,26 @@ const PROFILE_GLOBAL_SCOPE_ROLES: UserRole[] = [
   'waka_kesiswaan',
   'kamad',
 ];
+const REKAP_GLOBAL_SCOPE_ROLES: UserRole[] = [
+  'admin',
+  'guru_bk',
+  'waka_kesiswaan',
+  'kamad',
+];
+const REKAP_REPORTER_SCOPE_ROLES: UserRole[] = ['guru_mapel', 'guru_tahfidz'];
+const REKAP_ROLES: UserRole[] = [
+  ...REKAP_GLOBAL_SCOPE_ROLES,
+  'wali_kelas',
+  ...REKAP_REPORTER_SCOPE_ROLES,
+];
+const BEHAVIOR_INPUT_ROLES: UserRole[] = [
+  'admin',
+  'guru_bk',
+  'wali_kelas',
+  'waka_kesiswaan',
+  'guru_mapel',
+  'guru_tahfidz',
+];
 
 export type ProfileAccessContext = {
   roles: UserRole[];
@@ -214,7 +234,11 @@ export async function getProfileAccessContext(): Promise<ProfileAccessContext> {
 }
 
 export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
-  const supabase = await createClient();
+  const { supabase, actor } = await getAuthenticatedActor();
+  if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
+    throw new Error('Akses input perilaku tidak diizinkan.');
+  }
+
   const [kelasResult, siswaResult] = await Promise.all([
     supabase.from('kelas').select('id, nama_kelas, tingkat, wali_kelas_id, created_at').order('tingkat', { ascending: true }).order('nama_kelas', { ascending: true }),
     supabase.from('siswa').select('id, full_name, nisn, kelas_id, created_at').order('full_name', { ascending: true }),
@@ -248,13 +272,9 @@ export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
 }
 
 export async function submitCatatanPerilaku(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Pengguna belum terautentikasi.');
+  const { supabase, actor } = await getAuthenticatedActor();
+  if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
+    throw new Error('Akses input perilaku tidak diizinkan.');
   }
 
   const siswaId = String(formData.get('siswa_id') ?? '').trim();
@@ -274,7 +294,7 @@ export async function submitCatatanPerilaku(formData: FormData) {
   }
 
   const { error } = await (supabase.rpc as any)('submit_catatan_perilaku', {
-    p_reporter_id: user.id,
+    p_reporter_id: actor.id,
     p_siswa_id: siswaId,
     p_tanggal: tanggal || null,
     p_poin: poin,
@@ -302,6 +322,9 @@ export async function submitPenangananEskalasi(catatanId: string, tindakLanjut: 
   }
 
   const { supabase, actor } = await getAuthenticatedActor();
+  if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
+    throw new Error('Akses penanganan perilaku tidak diizinkan.');
+  }
   const context = await getCatatanContext(catatanId);
   const canManageTriage = isTriageActor(actor, context);
 
@@ -371,10 +394,9 @@ export async function updateDeskripsiPerilaku(id: string, isCatatan: boolean, te
     throw new Error('Deskripsi wajib diisi.');
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Pengguna belum terautentikasi.');
+  const { supabase, actor } = await getAuthenticatedActor();
+  if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
+    throw new Error('Akses perubahan perilaku tidak diizinkan.');
   }
 
   const { error } = await (supabase.rpc as any)('update_perilaku_description', {
@@ -462,35 +484,79 @@ export async function getRekapPerilaku(
       throw new Error('Cursor aktivitas rekap tidak valid.');
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return {
-        records: [],
-        summaryStats: { perluTindakan: 0, proses: 0, selesai: 0 },
-      };
+    const { supabase, actor } = await getAuthenticatedActor();
+    if (!actor.roles.some((role) => REKAP_ROLES.includes(role))) {
+      throw new Error('Akses rekap perilaku tidak diizinkan.');
     }
 
-    const [recordsResult, summaryResult] = await Promise.all([
-      supabase
+    const selection = 'id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)';
+    const allData: unknown[] = [];
+    if (actor.roles.some((role) => REKAP_GLOBAL_SCOPE_ROLES.includes(role))) {
+      const { data, error } = await supabase
         .from('catatan_perilaku')
-        .select('id, siswa_id, reporter_id, tanggal, poin, jenis, deskripsi, created_at, siswa: siswa_id (id, full_name, nisn, kelas_id, created_at), penanganan_perilaku (id, catatan_id, handler_id, tanggal, tindak_lanjut, status, created_at, updated_at)')
+        .select(selection)
         .order('updated_at', {
           referencedTable: 'penanganan_perilaku',
           ascending: false,
           nullsFirst: false,
         })
-        .order('created_at', { ascending: false }),
-      supabase.rpc('get_catatan_perilaku_summary'),
-    ]);
-    const { data, error } = recordsResult;
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+      allData.push(...(data ?? []));
+    } else {
+      if (actor.roles.includes('wali_kelas')) {
+        const { data: classes, error: classError } = await supabase
+          .from('kelas')
+          .select('id')
+          .eq('wali_kelas_id', actor.id);
+
+        if (classError) {
+          throw new Error(classError.message);
+        }
+        const classIds = (classes ?? []).map(({ id }) => id);
+
+        if (classIds.length) {
+          const { data, error } = await supabase
+            .from('catatan_perilaku')
+            .select(selection)
+            .in('siswa.kelas_id', classIds)
+            .order('updated_at', {
+              referencedTable: 'penanganan_perilaku',
+              ascending: false,
+              nullsFirst: false,
+            })
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            throw new Error(error.message);
+          }
+          allData.push(...(data ?? []));
+        }
+      }
+
+      if (actor.roles.some((role) => REKAP_REPORTER_SCOPE_ROLES.includes(role))) {
+        const { data, error } = await supabase
+          .from('catatan_perilaku')
+          .select(selection)
+          .eq('reporter_id', actor.id)
+          .order('updated_at', {
+            referencedTable: 'penanganan_perilaku',
+            ascending: false,
+            nullsFirst: false,
+          })
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+        allData.push(...(data ?? []));
+      }
     }
+
+    const summaryResult = await supabase.rpc('get_catatan_perilaku_summary');
     const summaryResponse = summaryResult as unknown as {
       data: Array<{ perlu_tindakan: number; proses: number; selesai: number }> | null;
       error: { message: string } | null;
@@ -508,7 +574,13 @@ export async function getRekapPerilaku(
       selesai: Number(summaryRow.selesai),
     };
 
-    const allRecords = ((data ?? []) as CatatanPerilakuWithRelations[]).map((item) => {
+    const deduplicatedData = [...new Map(
+      allData.map((item) => {
+        const record = item as CatatanPerilakuWithRelations;
+        return [record.id, record] as const;
+      }),
+    ).values()];
+    const allRecords = deduplicatedData.map((item) => {
       const latestActivity = Math.max(
         Date.parse(item.created_at),
         ...(item.penanganan_perilaku ?? []).flatMap((handling) => [
@@ -570,7 +642,7 @@ export async function getRekapPerilaku(
     const records = result.map((item) => ({
       ...item,
       reporter: handlerById.get(item.reporter_id),
-      isWaliKelas: item.siswa ? homeroomByClassId.get(item.siswa.kelas_id) === user.id : false,
+      isWaliKelas: item.siswa ? homeroomByClassId.get(item.siswa.kelas_id) === actor.id : false,
       penanganan_perilaku: (item.penanganan_perilaku ?? []).map((handling) => ({
         ...handling,
         handler: handlerById.get(handling.handler_id),
