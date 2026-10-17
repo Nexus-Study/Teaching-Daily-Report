@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, School } from 'lucide-react';
 
 import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,21 +48,38 @@ export default function LoginPage() {
   };
 
   return (
-    <main style={styles.page}>
-      <section style={styles.shell}>
-        <div style={styles.hero}>
-          <p style={styles.kicker}>PWA Madrasah Terpadu</p>
-          <h1 style={styles.title}>Masuk ke portal guru dan staf dengan Supabase Auth.</h1>
-          <p style={styles.copy}>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-[max(1.5rem,env(safe-area-inset-top))] text-foreground">
+      <section className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-[1fr_0.9fr]">
+        <div className="flex flex-col justify-center rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8 md:p-10">
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <School className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            PWA Madrasah Terpadu
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Masuk ke portal guru dan staf.
+          </h1>
+          <p className="mt-3 max-w-prose text-sm leading-6 text-muted-foreground">
             Gunakan email dan kata sandi akun Supabase untuk mengakses portal berbasis role.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.card}>
-          <label style={styles.label}>
+        <form
+          onSubmit={handleSubmit}
+          aria-busy={loading}
+          className="grid content-center gap-5 rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Masuk</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Masukkan kredensial akun Anda.</p>
+          </div>
+
+          <label htmlFor="login-email" className="grid gap-2 text-sm font-medium">
             Email
             <input
-              style={styles.input}
+              id="login-email"
+              className="min-h-12 w-full rounded-xl border border-input bg-background px-4 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               type="email"
               autoComplete="email"
               value={email}
@@ -70,133 +89,49 @@ export default function LoginPage() {
             />
           </label>
 
-          <label style={styles.label}>
+          <label htmlFor="login-password" className="grid gap-2 text-sm font-medium">
             Password
-            <input
-              style={styles.input}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Masukkan password"
-              required
-            />
+            <span className="relative block">
+              <input
+                id="login-password"
+                className="min-h-12 w-full rounded-xl border border-input bg-background px-4 pr-12 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Masukkan password"
+                required
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                aria-controls="login-password"
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-1 inline-flex w-10 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {showPassword
+                  ? <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </span>
           </label>
 
-          {error ? <p style={styles.error}>{error}</p> : null}
+          {error ? (
+            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              {error}
+            </p>
+          ) : null}
 
-          <button style={styles.button} type="submit" disabled={loading}>
-            {loading ? 'Memproses...' : 'Masuk'}
+          <button
+            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? 'Memproses…' : 'Masuk'}
           </button>
         </form>
       </section>
-
-      <style jsx>{`
-        * {
-          box-sizing: border-box;
-        }
-
-        html,
-        body {
-          margin: 0;
-          min-height: 100%;
-        }
-      `}</style>
     </main>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: '100vh',
-    display: 'grid',
-    placeItems: 'center',
-    padding: '24px',
-    background:
-      'radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 32%), radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.18), transparent 28%), linear-gradient(180deg, #081120 0%, #0f172a 100%)',
-    color: '#e2e8f0',
-    fontFamily: 'Inter, system-ui, sans-serif',
-  },
-  shell: {
-    width: 'min(960px, 100%)',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '24px',
-    alignItems: 'stretch',
-  },
-  hero: {
-    padding: '32px',
-    borderRadius: '24px',
-    background: 'rgba(15, 23, 42, 0.6)',
-    border: '1px solid rgba(148, 163, 184, 0.2)',
-    backdropFilter: 'blur(18px)',
-    boxShadow: '0 24px 80px rgba(2, 6, 23, 0.4)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  kicker: {
-    margin: '0 0 14px',
-    color: '#7dd3fc',
-    textTransform: 'uppercase',
-    letterSpacing: '0.18em',
-    fontSize: '12px',
-    fontWeight: 700,
-  },
-  title: {
-    margin: 0,
-    fontSize: 'clamp(2rem, 4vw, 3.4rem)',
-    lineHeight: 1.05,
-    color: '#f8fafc',
-  },
-  copy: {
-    margin: '16px 0 0',
-    maxWidth: '52ch',
-    fontSize: '16px',
-    lineHeight: 1.7,
-    color: '#cbd5e1',
-  },
-  card: {
-    padding: '28px',
-    borderRadius: '24px',
-    background: 'rgba(15, 23, 42, 0.85)',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    backdropFilter: 'blur(18px)',
-    boxShadow: '0 24px 80px rgba(2, 6, 23, 0.45)',
-    display: 'grid',
-    gap: '18px',
-    alignContent: 'start',
-  },
-  label: {
-    display: 'grid',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#cbd5e1',
-  },
-  input: {
-    width: '100%',
-    borderRadius: '14px',
-    border: '1px solid rgba(148, 163, 184, 0.24)',
-    background: 'rgba(15, 23, 42, 0.92)',
-    color: '#f8fafc',
-    padding: '14px 16px',
-    fontSize: '15px',
-    outline: 'none',
-  },
-  button: {
-    marginTop: '4px',
-    border: 'none',
-    borderRadius: '14px',
-    padding: '14px 18px',
-    background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
-    color: '#eff6ff',
-    fontWeight: 700,
-    fontSize: '15px',
-    cursor: 'pointer',
-  },
-  error: {
-    margin: 0,
-    color: '#fca5a5',
-    fontSize: '14px',
-  },
-};
