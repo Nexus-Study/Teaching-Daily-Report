@@ -3,12 +3,15 @@
 Dokumen ini merangkum konteks kerja dan kebutuhan aplikasi untuk madrasah. Dokumen masih berupa draf, tetapi dapat digunakan sebagai konteks pengembangan dengan memperhatikan label status di bawah.
 
 - **DIKONFIRMASI**: fakta atau keputusan yang sudah disampaikan pengguna.
+- **RANCANGAN DOKUMEN**: detail kebutuhan/alur yang dijabarkan dalam dokumen pendukung; gunakan sebagai rancangan, bukan keputusan final kecuali sudah dikonfirmasi.
 - **PERLU KLARIFIKASI**: belum menjadi aturan final; jangan menganggapnya sebagai keputusan.
 - **USULAN**: rekomendasi untuk didiskusikan, belum disetujui.
 - **DI LUAR MVP**: secara eksplisit tidak termasuk target MVP saat ini.
 - **DITUNDA**: belum menjadi fokus saat ini dan dapat dibahas kemudian.
 
 Admin aplikasi memperbarui konteks berdasarkan masukan pengguna sesuai peran dan tanggung jawabnya. Jika keputusan berubah, perbarui bagian terkait dan label statusnya.
+
+Rincian rancangan perilaku dan profil juga tersedia di [konsep-penanganan-perilaku.md](./konsep-penanganan-perilaku.md) dan [profil-murid.md](./profil-murid.md). Jika rincian dokumen tersebut bertentangan dengan keputusan pengguna yang sudah dikonfirmasi, keputusan pengguna yang dikonfirmasi menjadi acuan dan konflik tetap dicatat.
 
 ## 1. Tujuan dan batas konteks
 
@@ -93,29 +96,79 @@ Fungsi dalam draf mencakup jurnal mengajar, rekap jurnal, rekap kehadiran, catat
 - **DIKONFIRMASI**: penanganan berarti eskalasi atau tindak lanjut.
 - **DIKONFIRMASI**: status yang digunakan saat ini adalah “Ditangani di Tempat”, “Diteruskan ke BK/Wali Kelas”, “Diproses”, dan “Selesai”. Status dapat berubah di kemudian hari.
 - **DIKONFIRMASI**: catatan perilaku positif dipakai sebagai informasi profil murid dan tidak mengikuti alur kasus negatif.
-- **DIKONFIRMASI**: informasi perilaku dapat dibatasi oleh BK; pembukaan, perubahan, penghapusan, dan override akses harus tercatat.
-- **PERLU KLARIFIKASI**: arti operasional “dikonfirmasi BK” (misalnya validasi laporan, triase, atau penetapan kasus), penanggung jawab pada setiap status, syarat selesai, dan aturan membuka kembali kasus.
-- **USULAN**: pisahkan cara penanganan (“Ditangani di Tempat” atau “Diteruskan”) dari status perjalanan kasus (“Baru”, “Ditugaskan”, “Diproses”, “Selesai”). Jika kasus dibuka kembali, catat alasan dan riwayat perubahan. Usulan ini belum menjadi keputusan.
+- **DIKONFIRMASI**: BK mengatur pembatasan akses informasi perilaku. Pembukaan, perubahan, penghapusan, dan override akses harus tercatat.
+
+#### Rancangan laporan negatif dan triase
+
+- **RANCANGAN DOKUMEN**: guru mengirim **laporan insiden faktual** berstatus **Baru**; laporan tidak otomatis menjadi kasus konseling resmi. BK meninjau dan melakukan triase terlebih dahulu.
+- **RANCANGAN DOKUMEN**: laporan insiden dan rekam kasus konseling merupakan dua jenis catatan/entitas terpisah. Rekam konseling menyimpan catatan internal BK, sedangkan laporan awal menyimpan fakta kejadian dari pelapor.
+- **RANCANGAN DOKUMEN**: hasil triase dapat berupa:
+  1. Ditangani di tempat dan laporan ditutup tanpa membuka kasus konseling.
+  2. Diteruskan kepada wali kelas untuk tindak lanjut yang ditugaskan BK.
+  3. Dibuat menjadi kasus konseling yang ditangani BK.
+- **RANCANGAN DOKUMEN**: status kasus konseling yang diusulkan adalah **Baru → Ditugaskan → Diproses → Selesai**. “Ditangani di tempat” merupakan hasil penanganan/triase, bukan status tahap konseling.
+- **RANCANGAN DOKUMEN**: wali kelas dapat mencatat tindak lanjut atas kasus yang dilimpahkan, mengembalikan/eskalasi ke BK dengan alasan, dan membaca petunjuk penanganan kelas dari BK. Wali kelas tidak melihat rekam sesi konseling.
+- **PERLU KLARIFIKASI**: hubungan final antara status yang saat ini digunakan (termasuk “Diteruskan ke BK/Wali Kelas”) dan alur rancangan Baru/Ditugaskan/Diproses/Selesai. Belum diputuskan apakah akan mengganti status yang ada atau memisahkan status kasus dari jenis/rute penanganan.
+
+#### Akses dan audit kasus
+
+- **RANCANGAN DOKUMEN**: sebelum triase, laporan terlihat oleh pelapor dan BK. Pelapor dapat melihat laporan miliknya, status, dan petunjuk penanganan yang relevan, tetapi tidak melihat catatan konseling, informasi keluarga, atau analisis psikologis.
+- **RANCANGAN DOKUMEN**: wali kelas hanya melihat laporan murid di kelas perwaliannya setelah triase atau ketika mendapat penugasan. Wali kelas dapat melihat petunjuk kelas dan mengirim perkembangan kepada BK, bukan rekam konseling.
+- **RANCANGAN DOKUMEN**: detail rekam konseling hanya untuk BK yang berwenang. Usulan dokumen juga menyebut tingkat kerahasiaan seperti Umum, Terbatas, dan Sangat Rahasia.
+- **RANCANGAN DOKUMEN**: waka kesiswaan/kamad mendapat ringkasan atau data agregat, bukan akses bebas ke detail konseling. Pembukaan darurat (*break-glass*) mensyaratkan alasan dan pencatatan permanen.
+- **PERLU KLARIFIKASI**: aturan akses awal dan setelan kerahasiaan BK belum disepakati. Usulan akses awal “pelapor + BK” dan akses pimpinan hanya melalui ringkasan/override darurat perlu dikonfirmasi terhadap pernyataan sebelumnya bahwa waka/kamad dapat membaca, serta opsi BK memilih peran yang diberi akses.
+- **DIKONFIRMASI**: pencatatan audit mencakup pembukaan akses, perubahan, penghapusan, dan override. **RANCANGAN DOKUMEN** menambahkan pencatatan aktivitas lihat/unduh untuk data sensitif; perlu diputuskan apakah aktivitas tersebut juga wajib diaudit.
+- **RANCANGAN DOKUMEN**: membuka kembali kasus selesai wajib disertai alasan dan masuk ke riwayat audit. Ketentuan minimal 20 karakter yang tertulis dalam dokumen desain belum dikonfirmasi.
+
+#### Catatan perilaku positif
+
+- **RANCANGAN DOKUMEN**: input positif dan negatif dapat memakai satu pintu/formulir dengan pilihan jenis, tetapi penyimpanan dan alur tindak lanjutnya dipisahkan.
+- **DIKONFIRMASI**: catatan positif tidak melalui triase kasus dan berfungsi sebagai informasi profil.
+- **RANCANGAN DOKUMEN**: catatan positif langsung masuk ke portofolio/profil; kategori contoh mencakup kepemimpinan, empati, kejujuran, dan inisiatif. Poin/badge, lampiran, pembatasan edit, soft-delete, dan hak hapus khusus yang disebut dalam dokumen sumber belum menjadi keputusan.
 
 ### 4.4 Profil murid
 
 - **DIKONFIRMASI**: istilah yang digunakan dalam konteks produk adalah **murid**, bukan siswa.
-- Informasi yang direncanakan untuk profil:
-  - Informasi dasar: nama, tempat/tanggal lahir, NISN, alamat, orang tua, nomor telepon murid, nomor telepon orang tua/darurat, dan hobi.
-  - Presensi.
-  - Pengerjaan tugas dan nilai.
-  - Tahfizh dan kemampuan membaca Al-Qur'an.
-  - Prestasi.
-  - Kebutuhan khusus.
-  - Catatan perilaku positif dan negatif.
-  - Rekomendasi pembelajaran atau penanganan.
-- **DIKONFIRMASI**: semua peran pada prinsipnya dapat melihat profil, dengan pembatasan informasi berdasarkan peran dan kewenangan.
-- **DIKONFIRMASI**: informasi dasar yang dikecualikan diatur admin; informasi perilaku yang dikecualikan diatur BK.
-- **PERLU KLARIFIKASI**: daftar bidang yang tampil pada MVP, sumber kebenaran tiap bidang, pemilik perubahan, dan aturan akses per bidang.
-- **PERLU KLARIFIKASI**: draf menyebut pengubahan profil oleh BK dan wali kelas di kelas perwaliannya, tetapi jawaban pengguna menyebut BK dua kali. Peran ketiga yang dimaksud belum diketahui.
-- **PERLU KLARIFIKASI**: apakah informasi tahfizh dan prestasi tetap ditampilkan di profil MVP jika tidak ada fitur inputnya, atau ditunda sepenuhnya bersama fiturnya.
-- **PERLU KLARIFIKASI**: apakah catatan perilaku akan dipisahkan menjadi akademik dan nonakademik, serta dampaknya terhadap hak akses.
-- **PERLU KLARIFIKASI**: cakupan penggunaan istilah “murid”. Usulan awal: konsisten pada teks antarmuka dan dokumentasi; nama kolom/database internal yang sudah ada tidak diubah kecuali ada kebutuhan teknis khusus.
+- Informasi yang direncanakan pada profil meliputi data dasar/kontak, presensi, tugas/nilai, tahfizh dan kemampuan membaca Al-Qur'an, prestasi, kebutuhan khusus, perilaku positif/negatif, serta rekomendasi pembelajaran/penanganan. **Cakupan tiap bidang pada MVP ditentukan di bawah; daftar ini bukan berarti seluruh data harus tersedia saat MVP.**
+
+#### Sumber data dan pengelolaan
+
+| Informasi | Sumber/pengelola dalam dokumen profil | Status konteks |
+| --- | --- | --- |
+| Data induk, kontak darurat, dan kebutuhan khusus/medis | Admin/Tata Usaha atau basis data induk | **RANCANGAN DOKUMEN**; hak ubah dan sumber kebenaran perlu disepakati |
+| Kehadiran | Jurnal guru mata pelajaran; agregat untuk profil | **RANCANGAN DOKUMEN**; selaras dengan fungsi jurnal yang telah dibahas |
+| Catatan positif dan laporan insiden | Guru mata pelajaran dan wali kelas; BK mengelola tindak lanjut kasus | **RANCANGAN DOKUMEN**; rincian hak edit/hapus masih perlu disepakati |
+| Rekomendasi penanganan/pembelajaran | Guru BK, dengan masukan wali kelas | **RANCANGAN DOKUMEN** |
+| Tugas dan nilai | Guru mata pelajaran/tim kurikulum melalui sistem akademik/LMS; profil hanya sebagai konsumen | **RANCANGAN DOKUMEN**; lihat konflik cakupan MVP di bawah |
+| Tahfizh | Modul/penanggung jawab tahfizh | **DI LUAR MVP** untuk fitur tahfizh; status menampilkan data historis pada profil belum diputuskan |
+| Prestasi | Dokumen profil menyebut sumber modul prestasi/ekskul dan pengelola pembina/wali kelas | **KONFLIK MVP**: prestasi ekstrakurikuler telah dikonfirmasi di luar MVP; lihat keputusan cakupan di bawah |
+
+#### Cakupan MVP dan konflik dokumen
+
+- **RANCANGAN DOKUMEN**: `profil-murid.md` menyebut kebutuhan khusus dan rekomendasi BK sebagai komponen wajib MVP. Kedua bidang ini diprioritaskan dalam rancangan profil, dengan pembatasan akses dan data seminimal yang diperlukan.
+- **RANCANGAN DOKUMEN**: dokumen profil mengusulkan indikator agregat tugas/nilai secara read-only jika sumber data tersedia, tetapi bagian lain menyebut modul nilai/tugas dikecualikan dari MVP. **PERLU KLARIFIKASI** apakah ringkasan read-only tetap masuk atau seluruh informasi akademik ini ditunda.
+- **DI LUAR MVP**: fitur tahfizh dan prestasi ekstrakurikuler, sesuai konfirmasi pengguna. `profil-murid.md` menyebut prestasi wajib MVP serta modul Prestasi & Ekskul sebagai formulir MVP; bagian tersebut bertentangan dengan konfirmasi ini dan tidak dijadikan keputusan.
+- **PERLU KLARIFIKASI**: apakah “prestasi” non-ekstrakurikuler (misalnya penghargaan yang dicatat terpisah dari modul ekskul) juga dikecualikan atau dapat menjadi informasi profil dari sumber lain.
+- **PERLU KLARIFIKASI**: apakah data historis tahfizh/prestasi yang sudah tersedia dari luar aplikasi boleh tampil read-only, walaupun modul inputnya di luar MVP.
+
+#### Cakupan tampilan per peran
+
+Rincian berikut merangkum rancangan tampilan dalam `profil-murid.md`; kecuali sudah dikonfirmasi sebelumnya, rincian per bidang masih merupakan rancangan:
+
+| Peran | Cakupan tampilan yang dirancang | Batas/keputusan terbuka |
+| --- | --- | --- |
+| Guru mata pelajaran | Murid pada kelas yang diajar; identitas relevan, informasi keselamatan/kebutuhan khusus yang perlu diketahui, rekomendasi kelas dari BK, apresiasi positif, presensi mapel sendiri, dan indikator akademik agregat. | Dokumen profil memperluas akses di luar batas akademik dalam draf awal. **PERLU KLARIFIKASI** data nonakademik mana yang memang boleh dilihat dan bagaimana kebutuhan-untuk-tahu diterapkan. |
+| Wali kelas | Profil murid kelas perwaliannya, agregat kehadiran kelas, apresiasi, laporan setelah triase/penugasan, tugas penanganan yang dilimpahkan, dan petunjuk kelas dari BK. | Rekam sesi konseling dan catatan psikologis tetap terkunci dalam rancangan; rincian visibilitas kasus perlu disepakati. |
+| Guru BK | Akses profil dan perilaku untuk penanganan; kendali rekomendasi dan akses ke rekam konseling sesuai kewenangan. | **PERLU KLARIFIKASI** pembagian tugas/akses jika ada beberapa petugas BK atau koordinator. |
+| Waka kesiswaan/kamad | Ringkasan eksekutif, data agregat, status atau disposisi manajerial; bukan rekam konseling secara default dalam rancangan dokumen. | Hak akses detail dan mekanisme override darurat belum diputuskan; lihat bagian akses kasus. |
+| Admin/Tata Usaha | Pengelolaan data induk dan informasi dasar sesuai tugas. | Hak akses admin terhadap data perilaku dan rekam konseling perlu ditetapkan secara terpisah; hak administrasi tidak otomatis berarti hak baca semua data sensitif. |
+
+- **DIKONFIRMASI**: pada prinsipnya profil digunakan lintas peran dengan pembatasan informasi; admin mengatur pengecualian untuk informasi dasar dan BK mengatur pengecualian informasi perilaku.
+- **RANCANGAN DOKUMEN**: backend hanya mengirim bidang yang boleh dibaca per peran/cakupan (misalnya kelas yang diajar), bukan sekadar menyembunyikan bidang sensitif pada tampilan. Ini adalah prinsip desain yang perlu dijabarkan ke aturan akses teknis.
+- **RANCANGAN DOKUMEN**: aspek positif, minat, dan prestasi ditempatkan menonjol agar profil tidak hanya menyorot masalah/perilaku negatif.
+- **DIKONFIRMASI**: gunakan “murid” pada konteks produk. **RANCANGAN DOKUMEN**: istilah tampilan dapat berbeda dari nama tabel/kolom lama seperti `siswa`; perubahan skema internal tidak diperlukan hanya demi bahasa UI.
+- **PERLU KLARIFIKASI**: pengguna sebelumnya menyebut pihak yang boleh mengubah profil sebagai BK dan wali kelas kelas perwaliannya, lalu menyebut BK kembali. Dokumen profil menawarkan waka kesiswaan atau admin data sekolah sebagai kemungkinan pihak ketiga; siapa yang berwenang belum diputuskan.
+- **PERLU KLARIFIKASI**: kedua dokumen pendukung membedakan perilaku positif/apresiasi dari perilaku negatif/insiden; catatan positif tidak melalui triase, sedangkan insiden negatif melalui triase BK, dan kategori insiden mencakup “Akademik”. Matriks izin juga dibedakan menurut positif/negatif. Namun, belum ditetapkan apakah catatan perlu dipisah khusus menjadi akademik dan nonakademik atau bagaimana pemisahan itu memengaruhi izin.
 
 ## 5. Kebutuhan pengalaman penggunaan
 
@@ -125,17 +178,29 @@ Fungsi dalam draf mencakup jurnal mengajar, rekap jurnal, rekap kehadiran, catat
 
 ## 6. Kebutuhan offline dan sinkronisasi
 
-- **DIKONFIRMASI sebagai kebutuhan**: pengguna perlu dapat melakukan CRUD dengan mudah meskipun jaringan bermasalah, tanpa merasa panik atau kehilangan pekerjaan; perubahan perlu disinkronkan ke Supabase saat tersedia koneksi.
+- **DIKONFIRMASI — cakupan minimum offline MVP**:
+  - Pengguna dapat **membaca data jurnal dan presensi** saat offline.
+  - Pengguna dapat **membuat jurnal dan presensi** saat offline; perubahan disimpan lokal dan disinkronkan ke Supabase saat koneksi tersedia.
+  - Pengguna dapat membaca data lain yang memang berhak diaksesnya, termasuk perilaku dan profil murid, dengan tetap menerapkan batasan peran dan penugasan.
+  - Tujuan pengalaman: pekerjaan tidak hilang atau terasa gagal hanya karena jaringan seluler terputus/tidak stabil.
+- **PERLU KLARIFIKASI**: apakah pengguna juga harus dapat mengubah dan menghapus jurnal/presensi offline, atau perubahan/penghapusan data yang sudah tersimpan di server harus menunggu koneksi.
+- **PERLU KLARIFIKASI**: apakah membuat/mengubah/menghapus data perilaku atau profil harus berfungsi offline. Kebutuhan baca offline sudah dikonfirmasi; cakupan tulis offline belum.
+- **PERLU KLARIFIKASI — data sensitif di perangkat**: bagian profil/perilaku mana yang boleh disimpan lokal untuk dibaca offline, berapa lama disimpan, dan bagaimana menghapus/mengunci data lokal saat logout, perangkat hilang, atau hak akses dicabut. Baca offline tidak boleh memperluas akses peran.
 - **KONDISI IMPLEMENTASI SAAT DOKUMEN DIPERBARUI**: service worker menggunakan strategi `NetworkFirst` untuk halaman awal dan `NetworkOnly` untuk rute GET lainnya. Belum ada implementasi CRUD lokal atau antrean sinkronisasi offline yang teridentifikasi. Cache halaman PWA saja tidak sama dengan penyimpanan data offline.
-- **PERLU KLARIFIKASI**: modul dan tindakan yang wajib bekerja offline pada MVP; khususnya apakah offline mencakup pembuatan saja atau juga ubah/hapus data lama.
-- **PERLU KLARIFIKASI**: aturan saat data di perangkat berbeda dari versi server, saat izin pengguna berubah, atau saat perangkat lama kembali online.
-- **USULAN TEKNIS UNTUK DIDISKUSIKAN**:
-  1. Simpan draft dan operasi tertunda di IndexedDB, dengan cakupan data lokal seminimal mungkin sesuai penugasan pengguna.
-  2. Tampilkan status yang tegas, misalnya “tersimpan di perangkat”, “menunggu sinkronisasi”, “tersinkron”, atau “perlu tindakan”; jangan menyatakan tersimpan di server sebelum Supabase mengonfirmasi.
-  3. Coba sinkronisasi saat aplikasi kembali aktif atau koneksi pulih. Background Sync dapat menjadi tambahan, bukan satu-satunya mekanisme, karena eksekusi latar bergantung pada browser/perangkat.
-  4. Gunakan ID operasi idempoten, validasi dan pemeriksaan izin di server, serta tampilkan konflik/kegagalan untuk ditindaklanjuti; jangan menimpa perubahan diam-diam.
-  5. Hindari menyimpan seluruh profil atau data sensitif di perangkat; tentukan juga perilaku saat logout, perangkat hilang, atau akses dicabut.
-- Usulan ini bukan keputusan arsitektur final dan perlu disesuaikan dengan cakupan offline MVP.
+- **DIKONFIRMASI — prinsip konflik**: data tidak boleh ditimpa secara diam-diam ketika versi server dan perubahan offline berbeda.
+- **RANCANGAN PENANGANAN KONFLIK UNTUK MVP**:
+  1. **Pembuatan catatan baru** (jurnal/laporan yang memang belum ada di server) bukan konflik edit; sinkronkan sebagai entri baru dengan ID operasi unik dan idempotensi agar retry tidak membuat duplikasi. Konflik terjadi saat operasi menyunting/menghapus data yang versi dasarnya telah berubah di server.
+  2. **Presensi** bersifat data terstruktur per murid dan per jam. Otomatisasi hanya boleh dipakai bila sistem dapat membuktikan perubahan tidak menghilangkan koreksi yang sah—misalnya perubahan pada murid/jam berbeda atau versi dasar belum berubah. Gunakan versi/timestamp dan validasi server. Jika dua pihak mengubah presensi yang sama atau urutannya tidak dapat dipastikan, tahan item itu untuk rekonsiliasi; jangan mengandalkan last-write-wins berdasarkan waktu perangkat yang tidak tepercaya.
+  3. **Jurnal dan laporan perilaku** berisi narasi atau informasi sensitif; jika versi dasar berubah sejak data dibaca, tahan perubahan offline sebagai konflik terpisah dan jangan menerbitkannya sebagai jurnal/laporan resmi sampai direkonsiliasi.
+  4. Tampilkan indikator yang menjelaskan item tertahan dan tindakan yang diperlukan. Sediakan perbandingan versi server dengan versi offline; pengguna berwenang dapat memilih versi server, mengajukan versi offline sebagai pengganti, atau menggabungkan teks secara manual. Simpan jejak penyelesaian konflik.
+- **RANCANGAN TEKNIS UNTUK DIDISKUSIKAN**:
+  1. Gunakan IndexedDB untuk data baca offline yang dibatasi berdasarkan penugasan/peran, draft, serta antrean operasi tertunda; minimalkan data lokal terutama untuk profil/perilaku sensitif.
+  2. Beri setiap operasi ID idempoten dan versi dasar/server agar retry tidak membuat duplikasi dan konflik dapat dideteksi.
+  3. Bedakan status “tersimpan di perangkat”, “menunggu sinkronisasi”, “perlu rekonsiliasi”, dan “tersinkron”. Jangan menyatakan data tersimpan di server sebelum ada konfirmasi server.
+  4. Coba sinkronisasi saat aplikasi aktif/koneksi pulih; Background Sync hanya sebagai mekanisme tambahan karena eksekusinya bergantung pada browser/perangkat.
+  5. Server tetap memvalidasi izin dan cakupan penugasan saat sinkronisasi. Data yang hak aksesnya telah dicabut tidak boleh dipublikasikan hanya karena pernah tersedia offline.
+- **ALTERNATIF YANG PERLU EVALUASI**: dokumen usulan konflik menyarankan mengirim versi konflik ke server sebagai entri khusus `conflict_pending`. Ini dapat membantu pemulihan lintas perangkat, tetapi juga menambah salinan data sensitif, kompleksitas izin/retensi, dan risiko entri konflik disalahartikan sebagai laporan resmi. Untuk rancangan awal MVP, tahan antrean konflik secara lokal; jangan membuat entri server `conflict_pending` sebelum kebutuhan, kontrol akses, dan siklus hidup datanya disepakati.
+- **PERLU KLARIFIKASI**: siapa yang berwenang menyelesaikan tiap jenis konflik, apakah guru pembuat dapat mengesahkan versi pengganti, dan kapan eskalasi ke BK/admin diperlukan untuk konflik laporan perilaku.
 
 ## 7. Notifikasi, ekspor, dan sumber daya
 
@@ -151,18 +216,24 @@ Fungsi dalam draf mencakup jurnal mengajar, rekap jurnal, rekap kehadiran, catat
 - **PERLU KLARIFIKASI**: kebijakan keamanan, retensi, pencadangan, pemulihan, dan penghapusan data, terutama data kontak, kebutuhan khusus, serta perilaku murid.
 - **PERLU KLARIFIKASI**: sumber kebijakan madrasah atau ketentuan lain yang harus menjadi acuan pengelolaan data.
 
-## 9. Daftar klarifikasi prioritas
+## 9. To-do klarifikasi yang masih terbuka
 
-1. Pastikan status fitur guru piket, notifikasi, ekspor, dan offline dalam MVP.
-2. Tetapkan akses default kasus, kewenangan BK, hak wali/pelapor, serta kondisi override waka kesiswaan dan kamad.
-3. Definisikan arti konfirmasi BK dan alur kasus dari laporan sampai selesai/dibuka kembali.
-4. Tetapkan bidang profil yang termasuk MVP, sumber datanya, siapa yang dapat mengubahnya, dan cakupan akses per bidang.
-5. Jelaskan peran ketiga yang dimaksud dalam hak ubah profil; tetapkan apakah istilah “murid” hanya untuk antarmuka/dokumentasi atau juga nama internal data.
-6. Tentukan cakupan offline MVP dan kebijakan konflik/sinkronisasi.
-7. Putuskan minimum kebijakan keamanan, retensi, pencadangan, pemulihan, dan penghapusan sebelum data sensitif digunakan.
-8. Identifikasi masalah kerja manual terpenting, pengguna yang terdampak, frekuensi/dampaknya, dan ukuran keberhasilan.
+Item di bawah ini adalah keputusan yang belum dijawab atau baru tercatat sebagai rancangan. Kalender ujian/Ramadan sudah diputuskan untuk ditunda, sedangkan cakupan minimum offline (baca jurnal/presensi, buat jurnal/presensi, dan baca data lain sesuai izin) sudah dikonfirmasi; keduanya tidak ditanyakan ulang di daftar ini.
+
+- [ ] **Bahas notifikasi dan ekspor setelah logika serta UI/UX jurnal mengajar dan perilaku MVP selesai.** Keduanya termasuk MVP; pemicunya untuk mulai dibahas adalah permintaan pengguna.
+- [ ] **Tetapkan prasyarat sebelum merilis profil/perilaku sensitif.** Sepakati kontrol akses dan audit, penanggung jawab pencadangan/pemulihan, kewenangan penghapusan, serta kebijakan retensi/penghapusan dan rujukan kebijakan madrasah yang berlaku. Lihat [rekomendasi prasyarat perlindungan data sensitif](./prasyarat-perlindungan-data-sensitif.md) sebagai panduan usulan, bukan keputusan yang telah disahkan.
+- [ ] **Selesaikan aturan baca kasus dan rekam konseling.** Tetapkan siapa yang dapat melihat laporan sebelum/selepas triase, apakah pelapor melihat status dan tindak lanjut, kapan wali kelas mendapat akses, bagaimana BK memberi akses per peran, serta apakah waka/kamad hanya melihat ringkasan atau memiliki mekanisme akses darurat dengan alasan dan audit.
+- [ ] **Setujui alur kasus dan hak tindakan.** Putuskan apakah laporan negatif selalu melalui triase BK, bagaimana status lama dipetakan ke Baru → Ditugaskan → Diproses → Selesai, kapan laporan ditangani di tempat atau dilimpahkan ke wali kelas, siapa yang boleh menutup/membuka kembali kasus, dan alasan/riwayat apa yang diwajibkan.
+- [ ] **Tetapkan matriks hak akses profil per bidang dan per peran.** Khususnya data kesehatan/kebutuhan khusus, informasi dasar/kontak, perilaku positif, ringkasan insiden, rekomendasi BK, kehadiran, serta data akademik. Dokumen pendukung membedakan izin perilaku positif dan negatif, tetapi belum menetapkan perlu tidaknya pemisahan akademik/nonakademik dan dampaknya pada izin. Tentukan pula batas data yang di-cache untuk baca offline agar hak akses tidak melebar.
+- [ ] **Putuskan pengelolaan dan cakupan profil MVP.** Konfirmasi apakah tugas/nilai read-only masuk MVP, apakah prestasi non-ekstrakurikuler termasuk (prestasi ekstrakurikuler tetap di luar MVP), serta apakah data historis tahfizh/prestasi boleh ditampilkan walau fitur inputnya ditunda.
+- [ ] **Tetapkan kewenangan mengubah profil.** Klarifikasi peran ketiga yang sebelumnya tertulis BK dua kali—opsi yang muncul adalah waka kesiswaan atau admin data sekolah—dan tentukan bidang apa yang boleh diubah oleh BK, wali kelas, admin, atau pihak lain.
+- [ ] **Tentukan tindakan offline di luar cakupan yang telah disepakati.** Apakah edit/hapus jurnal-presensi dan buat/ubah/hapus perilaku/profil harus bisa offline, atau menunggu koneksi? Tentukan juga masa simpan lokal dan tindakan saat logout, perangkat hilang, atau hak akses dicabut.
+- [ ] **Tetapkan siapa yang menyelesaikan konflik sinkronisasi.** Putuskan kewenangan memilih versi server/offline atau menggabungkan teks untuk jurnal, presensi, dan laporan perilaku; definisikan kapan konflik harus dieskalasikan ke BK/admin. Pembuatan entri baru yang belum ada di server bukan konflik edit, tetapi tetap memerlukan idempotensi agar retry tidak membuat duplikasi.
+- [ ] **Pilih prioritas masalah dan ukuran keberhasilan.** Sebutkan 1–2 pekerjaan manual paling penting yang ingin dikurangi, peran yang terdampak, frekuensi/dampaknya, serta indikator hasil (misalnya waktu isi jurnal, kelengkapan presensi, waktu triase, atau waktu membuat rekap).
+- [ ] **Tegaskan cakupan peran guru piket untuk MVP.** Dokumen awal menyebut fiturnya belum masuk, tetapi batas MVP yang dikonfirmasi sejauh ini hanya secara eksplisit mengecualikan tahfizh dan prestasi ekstrakurikuler.
 
 ## 10. Hal yang sengaja ditunda
 
 - Perubahan jadwal khusus ujian dan Ramadan tidak menjadi fokus saat ini.
 - Fitur tahfizh dan pencatatan prestasi ekstrakurikuler bukan target MVP. Informasi terkait pada profil murid tetap perlu ditentukan apakah ditunda sepenuhnya atau ditampilkan dari sumber lain.
+- Rekomendasi desain lain dalam dua dokumen pendukung belum otomatis menjadi keputusan. Gunakan label **RANCANGAN DOKUMEN** dan **PERLU KLARIFIKASI** di atas untuk membedakannya.

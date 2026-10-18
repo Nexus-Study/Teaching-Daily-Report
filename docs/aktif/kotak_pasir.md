@@ -1,12 +1,14 @@
-target file app/portal/jurnal/page.tsx
 
-Kartu Rekap Jurnal Harian
-ubah string `Rekap Jurnal Harian` menjadi ubah `Rekap Jurnal Harian {mata_pelajaran} {kelas} dengan `mata_pelajaran` dan `kelas` berasal dari input di mata pelajaran dan kelas di kartu atas.
+1. dari yang sudah anda sebutkan, yang bukan target mvp adalah prestasi ekstrakurikuler dan tahfizh.
+2. angka guru dan murid adalah fakta, meskipun saya menggunakan pembulatan terdekat. jam sekolah juga seperti itu. kebiasaan penggunaan perangkat dan tingkat kemampuan memanfaatkan perangkat adalah fakta. uraian peran dalam arti pembagian adalah fakta, sementara penggunaan aplikasi berdasarkan peran, berdasarkan fakta bahwa selama ini tugas dilakukan secara manual (kertas). Pembaruan dilakukan oleh admin aplikasi berdasarkan masukan dari pengguna berdasarkan perannya.
+3. ya, seorang guru dapat memiliki beberapa peran aktif. kelas/mapel/siswa ditentukan oleh kombinasi. ya, ada admin.
+4. data dikonfirmasi sendiri oleh BK di aplikasi. yang boleh membaca adalah BK dan wali kelas, termasuk waka kesiswaan dan kamad. atau mungkin bisa dibuat lebih fleksibel, BK yang menentukan sendiri, siapa saja yang bisa melihat apakah dirahasiakan sepenuhnya, atau dibuka untuk peran tertentu saja. jika dibuka untuk peran tertentu, khusus wali kelas hanya wali kelas murid yang berkasus, guru mata pelajaran hanya guru mata pelajaran kelas tempat murid berada. pembukaan, perubahan, penghapusan, dan override tetap tercatat.
+5. yang mengisi dan mengoreksi adalah guru mata pelajaran pemilik jurnal. tanpa batasan waktu, kecuali dibatasi oleh admin. jurnal yang sudah disimpan dapat diubah/dihapus. penghapusan harus melalui konfirmasi berlapis. guru pengganti memasukkan jadwal secara manual. kelas gabungan, tidak relevan untuk konteks saya. jadwal berubah: diubah oleh guru mata pelajaran atau admin di aplikasi/database, siswa terlambat/pulang awal: dimasukkan ke input perilaku secara manual oleh guru mata pelajaran/wali kelas. presensi salah, diubah oleh guru mata pelajaran.
+6. catatan perilaku = deskripsi perilaku yang diinput dan disimpan di database melalui aplikasi. pelanggaran dan kasus keduanya merujuk pada "perilaku negatif". penanganan = eskalasi. mengenai status= saat ini adalah ditangani di tempat, diteruskan ke BK/wali kelas, diproses, dan selesai. dikemudian hari mungkin akan ada perubahan. Anda mungkin bisa menawarkan alur sesuai dengan best practice di bidang serupa atau bidang lain yang alurnya bisa diadopsi. Catatan perilaku positif hanya sebagai informasi untuk profiling murid.
+7. Profil Murid. Kita secara ketat akan menggunakan murid sebagai ganti siswa. adapun istilah waka kesiswaan tetap. Profil murid akan memuat informasi dasar (nama,tempat tanggal lahir, nisn, alamat, orang tua, nomor telepon murid, dan nomor telepon orang tua/darurat, hobi); presensi; pengerjaan tugas/nilai; tahfizh dan kemampuan membaca al-qur'an; prestasi; kebutuhan khusus; catatan perilaku positif/negatif (mungkin akan dibedakan antara catatan perilaku akademik dan non akademik, namun belum diputuskan. Ini akan berpengaruh pada informasi mana yang dapat dilihat oleh siapa); rekomendasi pembelajaran/penanganan. sejumlah data berasal dari input aplikasi, yang lain berasal dari database. semua peran pada dasarnya dapat melihatnya, hanya dibatasi apa yang bisa dilihat. yang bisa mengubah hanya BK, wali kelas di kelas perwaliannya, dan BK. Informasi sensitif tertentu harus dikecualikan, informasi dasar akan dikecualikan oleh admin, informasi perilaku dikecualikan oleh BK.
 
-Kebutuhan: Rekap yang muncul hanya perlu 
-
-identifikasi gap pengetahuan/konteks
-
---
-KOneksikan dengan daftar feature tentang riwayat dan detail jurnal
-pastikan waktu diset ke utc+ 9 (WIT di Indonesia)
+8. offline dan sinkronisasi: gunakan best practice standar yang sesuai dengan techstack saya, dan gratis. berikan saranmu untuk kita diskusikan.patokannya, pengguna dapat melakukan CRUD dengan mudah dan cepat tanpa terhambat, merasa panik, bosan, putus asa karena kegagalan jaringan.
+9. belum diputuskan secara spesifik.
+10. umumnya ada perubahan di ujian dan ramadan. namun untuk saat ini tidak perlu dipusingkan. tidak ada pembatasan waktu input. biasa koneksi selular. mengenai masalah utama apa yang ingin dikurangi, saya tidak paham maksud pertanyaan ini. jelaskan pada saya.
+11. keamanan data: belum diputuskan.
+12. belum diputuskan, usulkan pembahasan.
