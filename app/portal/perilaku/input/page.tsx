@@ -168,13 +168,13 @@ export default function PerilakuInputPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-        <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+        <header className="border-b border-border pb-5 text-card-foreground">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-rose-100 p-3 text-rose-800"><ShieldAlert className="h-6 w-6" /></div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-700">Catatan Perilaku</p>
+              <p className="text-sm font-medium text-rose-700">Catatan perilaku</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">Input Catatan & Tindakan Awal</h1>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Catat kejadian dan tindak lanjut dengan cepat dari perangkat apa pun.</p>
             </div>

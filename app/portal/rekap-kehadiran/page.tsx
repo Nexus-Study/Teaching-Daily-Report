@@ -289,7 +289,7 @@ export default function RekapKehadiranPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
         <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">

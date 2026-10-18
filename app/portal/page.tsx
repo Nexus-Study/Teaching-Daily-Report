@@ -6,16 +6,6 @@ import { portalMenus } from '@/app/portal/config/menu';
 import { createClient } from '../../lib/supabase/server';
 import type { Profile } from '../../types/database';
 
-const menuIconContainerClasses: Record<string, string> = {
-  '/portal/jurnal/': 'bg-blue-100 text-blue-700',
-  '/portal/perilaku/input': 'bg-emerald-100 text-emerald-700',
-  '/portal/siswa': 'bg-violet-100 text-violet-700',
-  '/portal/laporan/': 'bg-amber-100 text-amber-700',
-  '/portal/rekap-kehadiran/': 'bg-sky-100 text-sky-700',
-  '/portal/admin/': 'bg-purple-100 text-purple-700',
-  '/portal/profil/': 'bg-slate-100 text-slate-700',
-};
-
 function getInitials(fullName: string) {
   return fullName
     .split(/\s+/)
@@ -56,9 +46,9 @@ export default async function PortalPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col gap-4">
-        <header className="rounded-3xl border-b border-border bg-card p-4 text-card-foreground shadow-lg">
+        <header className="border-b border-border pb-5 pt-2 text-card-foreground">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="flex min-w-0 items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
@@ -66,7 +56,7 @@ export default async function PortalPage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Portal Madrasah</p>
+                <p className="text-sm font-medium text-muted-foreground">Portal Madrasah</p>
                 <h1 className="mt-1 break-words text-lg font-bold tracking-tight sm:text-xl">{profile.full_name}</h1>
                 <p className="mt-0.5 break-words text-xs text-muted-foreground">{profile.nip_nisn ?? 'NIP/NISN belum diisi'}</p>
 
@@ -76,7 +66,7 @@ export default async function PortalPage() {
                     profile.roles.map((role) => (
                       <span
                         key={role}
-                        className="inline-block rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-800"
+                        className="inline-block rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-medium capitalize text-secondary-foreground"
                       >
                         {role.replace(/_/g, ' ')}
                       </span>
@@ -105,8 +95,7 @@ export default async function PortalPage() {
         <section className="pt-1">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Navigasi Cepat</p>
-              <h2 className="mt-1 text-lg font-semibold text-foreground">Menu sesuai role aktif</h2>
+              <h2 className="text-lg font-semibold text-foreground">Navigasi cepat</h2>
             </div>
             <p className="shrink-0 text-xs text-muted-foreground">{visibleMenus.length} menu tersedia</p>
           </div>
@@ -119,9 +108,9 @@ export default async function PortalPage() {
                 <Link
                   key={menu.href}
                   href={menu.href}
-                  className="group rounded-2xl border border-border bg-card p-4 text-left text-card-foreground shadow-sm transition-all duration-150 active:scale-95 hover:-translate-y-0.5 hover:shadow-md"
+                  className="group rounded-xl border border-border bg-card p-4 text-left text-card-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.99]"
                 >
-                  <div className={`mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${menuIconContainerClasses[menu.href]}`}>
+                  <div className={`mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${menu.softTintClass} ${menu.iconClass}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="break-words text-sm font-semibold text-card-foreground">{menu.title}</h3>

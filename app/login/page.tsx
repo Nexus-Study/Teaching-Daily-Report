@@ -48,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-[max(1.5rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center bg-background px-4 py-[max(1.5rem,env(safe-area-inset-top))] text-foreground">
       <section className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-[1fr_0.9fr]">
         <div className="flex flex-col justify-center rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8 md:p-10">
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">

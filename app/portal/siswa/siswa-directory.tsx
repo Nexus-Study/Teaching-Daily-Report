@@ -49,12 +49,9 @@ export default function SiswaDirectory({
   );
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         <header>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-700">
-            Portal Madrasah
-          </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">Direktori Siswa</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Cari siswa berdasarkan nama atau NISN, lalu buka Profil 360.

@@ -570,7 +570,7 @@ export default function JurnalPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 text-foreground">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <header className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

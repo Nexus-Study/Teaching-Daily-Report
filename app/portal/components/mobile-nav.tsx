@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { portalMenus } from '@/app/portal/config/menu';
 import { createClient } from '@/lib/supabase/client';
@@ -28,6 +28,11 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const currentPath = normalizePath(pathname);
   const visibleMenus = portalMenus.filter((menu) => menu.roles.some((role) => userRoles?.includes(role)));
   const activeMenu = visibleMenus.find((menu) => {
@@ -57,25 +62,60 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
     ...(profileMenu ? [{ href: '/portal/profil', label: 'Profil', icon: profileMenu.icon, activePaths: ['/portal/profil'] }] : []),
   ];
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.showModal();
+    closeButtonRef.current?.focus();
+
+    return () => {
+      if (dialog.open) dialog.close();
+      if (triggerRef.current?.isConnected) triggerRef.current.focus();
+      triggerRef.current = null;
+    };
+  }, [isOpen]);
+
+  function handleDialogCancel(event: React.SyntheticEvent<HTMLDialogElement, Event>) {
+    event.preventDefault();
+    if (!isLoggingOut) setIsOpen(false);
+  }
+
   async function handleLogout() {
-    setIsOpen(false);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    setIsLoggingOut(true);
+    setLogoutError(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setLogoutError(error.message);
+        return;
+      }
+
+      setIsOpen(false);
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : 'Gagal keluar dari akun.');
+    } finally {
+      setIsLoggingOut(false);
+    }
   }
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden">
-        <h1 className="truncate pr-3 text-sm font-semibold text-slate-900">{headerTitle}</h1>
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/95 px-4 text-card-foreground backdrop-blur lg:hidden">
+        <h1 className="truncate pr-3 text-sm font-semibold text-foreground">{headerTitle}</h1>
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
           aria-label={isOpen ? 'Tutup navigasi' : 'Buka navigasi'}
           aria-expanded={isOpen}
           aria-controls="mobile-navigation-drawer"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-card-foreground transition hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -83,7 +123,7 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
 
       <nav
         aria-label="Navigasi utama"
-        className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-card/95 px-2 backdrop-blur lg:hidden"
       >
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
@@ -96,8 +136,8 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
               key={item.label}
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-md px-2 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
-                isActive ? 'font-semibold text-indigo-600' : 'text-slate-500'
+              className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-md px-2 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                isActive ? 'font-semibold text-primary' : 'text-muted-foreground'
               }`}
             >
               <Icon className="h-5 w-5" aria-hidden="true" />
@@ -107,34 +147,28 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
         })}
       </nav>
 
-      <div
-        className={`pointer-events-none fixed inset-0 z-50 lg:hidden ${isOpen ? 'pointer-events-auto' : ''}`}
-        aria-hidden={!isOpen}
+      <dialog
+        ref={dialogRef}
+        id="mobile-navigation-drawer"
+        aria-label="Navigasi portal"
+        aria-modal="true"
+        onCancel={handleDialogCancel}
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !isLoggingOut) setIsOpen(false);
+        }}
+        className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none overflow-hidden border-0 bg-transparent p-0 backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       >
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label="Tutup navigasi"
-          onClick={() => setIsOpen(false)}
-          className={`absolute inset-0 h-full w-full bg-black/60 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
-        />
         <aside
-          id="mobile-navigation-drawer"
-          role="dialog"
-          aria-modal={isOpen}
-          aria-label="Navigasi portal"
-          className={`absolute inset-y-0 right-0 flex w-[min(20rem,85vw)] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+          className="absolute inset-y-0 right-0 flex w-[min(20rem,85vw)] flex-col border-l border-border bg-card text-card-foreground shadow-2xl"
         >
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
-            <span className="text-sm font-semibold text-slate-900">Navigasi</span>
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+            <span className="text-sm font-semibold text-card-foreground">Navigasi</span>
             <button
+              ref={closeButtonRef}
               type="button"
-              tabIndex={isOpen ? 0 : -1}
               onClick={() => setIsOpen(false)}
               aria-label="Tutup navigasi"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -150,35 +184,35 @@ export default function MobileNav({ userRoles }: MobileNavProps) {
                 <Link
                   key={menu.href}
                   href={menu.href}
-                  tabIndex={isOpen ? 0 : -1}
                   aria-current={isActive ? 'page' : undefined}
                   onClick={() => setIsOpen(false)}
                   className={`flex min-h-12 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                     isActive
-                      ? 'bg-indigo-600 font-medium text-white'
-                      : 'text-slate-700 hover:bg-slate-100'
+                      ? 'bg-primary font-medium text-primary-foreground'
+                      : 'text-card-foreground hover:bg-muted'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-600'}`} aria-hidden="true" />
+                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-primary-foreground' : 'text-primary'}`} aria-hidden="true" />
                   <span>{menu.title}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="shrink-0 border-t border-slate-200 p-3">
+          <div className="shrink-0 border-t border-border p-3">
+            {logoutError ? <p role="alert" className="mb-2 rounded-md bg-muted p-3 text-sm text-card-foreground">{logoutError}</p> : null}
             <button
               type="button"
-              tabIndex={isOpen ? 0 : -1}
               onClick={handleLogout}
-              className="flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
+              disabled={isLoggingOut}
+              className="flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:cursor-wait disabled:opacity-60"
             >
               <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-              <span>Logout</span>
+              <span>{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
             </button>
           </div>
         </aside>
-      </div>
+      </dialog>
     </>
   );
 }

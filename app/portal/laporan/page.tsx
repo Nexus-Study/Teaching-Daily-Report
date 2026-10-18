@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { BarChart3, CalendarRange, ClipboardList, LoaderCircle, RefreshCw, TriangleAlert, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BarChart3, ClipboardList, RefreshCw, TriangleAlert, Users } from 'lucide-react';
 
 import type { LaporanRingkas, ReportKelasOption } from './actions';
 import { getFiltersOptions, getLaporanRingkas } from './actions';
@@ -19,69 +19,97 @@ export default function LaporanPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [report, setReport] = useState<LaporanRingkas | null>(null);
-  const [isLoading, startLoading] = useTransition();
+  const [reportKey, setReportKey] = useState('');
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState('');
+  const requestId = useRef(0);
+  const queryKey = JSON.stringify([kelasId, startDate, endDate]);
+  const visibleReport = reportKey === queryKey ? report : null;
+  const visibleError = errorKey === queryKey ? error : null;
+  const isReportPending = isLoadingOptions || isLoadingReport ||
+    (optionsLoaded && !optionsError && !visibleReport && !visibleError);
 
   useEffect(() => {
+    let active = true;
+
+    async function loadInitial() {
+      try {
+        setError(null);
+        const options = await getFiltersOptions();
+        if (!active) return;
+        setKelasOptions(options);
+        setKelasId(options[0]?.id ?? '');
+      } catch (initialError) {
+        if (active) {
+          setOptionsError(initialError instanceof Error ? initialError.message : 'Gagal memuat opsi laporan.');
+        }
+      } finally {
+        if (active) {
+          setIsLoadingOptions(false);
+          setOptionsLoaded(true);
+        }
+      }
+    }
+
     void loadInitial();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const loadInitial = async () => {
-    try {
-      setError(null);
-      const options = await getFiltersOptions();
-      setKelasOptions(options);
-      if (!kelasId && options.length > 0) {
-        setKelasId(options[0].id);
-      }
-    } catch (initialError) {
-      setError(initialError instanceof Error ? initialError.message : 'Gagal memuat opsi laporan.');
-    }
-  };
+  const loadReport = useCallback(async () => {
+    const currentRequestId = ++requestId.current;
+    const currentQueryKey = JSON.stringify([kelasId, startDate, endDate]);
+    setIsLoadingReport(true);
+    setError(null);
+    setErrorKey(currentQueryKey);
 
-  const loadReport = async () => {
     try {
-      setError(null);
       const data = await getLaporanRingkas(kelasId || undefined, startDate || undefined, endDate || undefined);
-      setReport(data);
+      if (currentRequestId === requestId.current) {
+        setReport(data);
+        setReportKey(currentQueryKey);
+      }
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Gagal memuat laporan.');
+      if (currentRequestId === requestId.current) {
+        setError(loadError instanceof Error ? loadError.message : 'Gagal memuat laporan.');
+        setErrorKey(currentQueryKey);
+      }
+    } finally {
+      if (currentRequestId === requestId.current) {
+        setIsLoadingReport(false);
+      }
     }
-  };
+  }, [kelasId, startDate, endDate]);
 
   useEffect(() => {
-    if (!kelasOptions.length) {
-      return;
-    }
-
-    startLoading(() => {
-      void loadReport();
-    });
-  }, [kelasId, startDate, endDate, kelasOptions.length]);
+    if (!optionsLoaded || optionsError) return;
+    void loadReport();
+    return () => {
+      requestId.current += 1;
+    };
+  }, [loadReport, optionsError, optionsLoaded]);
 
   const summaryCards = useMemo(() => {
-    if (!report) {
-      return [
-        { label: 'Total Jurnal Terisi', value: '0' },
-        { label: '% Kehadiran Siswa', value: '0%' },
-        { label: 'Total Catatan Pelanggaran', value: '0' },
-        { label: 'Status Eskalasi Aktif', value: '0' },
-      ];
-    }
+    if (!visibleReport) return [];
 
-    const kehadiran = report.presensi.percentages.hadir;
-    const aktif = report.eskalasi.diteruskan + report.eskalasi.proses;
+    const kehadiran = visibleReport.presensi.percentages.hadir;
+    const aktif = visibleReport.eskalasi.diteruskan + visibleReport.eskalasi.proses;
 
     return [
-      { label: 'Total Jurnal Terisi', value: String(report.totalJurnal) },
+      { label: 'Total Jurnal Terisi', value: String(visibleReport.totalJurnal) },
       { label: '% Kehadiran Siswa', value: `${kehadiran}%` },
-      { label: 'Total Catatan Pelanggaran', value: String(report.perilaku.totalCatatanPelanggaran) },
+      { label: 'Total Catatan Pelanggaran', value: String(visibleReport.perilaku.totalCatatanPelanggaran) },
       { label: 'Status Eskalasi Aktif', value: String(aktif) },
     ];
-  }, [report]);
+  }, [visibleReport]);
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
         <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">
@@ -89,7 +117,7 @@ export default function LaporanPage() {
               <BarChart3 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Rekap & Laporan</p>
+              <p className="text-sm font-medium text-muted-foreground">Rekap &amp; Laporan</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Dashboard laporan ringkas</h1>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Ringkas, cepat dibaca, dan cocok dipakai dari layar ponsel.</p>
             </div>
@@ -103,9 +131,11 @@ export default function LaporanPage() {
               <select
                 value={kelasId}
                 onChange={(event) => setKelasId(event.target.value)}
+                disabled={isLoadingOptions || kelasOptions.length === 0}
+                aria-busy={isLoadingOptions}
                 className="min-h-[44px] w-full min-w-0 rounded-2xl border border-border bg-card px-4 text-card-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
-                <option value="">Semua kelas yang relevan</option>
+                <option value="">{isLoadingOptions ? 'Memuat kelas...' : 'Semua kelas yang relevan'}</option>
                 {kelasOptions.map((kelas) => (
                   <option key={kelas.id} value={kelas.id}>
                     {kelas.nama_kelas} - {kelas.tingkat}
@@ -139,37 +169,49 @@ export default function LaporanPage() {
             <button
               type="button"
               onClick={loadReport}
-              disabled={isLoading}
+              disabled={isReportPending}
               className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Memuat...' : 'Terapkan Filter'}
+              <RefreshCw className={`h-4 w-4 ${isReportPending ? 'animate-spin' : ''}`} />
+              {isReportPending ? 'Memuat...' : 'Terapkan Filter'}
             </button>
           </div>
         </section>
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <article key={card.label} className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{card.label}</p>
-              <p className="mt-3 text-3xl font-semibold text-card-foreground">{card.value}</p>
-            </article>
-          ))}
-        </section>
+        {visibleReport ? (
+          <section aria-label="Ringkasan laporan" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {summaryCards.map((card) => (
+              <article key={card.label} className="border-b border-border px-1 py-3 text-card-foreground">
+                <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                <p className="mt-2 text-3xl font-semibold tabular-nums text-card-foreground">{card.value}</p>
+              </article>
+            ))}
+          </section>
+        ) : isReportPending ? (
+          <div role="status" aria-live="polite" className="grid gap-3 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
+            {isLoadingOptions ? 'Memuat pilihan filter...' : 'Memuat ringkasan laporan...'}
+          </div>
+        ) : null}
 
-        {error ? <p role="alert" className="rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-card-foreground">{error}</p> : null}
+        {optionsError || visibleError ? (
+          <p role="alert" className="rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-card-foreground">
+            {optionsError ?? visibleError}
+          </p>
+        ) : null}
 
-        <section className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+        <section aria-busy={isReportPending} className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-card-foreground">Laporan Jurnal & Presensi</h2>
           </div>
 
           <div className="space-y-3">
-            {!report || report.jurnalList.length === 0 ? (
+            {isReportPending ? (
+              <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Memuat jurnal...</p>
+            ) : visibleReport?.jurnalList.length === 0 ? (
               <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Belum ada jurnal pada filter terpilih.</p>
-            ) : (
-              report.jurnalList.map((item) => (
+            ) : visibleReport ? (
+              visibleReport.jurnalList.map((item) => (
                 <article key={item.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -187,22 +229,24 @@ export default function LaporanPage() {
                   </div>
                 </article>
               ))
-            )}
+            ) : null}
           </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <article aria-busy={isReportPending} className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-card-foreground">Laporan Perilaku</h2>
             </div>
 
             <div className="space-y-3">
-              {!report || report.perilakuList.length === 0 ? (
+              {isReportPending ? (
+                <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Memuat catatan perilaku...</p>
+              ) : visibleReport?.perilakuList.length === 0 ? (
                 <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Belum ada catatan perilaku pada filter terpilih.</p>
-              ) : (
-                report.perilakuList.slice(0, 8).map((item) => (
+              ) : visibleReport ? (
+                visibleReport.perilakuList.slice(0, 8).map((item) => (
                   <div key={item.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -226,22 +270,22 @@ export default function LaporanPage() {
                     </div>
                   </div>
                 ))
-              )}
+              ) : null}
             </div>
           </article>
 
-          <article className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <article aria-busy={isReportPending} className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <TriangleAlert className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-card-foreground">Progress Eskalasi Tindakan</h2>
             </div>
 
-            {!report ? (
+            {isReportPending ? (
               <p className="rounded-2xl bg-muted px-4 py-6 text-sm text-muted-foreground">Memuat ringkasan eskalasi...</p>
-            ) : (
+            ) : visibleReport ? (
               <div className="space-y-3">
                 {(['ditangani_di_tempat', 'diteruskan', 'proses', 'selesai'] as const).map((status) => {
-                  const value = report.eskalasi[status];
+                  const value = visibleReport.eskalasi[status];
                   const width = Math.min(100, Math.max(8, value * 20 + 8));
 
                   return (
@@ -260,16 +304,10 @@ export default function LaporanPage() {
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </article>
         </section>
 
-        {isLoading ? (
-          <div role="status" className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-            Memuat laporan...
-          </div>
-        ) : null}
       </div>
     </main>
   );

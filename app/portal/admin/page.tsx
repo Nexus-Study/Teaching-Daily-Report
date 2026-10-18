@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, FileDown, IdCard, LoaderCircle, Mail, Pencil, Plus, Search, School, ShieldPlus, Trash2, Users, X } from 'lucide-react';
 
 import {
@@ -50,6 +50,41 @@ const guruRoles: UserRole[] = [
   'guru_tahfidz',
   'wali_kelas',
 ];
+
+function useAdminDialog(onClose: () => void, isPending: boolean) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const isPendingRef = useRef(isPending);
+  onCloseRef.current = onClose;
+  isPendingRef.current = isPending;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.showModal();
+    dialog.querySelector<HTMLElement>(
+      '[autofocus], input:not([type="hidden"]):not(:disabled), select:not(:disabled), button:not(:disabled)',
+    )?.focus();
+
+    function handleCancel(event: Event) {
+      event.preventDefault();
+      if (!isPendingRef.current) onCloseRef.current();
+    }
+
+    dialog.addEventListener('cancel', handleCancel);
+    return () => {
+      dialog.removeEventListener('cancel', handleCancel);
+      if (dialog.open) dialog.close();
+      if (triggerRef.current?.isConnected) triggerRef.current.focus();
+      triggerRef.current = null;
+    };
+  }, []);
+
+  return dialogRef;
+}
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('siswa');
@@ -340,13 +375,13 @@ export default function AdminPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
         <header className="rounded-3xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Dashboard Admin &amp; Kelola Data Master</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Dashboard Admin &amp; Kelola Data Master</h1>
+              <p className="text-sm font-medium text-muted-foreground">Administrasi</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-card-foreground">Kelola data master</h1>
             </div>
 
             <Link
@@ -810,17 +845,20 @@ function SiswaFormModal({
   onClose: () => void;
   onSubmit: (formData: FormData) => Promise<void>;
 }) {
+  const dialogRef = useAdminDialog(onClose, isPending);
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onSubmit(new FormData(event.currentTarget));
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="siswa-form-title"
+      aria-modal="true"
+      className="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center overflow-hidden border-0 bg-transparent p-0 backdrop:bg-foreground/40 backdrop:backdrop-blur-sm sm:items-center sm:p-4"
+    >
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="siswa-form-title"
         className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
@@ -901,7 +939,7 @@ function SiswaFormModal({
           </div>
         </form>
       </section>
-    </div>
+    </dialog>
   );
 }
 
@@ -918,16 +956,21 @@ function SiswaDeleteModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useAdminDialog(onCancel, isPending);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <dialog
+      ref={dialogRef}
+      role="alertdialog"
+      aria-labelledby="delete-siswa-title"
+      aria-describedby="delete-siswa-description"
+      aria-modal="true"
+      className="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center overflow-hidden border-0 bg-transparent p-0 backdrop:bg-foreground/40 backdrop:backdrop-blur-sm sm:items-center sm:p-4"
+    >
       <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-siswa-title"
         className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <h2 id="delete-siswa-title" className="text-lg font-semibold text-card-foreground">Hapus data siswa?</h2>
-        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">
+        <p id="delete-siswa-description" className="mt-2 break-words text-sm leading-6 text-muted-foreground">
           Data <span className="font-semibold text-card-foreground">{fullName}</span> akan dihapus secara permanen.
         </p>
         {error && <div className="mt-4"><AlertBox tone="error" message={error} /></div>}
@@ -951,7 +994,7 @@ function SiswaDeleteModal({
           </button>
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }
 
@@ -968,17 +1011,20 @@ function GuruFormModal({
   onClose: () => void;
   onSubmit: (formData: FormData) => Promise<void>;
 }) {
+  const dialogRef = useAdminDialog(onClose, isPending);
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onSubmit(new FormData(event.currentTarget));
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="guru-form-title"
+      aria-modal="true"
+      className="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center overflow-hidden border-0 bg-transparent p-0 backdrop:bg-foreground/40 backdrop:backdrop-blur-sm sm:items-center sm:p-4"
+    >
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="guru-form-title"
         className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
@@ -1083,7 +1129,7 @@ function GuruFormModal({
           </div>
         </form>
       </section>
-    </div>
+    </dialog>
   );
 }
 
@@ -1100,16 +1146,21 @@ function ConfirmDeleteModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useAdminDialog(onCancel, isPending);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <dialog
+      ref={dialogRef}
+      role="alertdialog"
+      aria-labelledby="delete-guru-title"
+      aria-describedby="delete-guru-description"
+      aria-modal="true"
+      className="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center overflow-hidden border-0 bg-transparent p-0 backdrop:bg-foreground/40 backdrop:backdrop-blur-sm sm:items-center sm:p-4"
+    >
       <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-guru-title"
         className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:rounded-2xl"
       >
         <h2 id="delete-guru-title" className="text-lg font-semibold text-card-foreground">Nonaktifkan akun guru?</h2>
-        <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">
+        <p id="delete-guru-description" className="mt-2 break-words text-sm leading-6 text-muted-foreground">
           Akun <span className="font-semibold text-card-foreground">{fullName}</span> akan dihapus dari daftar aktif dan akses masuknya dibekukan.
         </p>
         {error && <div className="mt-4"><AlertBox tone="error" message={error} /></div>}
@@ -1133,7 +1184,7 @@ function ConfirmDeleteModal({
           </button>
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }
 
