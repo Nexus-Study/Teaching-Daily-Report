@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '../../../lib/supabase/server';
-import type { CatatanPerilaku, Kelas, PenangananPerilaku, PenangananStatus, PerilakuType, Profile, Siswa, UserRole } from '../../../types/database';
+import type { CatatanPerilaku, Database, Kelas, PenangananPerilaku, PenangananStatus, PerilakuType, Profile, Siswa, UserRole } from '../../../types/database';
 
 type KelasWithSiswa = Kelas & {
   siswa: Siswa[];
@@ -52,6 +52,10 @@ export type ProfileAccessContext = {
   canViewAllStudents: boolean;
   accessibleClassIds: string[];
 };
+
+export type SubmitCatatanPerilakuResult =
+  | { success: true; warning?: string }
+  | { success: false; error: string };
 
 function getWITDateString(): string {
   const parts = new Intl.DateTimeFormat('en', {
@@ -271,47 +275,95 @@ export async function getKelasAndSiswaList(): Promise<KelasWithSiswa[]> {
   }));
 }
 
-export async function submitCatatanPerilaku(formData: FormData) {
-  const { supabase, actor } = await getAuthenticatedActor();
-  if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
-    throw new Error('Akses input perilaku tidak diizinkan.');
+export async function submitCatatanPerilaku(formData: FormData): Promise<SubmitCatatanPerilakuResult> {
+  try {
+    const { supabase, actor } = await getAuthenticatedActor();
+    if (!actor.roles.some((role) => BEHAVIOR_INPUT_ROLES.includes(role))) {
+      return { success: false, error: 'Akses input perilaku tidak diizinkan.' };
+    }
+
+    const siswaId = String(formData.get('siswa_id') ?? '').trim();
+    const tanggal = String(formData.get('tanggal') ?? '').trim() || getWITDateString();
+    const poinInput = String(formData.get('poin') ?? '0').trim();
+    const poin = Number(poinInput);
+    const jenisInput = String(formData.get('jenis') ?? 'pelanggaran').trim();
+    const deskripsi = String(formData.get('deskripsi') ?? '').trim();
+    const tindakLanjut = String(formData.get('tindak_lanjut') ?? '').trim();
+    const statusInput = String(formData.get('status') ?? '').trim();
+
+    if (!siswaId || !deskripsi) {
+      return { success: false, error: 'Lengkapi siswa dan deskripsi kejadian.' };
+    }
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(siswaId)) {
+      return { success: false, error: 'Data siswa tidak valid. Pilih ulang siswa lalu coba lagi.' };
+    }
+
+    const parsedDate = new Date(`${tanggal}T00:00:00.000Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== tanggal) {
+      return { success: false, error: 'Tanggal tidak valid.' };
+    }
+
+    if (!Number.isInteger(poin) || poin < -2147483648 || poin > 2147483647) {
+      return { success: false, error: 'Poin harus berupa bilangan bulat yang valid.' };
+    }
+
+    if (jenisInput !== 'positif' && jenisInput !== 'pelanggaran') {
+      return { success: false, error: 'Jenis perilaku tidak valid.' };
+    }
+    const jenis: PerilakuType = jenisInput;
+
+    let status: PenangananStatus | null = null;
+    if (statusInput === 'ditangani_di_tempat' || statusInput === 'diteruskan') {
+      status = statusInput;
+    } else if (statusInput) {
+      return { success: false, error: 'Tindakan awal hanya dapat berstatus Ditangani di Tempat atau Diteruskan.' };
+    }
+
+    const rpcArgs = {
+      p_reporter_id: actor.id,
+      p_siswa_id: siswaId,
+      p_tanggal: tanggal,
+      p_poin: poin,
+      p_jenis: jenis,
+      p_deskripsi: deskripsi,
+      p_tindak_lanjut: tindakLanjut || null,
+      p_status: tindakLanjut ? status || 'ditangani_di_tempat' : null,
+    } satisfies Database['public']['Functions']['submit_catatan_perilaku']['Args'];
+    const { error } = await (supabase.rpc as any)('submit_catatan_perilaku', rpcArgs);
+
+    if (error) {
+      console.error('RPC penyimpanan catatan perilaku gagal.', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return {
+        success: false,
+        error: 'Catatan perilaku belum tersimpan. Silakan coba lagi; jika masalah berlanjut, hubungi admin.',
+      };
+    }
+  } catch (error) {
+    console.error('Gagal memproses penyimpanan catatan perilaku.', error);
+    return {
+      success: false,
+      error: 'Catatan perilaku belum tersimpan. Silakan coba lagi; jika masalah berlanjut, hubungi admin.',
+    };
   }
 
-  const siswaId = String(formData.get('siswa_id') ?? '').trim();
-  const tanggal = String(formData.get('tanggal') ?? '').trim() || getWITDateString();
-  const poin = Number(formData.get('poin') ?? 0);
-  const jenis = String(formData.get('jenis') ?? 'pelanggaran') as PerilakuType;
-  const deskripsi = String(formData.get('deskripsi') ?? '').trim();
-  const tindakLanjut = String(formData.get('tindak_lanjut') ?? '').trim();
-  const status = String(formData.get('status') ?? '').trim() as PenangananStatus;
-
-  if (!siswaId || !deskripsi) {
-    throw new Error('Lengkapi siswa dan deskripsi kejadian.');
+  try {
+    revalidatePath('/portal/perilaku/');
+    revalidatePath('/portal/perilaku/input');
+    revalidatePath('/portal/perilaku/rekap');
+    revalidatePath('/portal/siswa/[id]/perilaku', 'page');
+  } catch (error) {
+    console.error('Catatan perilaku tersimpan tetapi cache gagal diperbarui.', error);
+    return {
+      success: true,
+      warning: 'Catatan tersimpan, tetapi tampilan belum diperbarui. Muat ulang halaman.',
+    };
   }
-
-  if (tindakLanjut && status && status !== 'ditangani_di_tempat' && status !== 'diteruskan') {
-    throw new Error('Tindakan awal hanya dapat berstatus Ditangani di Tempat atau Diteruskan.');
-  }
-
-  const { error } = await (supabase.rpc as any)('submit_catatan_perilaku', {
-    p_reporter_id: actor.id,
-    p_siswa_id: siswaId,
-    p_tanggal: tanggal || null,
-    p_poin: poin,
-    p_jenis: jenis,
-    p_deskripsi: deskripsi,
-    p_tindak_lanjut: tindakLanjut || null,
-    p_status: tindakLanjut ? status || 'ditangani_di_tempat' : null,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath('/portal/perilaku/');
-  revalidatePath('/portal/perilaku/input');
-  revalidatePath('/portal/perilaku/rekap');
-  revalidatePath('/portal/siswa/[id]/perilaku', 'page');
 
   return { success: true };
 }

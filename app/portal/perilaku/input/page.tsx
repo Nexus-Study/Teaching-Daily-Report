@@ -152,10 +152,21 @@ export default function PerilakuInputPage() {
 
     startSubmitting(async () => {
       try {
-        await submitCatatanPerilaku(formData);
-        toast.success('Catatan perilaku berhasil disimpan.');
+        const result = await submitCatatanPerilaku(formData);
+        if (!result.success) {
+          setError(result.error);
+          toast.error('Gagal menyimpan catatan perilaku.', { description: result.error });
+          return;
+        }
+
+        toast.success('Catatan perilaku berhasil disimpan.', {
+          description: result.warning,
+        });
       } catch (submitError: unknown) {
-        const message = submitError instanceof Error ? submitError.message : 'Gagal menyimpan catatan perilaku.';
+        const rawMessage = submitError instanceof Error ? submitError.message : '';
+        const message = rawMessage.startsWith('Minified React error #441')
+          ? 'Terjadi gangguan pada server. Catatan belum tersimpan. Silakan coba lagi atau hubungi admin.'
+          : rawMessage || 'Gagal menyimpan catatan perilaku.';
         setError(message);
         toast.error('Gagal menyimpan catatan perilaku.', { description: message });
       }

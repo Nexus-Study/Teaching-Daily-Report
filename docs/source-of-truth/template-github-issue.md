@@ -139,6 +139,60 @@ Issue jenis ini dapat ditutup setelah keputusan dicatat. Buat Issue implementasi
 terpisah jika keputusan tersebut menghasilkan pekerjaan kode yang cukup besar
 atau perlu dilacak tersendiri.
 
+### Template diskusi untuk menyelesaikan `PERLU KLARIFIKASI`
+
+Gunakan format berikut saat meminta keputusan dari pemilik keputusan, baik dalam
+Issue maupun sebagai panduan diskusi. Pisahkan pertanyaan yang dapat dijawab
+secara mandiri. Isi opsi hanya jika memang ada alternatif yang masuk akal; jangan
+mengarahkan jawaban dengan menyajikan usulan sebagai keputusan.
+
+```markdown
+## Klarifikasi yang dibutuhkan
+- Topik: [judul singkat]
+- Rujukan: [bagian/baris di `docs/konteks-penggunaan.md` atau sumber terkait]
+- Pemilik keputusan: [peran/orang yang berwenang mengonfirmasi]
+- Alasan perlu diputuskan: [dampak jika belum ada keputusan]
+
+## Yang sudah disepakati
+- [Fakta atau keputusan berstatus DIKONFIRMASI yang membatasi pilihan]
+
+## Yang belum diputuskan
+- [Rumusan netral tentang kebutuhan/aturan yang masih PERLU KLARIFIKASI]
+- Batas pembahasan: [hal yang termasuk dan tidak termasuk]
+
+## Pilihan dan dampak
+- A. [Pilihan] — [dampak/manfaat/konsekuensi]
+- B. [Pilihan] — [dampak/manfaat/konsekuensi]
+- Lainnya: [pilihan lain atau jawaban bebas, bila relevan]
+
+## Rekomendasi (opsional, bukan keputusan)
+- [Pilihan yang direkomendasikan dan alasannya; jangan menganggapnya disetujui]
+
+## Jawaban pemilik keputusan
+- Keputusan: [pilihan/aturan yang disetujui, ditunda, atau belum diputuskan]
+- Cakupan atau pengecualian: [rincian yang perlu agar keputusan tidak ambigu]
+- Dikonfirmasi oleh: [pemilik keputusan]
+- Tanggal/konteks persetujuan: [tanggal atau tautan percakapan/Issue]
+
+## Tindak lanjut setelah keputusan
+- [ ] Perbarui butir terkait di `docs/konteks-penggunaan.md`; gunakan
+      `DIKONFIRMASI` hanya untuk keputusan yang disetujui secara eksplisit.
+- [ ] Tandai rancangan yang tergantikan sebagai usang/superseded bila relevan;
+      jangan menghapus riwayat yang masih diperlukan.
+- [ ] Buat atau perbarui ADR jika keputusan berdampak pada arsitektur, keamanan,
+      skema data, integrasi, atau banyak fitur. Mulai dengan status Proposed;
+      gunakan Accepted hanya setelah keputusan disetujui secara eksplisit.
+- [ ] Buat Issue implementasi terpisah bila keputusan memerlukan pekerjaan
+      implementasi yang perlu dilacak.
+```
+
+Jika pemilik keputusan belum menjawab atau jawabannya belum cukup spesifik,
+biarkan status tetap **PERLU KLARIFIKASI** dan catat pertanyaan lanjutan. Jangan
+memulai implementasi yang bergantung pada keputusan tersebut, dan jangan
+mengubahnya menjadi **DIKONFIRMASI**, **DI LUAR MVP**, atau status final lain
+berdasarkan rekomendasi agen atau asumsi. Jangan masukkan data pribadi murid/guru
+ke Issue atau catatan klarifikasi publik.
+
 ## Judul, label, dan prioritas
 
 - Buat judul spesifik, singkat, dan berorientasi hasil, misalnya
