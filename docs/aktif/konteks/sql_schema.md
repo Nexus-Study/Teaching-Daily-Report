@@ -43,6 +43,7 @@ CREATE TABLE public.jurnal_mengajar (
   materi text NOT NULL,
   catatan text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  refleksi text,
   CONSTRAINT jurnal_mengajar_pkey PRIMARY KEY (id),
   CONSTRAINT jurnal_mengajar_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.profiles(id),
   CONSTRAINT jurnal_mengajar_kelas_id_fkey FOREIGN KEY (kelas_id) REFERENCES public.kelas(id)
@@ -78,6 +79,7 @@ CREATE TABLE public.penanganan_perilaku (
   tindak_lanjut text NOT NULL,
   status USER-DEFINED NOT NULL DEFAULT 'ditangani_di_tempat'::penanganan_status,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT penanganan_perilaku_pkey PRIMARY KEY (id),
   CONSTRAINT penanganan_perilaku_catatan_id_fkey FOREIGN KEY (catatan_id) REFERENCES public.catatan_perilaku(id),
   CONSTRAINT penanganan_perilaku_handler_id_fkey FOREIGN KEY (handler_id) REFERENCES public.profiles(id)
@@ -102,4 +104,31 @@ CREATE TABLE public.jadwal_guru (
   CONSTRAINT jadwal_guru_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.profiles(id),
   CONSTRAINT jadwal_guru_mapel_id_fkey FOREIGN KEY (mapel_id) REFERENCES public.mata_pelajaran(id),
   CONSTRAINT jadwal_guru_kelas_id_fkey FOREIGN KEY (kelas_id) REFERENCES public.kelas(id)
+);
+CREATE TABLE public.perilaku_deskripsi_audit (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['catatan'::text, 'penanganan'::text])),
+  entity_id uuid NOT NULL,
+  old_text text NOT NULL,
+  edited_by uuid NOT NULL,
+  edited_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT perilaku_deskripsi_audit_pkey PRIMARY KEY (id),
+  CONSTRAINT perilaku_deskripsi_audit_edited_by_fkey FOREIGN KEY (edited_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.catatan_perilaku_deleted_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  original_id uuid NOT NULL,
+  siswa_id uuid NOT NULL,
+  reporter_id uuid,
+  handler_id uuid,
+  kategori text,
+  deskripsi text,
+  poin integer,
+  status_penanganan text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  deleted_at timestamp with time zone DEFAULT now(),
+  deleted_by uuid DEFAULT auth.uid(),
+  raw_payload jsonb NOT NULL,
+  CONSTRAINT catatan_perilaku_deleted_logs_pkey PRIMARY KEY (id)
 );

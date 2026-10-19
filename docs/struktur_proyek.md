@@ -1,10 +1,12 @@
 # Struktur Proyek Teaching-Daily-Report
 
-Dokumen ini merangkum struktur sumber proyek berdasarkan kondisi workspace saat ini. Direktori hasil instalasi dan build seperti `node_modules/`, `.next/`, dan `.git/`, serta berkas environment lokal tidak dicantumkan.
+Dokumen ini merangkum struktur sumber proyek berdasarkan kondisi workspace saat ini. Direktori hasil instalasi/build (`node_modules/`, `.next/`, `.git/`), file environment lokal, dan artefak sementara tidak dicantumkan.
 
 ```text
 Teaching-Daily-Report/
 ├── .env.example
+├── .github/
+│   └── copilot-instructions.md
 ├── .gitignore
 ├── .vscode/
 │   └── settings.json
@@ -22,6 +24,7 @@ Teaching-Daily-Report/
 │   ├── icon.png
 │   ├── layout.tsx
 │   ├── manifest.ts
+│   ├── not-found.tsx
 │   ├── page.tsx
 │   ├── providers.tsx
 │   ├── login/
@@ -65,15 +68,22 @@ Teaching-Daily-Report/
 │       ├── rekap-kehadiran/
 │       │   └── page.tsx
 │       └── siswa/
+│           ├── page.tsx
+│           ├── siswa-directory.tsx
 │           └── [id]/
 │               └── perilaku/
 │                   └── page.tsx
 ├── docs/
 │   ├── active-progress.md
-│   ├── current_ui_design.md
+│   ├── konsep-penanganan-perilaku.md
+│   ├── konteks-penggunaan.md
+│   ├── pertanyaan.md
+│   ├── prasyarat-perlindungan-data-sensitif.md
+│   ├── profil-murid.md
+│   ├── proyek-ui-slop-evaluasi.md
 │   ├── struktur_proyek.md
-│   ├── tracking-progress.md
 │   ├── tech_debt
+│   ├── tracking-progress.md
 │   ├── aktif/
 │   │   ├── README.md
 │   │   ├── kotak_pasir.md
@@ -82,41 +92,37 @@ Teaching-Daily-Report/
 │   │       ├── sql_schema.md
 │   │       └── struktur_folder.png
 │   ├── arsip/
-│   │   ├── README.MD
-│   │   ├── file_dukungan_crud_siswa.md
-│   │   ├── fitur_kehadiran_siswa_mapel.md
-│   │   ├── fix-01_menu_crud_data_guru.md
-│   │   ├── panduan_eksekusi_crud_siswa_nisn_optional.md
-│   │   ├── prd_fase1_pra_produksi.md
-│   │   ├── prd_fase2_pra_produksi.md
-│   │   ├── sprint1_schema_rls.md
-│   │   ├── sprint2_schema_core1_core2.md
-│   │   ├── tick10_ui_redesign.md
-│   │   ├── toMerge-trd-simple-prd-add.md
-│   │   └── fix/
-│   │       └── fix-02_ubah_format_mapeljamke.md
+│   │   └── review-draf-tiket-tracker-lama.md
 │   ├── daftar/
+│   │   ├── daftar-skill.md
 │   │   ├── konsep.md
-│   │   ├── daftar-fix.md
-│   │   ├── daftar_feature.md
-│   │   ├── menu_profil_problem.md
 │   │   ├── panduan_ekosistem_dokumentasi_proyek_copilot.md
-│   │   ├── panduan_github_copilot_solo_developer.md
-│   │   ├── ui-design-spec.md
 │   │   ├── user_manual.md
 │   │   └── user_ui_ux.md
-│   └── sampel/
-│       └── eksplorasi_tabel_mobile_card_vs_accordion.html
+│   ├── legacy/
+│   │   └── panduan_github_copilot_solo_developer.md
+│   ├── sampel/
+│   │   └── eksplorasi_tabel_mobile_card_vs_accordion.html
+│   ├── source-of-truth/
+│   │   ├── active-work.md
+│   │   ├── panduan-kerja-solo-developer-dengan-agen.md
+│   │   ├── README.md
+│   │   ├── template-github-issue.md
+│   │   └── decisions/
+│   │       └── README.md
+│   └── ss/
+│       ├── file.jpe
+│       └── file.jpg
 ├── lib/
 │   └── supabase/
 │       ├── admin.ts
 │       ├── client.ts
 │       └── server.ts
 ├── public/
-│   ├── icon-192.svg
 │   ├── icon-192-maskable.svg
-│   ├── icon-512.svg
+│   ├── icon-192.svg
 │   ├── icon-512-maskable.svg
+│   ├── icon-512.svg
 │   ├── sw.js
 │   ├── template_guru.csv
 │   ├── template_siswa.csv
@@ -132,38 +138,52 @@ Teaching-Daily-Report/
 │       ├── 20260929000006_add_profile_email_is_active.sql
 │       ├── 20261003000000_update_submit_jurnal_and_presensi_tanggal.sql
 │       ├── 20261004122849_add_refleksi_and_crud_policies.sql
-│       └── 20261016000000_behavior_triage_versioned_edits.sql
+│       ├── 20261016000000_behavior_triage_versioned_edits.sql
+│       ├── 20261017000000_profile_360_read_scope.sql
+│       ├── 20261017000001_include_reporters_in_behavior_profiles.sql
+│       ├── 20261017000002_delete_behavior_record_rbac.sql
+│       ├── 20261017000003_create_catatan_perilaku_audit_log_trigger.sql
+│       ├── 20261017000004_order_behavior_records_by_latest_activity.sql
+│       ├── 20261017000005_add_behavior_rekap_summary_stats.sql
+│       ├── 20261017000006_scope_behavior_rekap_summary.sql
+│       ├── 20261019000000_drop_ambiguous_submit_catatan_perilaku_overload.sql
+│       └── 20261019180000_reconcile_schema_with_live_supabase.sql
 └── types/
     └── database.ts
 ```
 
-## Ringkasan Direktori
+## Ringkasan Direktori dan Route
 
-- `app/`: App Router Next.js yang berisi route, layout, global stylesheet, serta metadata aplikasi.
+- `app/`: route Next.js App Router, layout, stylesheet global, metadata, dan provider.
 - `app/login/`: halaman autentikasi.
-- `app/portal/`: layout dan fitur portal setelah pengguna masuk.
-- `app/portal/admin/`: halaman dan Server Actions administrasi.
-- `app/portal/components/`: navigasi portal, modal konfirmasi, dan umpan balik UI.
-- `app/portal/config/`: konfigurasi menu portal.
-- `app/portal/jurnal/`: jurnal mengajar serta alur presensi siswa.
+- `app/portal/`: shell portal dan fitur setelah pengguna masuk.
+- `app/portal/admin/`: halaman administrasi dan Server Actions pengelolaan data.
+- `app/portal/jurnal/`: jurnal mengajar dan input presensi.
 - `app/portal/laporan/`: halaman dan Server Actions laporan.
-- `app/portal/perilaku/`: catatan perilaku, input, rekap/pagination, serta komponen navigasi perilaku.
-- `app/portal/siswa/[id]/perilaku/`: profil dan timeline perilaku per siswa.
-- `app/portal/profil/`: profil pengguna, jadwal mengajar, dan pengaturan keamanan.
-- `app/portal/rekap-kehadiran/`: rekap kehadiran siswa.
-- `docs/aktif/`, `docs/arsip/`, `docs/daftar/`, dan `docs/sampel/`: dokumentasi aktif, historis, referensi, dan contoh.
-- `lib/supabase/`: pembuatan klien Supabase untuk browser, server, dan akses admin.
-- `public/`: aset statis, ikon PWA, service worker, dan template impor CSV.
-- `supabase/migrations/`: migrasi skema, kebijakan akses, dan fungsi database.
+- `app/portal/perilaku/`: pencatatan, input, rekap, dan komponen navigasi perilaku.
+- `app/portal/profil/`: profil pengguna, tab profil, dan pengaturan keamanan.
+- `app/portal/rekap-kehadiran/`: rekap kehadiran.
+- `app/portal/siswa/`: direktori murid dan route perilaku per murid (`[id]/perilaku/`).
+- `app/portal/components/` dan `app/portal/config/`: komponen shell portal dan konfigurasi menu.
+- `lib/supabase/`: pembuatan Supabase client browser, server, dan admin.
+- `supabase/migrations/`: perubahan skema, fungsi database, trigger, dan kebijakan yang diberi timestamp.
 - `types/`: tipe TypeScript, termasuk model database Supabase.
+- `public/`: aset statis, ikon PWA, service worker, serta template impor CSV.
+- `docs/`: kebutuhan/konteks produk, dokumentasi teknis, referensi, dan arsip. Status otoritas tiap dokumen dijelaskan di [source-of-truth/README.md](./source-of-truth/README.md).
 
 ## File Konfigurasi Utama
 
-- `package.json` dan `package-lock.json`: metadata proyek, dependensi, dan lockfile. Dependensi UI mencakup Sonner untuk notifikasi toast.
-- `next.config.mjs`: konfigurasi Next.js.
+- `package.json` dan `package-lock.json`: skrip proyek, metadata, dan dependensi.
+- `next.config.mjs`: konfigurasi Next.js dan plugin PWA.
 - `tailwind.config.ts` dan `postcss.config.mjs`: konfigurasi styling.
 - `tsconfig.json`: konfigurasi TypeScript.
 - `proxy.ts`: logika proxy aplikasi.
-- `.env.example`: contoh nama variabel environment yang diperlukan. Berkas environment lokal tidak dicantumkan atau didokumentasikan nilainya.
-- `.vscode/settings.json`: pengaturan workspace VS Code.
-- `README.md`: dokumentasi pengantar proyek.
+- `.env.example`: nama variabel environment yang diperlukan; nilai rahasia lokal tidak didokumentasikan.
+- `.github/copilot-instructions.md`: instruksi pengembangan untuk agen, termasuk rujukan ke source of truth.
+- `README.md`: ringkasan dan petunjuk awal proyek.
+
+## Catatan Skema dan Migration
+
+- [konteks/sql_schema.md](./aktif/konteks/sql_schema.md) adalah snapshot skema yang disalin dari Supabase live. Pertahankan sebagai catatan keadaan aktual.
+- Migration adalah urutan perubahan yang dapat membangun database; migration rekonsiliasi bertimestamp terbaru menyelaraskan definisi tabel/constraint yang terkonfirmasi dan memperbarui routine impor kelas yang bergantung pada constraint tersebut, tanpa menulis ulang sejarah migration.
+- Snapshot tersebut tidak menginventarisasi semua objek database, termasuk standalone index, RLS, fungsi, dan trigger. Untuk objek itu, periksa migration yang bersangkutan dan verifikasi terhadap Supabase live sebelum menyimpulkan keadaan.
