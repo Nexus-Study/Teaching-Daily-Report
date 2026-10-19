@@ -77,4 +77,11 @@ Salin kerangka berikut ke file baru. Tambahkan bagian masukan lanjutan dan tangg
 ## Tanggapan Copilot atas catatan pengguna
 
 [Konfirmasi dan perbaikan ringkasan, atau penjelasan perbedaan pandangan beserta pertanyaan klarifikasi.]
+
+## Rujukan bersama khusus untuk diskusi ini
+[Tuliskan rujukan yang relevan baik dari proyek maupun luar proyek arahkan dengan link aktif]
+
+
+## Skill yang perlu Copilot Gunakan
+[hanya bila diperlukan, Copilot dapat menyarankan skill yang sesuai]
 ```
