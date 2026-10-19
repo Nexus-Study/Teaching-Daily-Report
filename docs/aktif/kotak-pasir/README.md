@@ -50,19 +50,19 @@ Salin kerangka berikut ke file baru. Tambahkan bagian masukan lanjutan dan tangg
 - **Status:** Terbuka
 - **Dibuat:** YYYY-MM-DD
 
-## Masukan — Pengguna (YYYY-MM-DD)
+## Masukan — Pengguna (YYYY-MM-DD, hh:mm)
 
 [Gagasan, pertanyaan, masalah, atau konteks awal.]
 
-## Tanggapan — Copilot (YYYY-MM-DD)
+## Tanggapan — Copilot (YYYY-MM-DD, hh:mm)
 
 [Respons, opsi atau rekomendasi, asumsi yang perlu dikonfirmasi, dan/atau pertanyaan klarifikasi.]
 
-## Masukan lanjutan — Pengguna (YYYY-MM-DD)
+## Masukan lanjutan — Pengguna (YYYY-MM-DD, hh:mm)
 
 [Komentar, koreksi, pilihan, atau informasi tambahan.]
 
-## Tanggapan lanjutan — Copilot (YYYY-MM-DD)
+## Tanggapan lanjutan — Copilot (YYYY-MM-DD, hh:mm)
 
 [Tanggapan berikutnya.]
 
