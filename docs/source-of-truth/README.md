@@ -58,7 +58,7 @@ Untuk dokumen yang belum memiliki label formal, klasifikasi di indeks ini berlak
 ### Brainstorming dan bahan referensi umum
 
 - `../pertanyaan.md` secara eksplisit menyebut dirinya brainstorming dan meminta agar tidak dirujuk. Jangan gunakan sebagai sumber kebutuhan atau instruksi.
-- [`../aktif/kotak_pasir.md`](../aktif/kotak_pasir.md) adalah kotak pasir/eksperimen; bukan keputusan.
+- [`../aktif/kotak-pasir/README.md`](../aktif/kotak-pasir/README.md) adalah indeks kotak pasir/eksperimen; dokumen topiknya bukan keputusan.
 - Dokumen di [`../daftar/`](../daftar/) adalah daftar panduan/reference umum; verifikasi setiap rekomendasi terhadap stack, kebijakan, dan kebutuhan repository ini sebelum menerapkannya.
 - [`../daftar/panduan_github_copilot_solo_developer.md`](../daftar/panduan_github_copilot_solo_developer.md) adalah panduan lama/reference, bukan prosedur kanonis. Gunakan [panduan kerja solo developer bersama agen AI](panduan-kerja-solo-developer-dengan-agen.md) untuk alur proyek saat ini.
 - Dokumen sampel, gambar, dan tangkapan layar adalah artefak referensi visual, bukan sumber otoritas produk.

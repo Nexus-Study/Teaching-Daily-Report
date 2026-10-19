@@ -107,17 +107,28 @@ Fungsi dalam draf mencakup jurnal mengajar, rekap jurnal, rekap kehadiran, catat
   2. Diteruskan kepada wali kelas untuk tindak lanjut yang ditugaskan BK.
   3. Dibuat menjadi kasus konseling yang ditangani BK.
 - **RANCANGAN DOKUMEN**: status kasus konseling yang diusulkan adalah **Baru → Ditugaskan → Diproses → Selesai**. “Ditangani di tempat” merupakan hasil penanganan/triase, bukan status tahap konseling.
-- **RANCANGAN DOKUMEN**: wali kelas dapat mencatat tindak lanjut atas kasus yang dilimpahkan, mengembalikan/eskalasi ke BK dengan alasan, dan membaca petunjuk penanganan kelas dari BK. Wali kelas tidak melihat rekam sesi konseling.
+- **DIKONFIRMASI**: rekam konseling internal BK terpisah dari laporan insiden dan dari catatan tindak lanjut wali kelas.
+- **DIKONFIRMASI**: rekam konseling menggunakan editor rich-text bebas, bukan formulir dengan daftar field wajib yang sudah ditetapkan. Format bebas ini tidak dengan sendirinya menetapkan bahwa setiap jenis data sensitif harus dikumpulkan.
+- **DIKONFIRMASI**: semua pengguna dengan peran Guru BK dapat membaca seluruh rekam konseling.
+- **DIKONFIRMASI**: hanya Guru BK yang ditugaskan pada kasus dapat membuat atau mengubah rekam konseling kasus tersebut. Mekanisme dan sumber data penugasan konselor masih perlu ditetapkan.
+- **DIKONFIRMASI**: wali kelas yang menerima penugasan dapat membuat dan mengubah catatan tindak lanjut pada kasus yang ditugaskan kepadanya. Catatan ini terpisah dari rekam konseling internal BK.
+- **DIKONFIRMASI**: setelah kasus/tugas tindak lanjut dikembalikan kepada BK, wali kelas tetap dapat membaca tindak lanjut terkait tetapi tidak dapat menambah, mengubah, atau menghapusnya.
+- **DIKONFIRMASI**: wali kelas yang masih memegang penugasan dapat menghapus catatan tindak lanjut dengan alasan. Isi yang dihapus tidak disimpan sebagai salinan; metadata tindakan dan alasan dicatat dalam audit.
+- **DI LUAR MVP**: fitur analitik untuk mengembangkan rencana pencegahan atau metode penanganan bukan bagian dari aplikasi MVP.
+- **RANCANGAN DOKUMEN**: wali kelas dapat mengembalikan/eskalasi penanganan ke BK dengan alasan dan membaca petunjuk penanganan kelas dari BK. Rincian transisi dan izin yang terkait masih perlu dipastikan.
 - **PERLU KLARIFIKASI**: hubungan final antara status yang saat ini digunakan (termasuk “Diteruskan ke BK/Wali Kelas”) dan alur rancangan Baru/Ditugaskan/Diproses/Selesai. Belum diputuskan apakah akan mengganti status yang ada atau memisahkan status kasus dari jenis/rute penanganan.
 
 #### Akses dan audit kasus
 
 - **RANCANGAN DOKUMEN**: sebelum triase, laporan terlihat oleh pelapor dan BK. Pelapor dapat melihat laporan miliknya, status, dan petunjuk penanganan yang relevan, tetapi tidak melihat catatan konseling, informasi keluarga, atau analisis psikologis.
 - **RANCANGAN DOKUMEN**: wali kelas hanya melihat laporan murid di kelas perwaliannya setelah triase atau ketika mendapat penugasan. Wali kelas dapat melihat petunjuk kelas dan mengirim perkembangan kepada BK, bukan rekam konseling.
-- **RANCANGAN DOKUMEN**: detail rekam konseling hanya untuk BK yang berwenang. Usulan dokumen juga menyebut tingkat kerahasiaan seperti Umum, Terbatas, dan Sangat Rahasia.
+- **DIKONFIRMASI**: seluruh pengguna berperan Guru BK dapat membaca rekam konseling; hanya BK yang ditugaskan pada kasus dapat membuat/mengubah rekam tersebut. Pemberian peran Guru BK kepada pengguna baru karena itu memberikan akses baca lintas kasus dan perlu ditinjau sebelum perubahan keanggotaan.
+- **PERLU KLARIFIKASI**: sumber/penanggung jawab penugasan BK pada kasus dan bagaimana perubahan atau pencabutan penugasan berlaku.
+- **PERLU KLARIFIKASI**: apakah wali kelas boleh membaca laporan insiden sebelum triase atau di luar penugasan, serta akses pelapor terhadap laporan dan perkembangannya.
 - **RANCANGAN DOKUMEN**: waka kesiswaan/kamad mendapat ringkasan atau data agregat, bukan akses bebas ke detail konseling. Pembukaan darurat (*break-glass*) mensyaratkan alasan dan pencatatan permanen.
-- **PERLU KLARIFIKASI**: aturan akses awal dan setelan kerahasiaan BK belum disepakati. Usulan akses awal “pelapor + BK” dan akses pimpinan hanya melalui ringkasan/override darurat perlu dikonfirmasi terhadap pernyataan sebelumnya bahwa waka/kamad dapat membaca, serta opsi BK memilih peran yang diberi akses.
-- **DIKONFIRMASI**: pencatatan audit mencakup pembukaan akses, perubahan, penghapusan, dan override. **RANCANGAN DOKUMEN** menambahkan pencatatan aktivitas lihat/unduh untuk data sensitif; perlu diputuskan apakah aktivitas tersebut juga wajib diaudit.
+- **PERLU KLARIFIKASI**: akses detail rekam konseling bagi waka kesiswaan, kamad, admin teknis, dan peran selain Guru BK; rancangan ringkasan eksekutif atau akses darurat belum disetujui.
+- **DIKONFIRMASI**: setiap pembacaan rekam konseling wajib dicatat dalam audit. Pencatatan audit juga mencakup pembukaan akses, perubahan, penghapusan, dan override.
+- **PERLU KLARIFIKASI**: apakah aktivitas unduh data sensitif harus diaudit secara terpisah, serta masa retensi log dan pihak yang berwenang meninjaunya.
 - **RANCANGAN DOKUMEN**: membuka kembali kasus selesai wajib disertai alasan dan masuk ke riwayat audit. Ketentuan minimal 20 karakter yang tertulis dalam dokumen desain belum dikonfirmasi.
 
 #### Catatan perilaku positif
@@ -211,10 +222,12 @@ Rincian berikut merangkum rancangan tampilan dalam `profil-murid.md`; kecuali su
 ## 8. Privasi, keamanan, dan tata kelola
 
 - **DIKONFIRMASI**: BK mengatur pengecualian akses informasi perilaku; tindakan pembukaan, perubahan, penghapusan, serta override akses harus tercatat.
-- **PERLU KLARIFIKASI**: draf menyebut BK, wali kelas, waka kesiswaan, dan kamad sebagai pihak yang dapat membaca informasi kasus, tetapi juga mengusulkan BK menentukan apakah kasus rahasia sepenuhnya atau dibuka untuk peran tertentu. Aturan akses default, pengecualian, dan hak override belum diputuskan.
-- **PERLU KLARIFIKASI**: apakah pelapor otomatis dapat melihat laporan yang dibuatnya dan perkembangannya.
+- **DIKONFIRMASI**: seluruh pengguna dengan peran Guru BK dapat membaca rekam konseling; hanya BK yang ditugaskan dapat membuat atau mengubah rekam kasus. Wali kelas hanya menulis/mengubah catatan tindak lanjut terpisah selama ditugaskan, lalu baca-saja setelah tugas dikembalikan ke BK.
+- **DIKONFIRMASI**: setiap pembacaan rekam konseling dicatat dalam audit. Penghapusan tindak lanjut wali kelas memerlukan alasan dan audit metadata; isi yang dihapus tidak disalin ke log audit.
+- **PERLU KLARIFIKASI**: sumber dan pengelola penugasan konselor, akses laporan sebelum/selepas triase bagi pelapor dan wali kelas, akses detail oleh waka/kamad/admin, dan mekanisme akses darurat.
 - **PERLU KLARIFIKASI**: kebijakan keamanan, retensi, pencadangan, pemulihan, dan penghapusan data, terutama data kontak, kebutuhan khusus, serta perilaku murid.
 - **PERLU KLARIFIKASI**: sumber kebijakan madrasah atau ketentuan lain yang harus menjadi acuan pengelolaan data.
+- Keputusan akses dan audit di atas adalah kebutuhan produk, bukan bukti bahwa RLS, server, atau database produksi sudah menegakkannya. Verifikasi implementasi dan uji akses harus dilakukan terpisah sebelum menyimpulkan kesiapan penggunaan data riil.
 
 ## 9. To-do klarifikasi yang masih terbuka
 
@@ -222,7 +235,8 @@ Item di bawah ini adalah keputusan yang belum dijawab atau baru tercatat sebagai
 
 - [ ] **Bahas notifikasi dan ekspor setelah logika serta UI/UX jurnal mengajar dan perilaku MVP selesai.** Keduanya termasuk MVP; pemicunya untuk mulai dibahas adalah permintaan pengguna.
 - [ ] **Tetapkan prasyarat sebelum merilis profil/perilaku sensitif.** Sepakati kontrol akses dan audit, penanggung jawab pencadangan/pemulihan, kewenangan penghapusan, serta kebijakan retensi/penghapusan dan rujukan kebijakan madrasah yang berlaku. Lihat [rekomendasi prasyarat perlindungan data sensitif](./prasyarat-perlindungan-data-sensitif.md) sebagai panduan usulan, bukan keputusan yang telah disahkan.
-- [ ] **Selesaikan aturan baca kasus dan rekam konseling.** Tetapkan siapa yang dapat melihat laporan sebelum/selepas triase, apakah pelapor melihat status dan tindak lanjut, kapan wali kelas mendapat akses, bagaimana BK memberi akses per peran, serta apakah waka/kamad hanya melihat ringkasan atau memiliki mekanisme akses darurat dengan alasan dan audit.
+- [ ] **Selesaikan aturan akses laporan dan pimpinan.** Tetapkan siapa yang dapat melihat laporan sebelum/selepas triase, apakah pelapor melihat status dan tindak lanjut, kapan wali kelas dapat membaca laporan, serta apakah waka/kamad/admin dapat melihat ringkasan atau memiliki mekanisme akses darurat dengan alasan dan audit. Akses baca seluruh BK ke rekam konseling dan hak tulis terbatas pada BK yang ditugaskan sudah dikonfirmasi; mekanisme penugasan masih perlu ditetapkan.
+- [ ] **Tetapkan tata kelola audit akses.** Setiap baca rekam konseling dan penghapusan tindak lanjut wali kelas dengan alasan wajib dicatat; putuskan retensi log, pihak yang meninjau, perlindungan log, dan apakah unduh data sensitif juga diaudit.
 - [ ] **Setujui alur kasus dan hak tindakan.** Putuskan apakah laporan negatif selalu melalui triase BK, bagaimana status lama dipetakan ke Baru → Ditugaskan → Diproses → Selesai, kapan laporan ditangani di tempat atau dilimpahkan ke wali kelas, siapa yang boleh menutup/membuka kembali kasus, dan alasan/riwayat apa yang diwajibkan.
 - [ ] **Tetapkan matriks hak akses profil per bidang dan per peran.** Khususnya data kesehatan/kebutuhan khusus, informasi dasar/kontak, perilaku positif, ringkasan insiden, rekomendasi BK, kehadiran, serta data akademik. Dokumen pendukung membedakan izin perilaku positif dan negatif, tetapi belum menetapkan perlu tidaknya pemisahan akademik/nonakademik dan dampaknya pada izin. Tentukan pula batas data yang di-cache untuk baca offline agar hak akses tidak melebar.
 - [ ] **Putuskan pengelolaan dan cakupan profil MVP.** Konfirmasi apakah tugas/nilai read-only masuk MVP, apakah prestasi non-ekstrakurikuler termasuk (prestasi ekstrakurikuler tetap di luar MVP), serta apakah data historis tahfizh/prestasi boleh ditampilkan walau fitur inputnya ditunda.
