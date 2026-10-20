@@ -1,6 +1,6 @@
-# Website Rujukan Desain
+# Website Rujukan
 
-Daftar ini adalah katalog untuk mencari contoh visual saat mengerjakan antarmuka. Gunakan contoh yang relevan untuk menghasilkan desain yang memiliki tujuan dan hierarki jelas, bukan untuk menyalin tampilan situs lain.
+Daftar ini mengelompokkan referensi visual untuk antarmuka dan referensi teknis umum. Gunakan hanya referensi yang relevan dengan pekerjaan; jangan menyalin tampilan atau menerapkan solusi teknis tanpa mempertimbangkan konteks proyek.
 
 ## Katalog
 
@@ -23,11 +23,15 @@ Daftar ini adalah katalog untuk mencari contoh visual saat mengerjakan antarmuka
 - [Navbar Gallery](https://navbar.gallery/) — contoh navigasi website.
 - [OG Image Gallery](https://ogimage.gallery/) — contoh gambar Open Graph.
 
+### Referensi rekayasa perangkat lunak
+
+- [Refactoring.Guru](https://refactoring.guru/) — materi tentang refactoring, code smells, teknik refactoring, design patterns, dan prinsip rekayasa perangkat lunak.
+
 ## Cara menggunakan referensi
 
 1. Mulai dari kebutuhan pengguna, keputusan produk yang sudah dikonfirmasi, konten nyata, dan pola UI yang sudah ada di aplikasi.
-2. Pilih satu atau dua situs dari katalog yang paling relevan dengan layar atau komponen yang sedang dikerjakan. Buka contoh spesifiknya jika akses web tersedia; jangan menyimpulkan detail visual dari nama situs saja.
-3. Ambil prinsip yang dapat dijelaskan—misalnya hierarki informasi, komposisi, tipografi, kepadatan, atau cara menyajikan data—lalu adaptasikan ke konteks aplikasi ini.
+2. Untuk pekerjaan antarmuka, pilih satu atau dua referensi visual yang paling relevan dengan layar atau komponen yang sedang dikerjakan. Buka contoh spesifiknya jika akses web tersedia; jangan menyimpulkan detail visual dari nama situs saja. Untuk pekerjaan teknis, gunakan referensi rekayasa perangkat lunak hanya jika topiknya relevan.
+3. Dari referensi visual, ambil prinsip yang dapat dijelaskan—misalnya hierarki informasi, komposisi, tipografi, kepadatan, atau cara menyajikan data—lalu adaptasikan ke konteks aplikasi ini. Dari referensi teknis, pertimbangkan konsepnya sesuai kebutuhan dan pola proyek; jangan menerapkan pola atau refactoring secara otomatis.
 4. Jangan menyalin identitas merek, konten, aset, atau tata letak secara utuh. Jangan menambahkan angka, klaim, fitur, atau dekorasi yang tidak memiliki dasar produk.
 5. Jika situs tidak dapat diakses, nyatakan keterbatasan itu dan jangan mengarang temuan. Gunakan dokumentasi lokal dan pola aplikasi yang sudah ada.
 
