@@ -38,6 +38,7 @@ Untuk dokumen yang belum memiliki label formal, klasifikasi di indeks ini berlak
 - [`../profil-murid.md`](../profil-murid.md) — usulan profil murid dan cakupan informasi; bukan keputusan hak akses atau MVP dengan sendirinya.
 - [`../prasyarat-perlindungan-data-sensitif.md`](../prasyarat-perlindungan-data-sensitif.md) — rekomendasi perlindungan data untuk dibahas; bukan kebijakan madrasah final atau nasihat hukum.
 - [`../proyek-ui-slop-evaluasi.md`](../proyek-ui-slop-evaluasi.md) — panduan/hasil evaluasi UI; bukan sumber kebutuhan produk.
+- [`../daftar/daftar-website-rujukan.md`](../daftar/daftar-website-rujukan.md) dan [`../daftar/daftar-skill.md`](../daftar/daftar-skill.md) — referensi visual dan skill desain; bahan inspirasi/alat bantu, bukan spesifikasi produk atau keputusan desain yang mengikat.
 
 ### Fakta implementasi dan referensi teknis
 

@@ -3,16 +3,18 @@
 - **Status:** Terbuka
 - **Dibuat:** 2026-10-19
 
-## Ringkasan perkembangan diskusi pengguna dan Copilot (00:13-00:40 WIT)
+## Ringkasan perkembangan diskusi pengguna dan Copilot (00:13-03:10 WIT)
 
 - Tujuan awalnya membandingkan konsep, keputusan produk, dan implementasi perilaku untuk menyiapkan keputusan wireframe, alur, navigasi, peran, dan refaktor. Diskusi mendahulukan jenis rekaman dan alur; tidak ada perubahan aplikasi.
 - Pemeriksaan awal menemukan implementasi berpusat pada `catatan_perilaku` dan `penanganan_perilaku`, dengan halaman input/rekap. Model khusus untuk penugasan dan rekam konseling belum tampak; form positif masih menyediakan tindakan/status, sementara audit/penghapusan juga memiliki gap terhadap kebutuhan yang dikonfirmasi.
-- Guru boleh menyelesaikan tindakan awal laporan negatif tanpa menunggu BK; semua laporan tersimpan tetap dapat ditinjau BK. BK dapat menambahkan tindak lanjut setelah tindakan awal, dan penugasan langsung ke BK membuka rekam konseling formal yang terpisah.
-- Status laporan, tugas tindak lanjut, dan rekam konseling harus terpisah. Label UI tugas yang disetujui: "Menunggu wali kelas/BK" -> "Sedang ditindaklanjuti" -> "Selesai"; nilai database/transisinya belum diputuskan.
+- Empat skenario yang dipetakan: guru menuntaskan tindakan awal di tempat; wali kelas mengambil tugas sebelum triase; BK mengambil alih tugas wali; dan BK membuat tugas pemantauan wali baru setelah penanganannya selesai. Tindakan awal selesai dicatat pada laporan; tugas hanya untuk tindakan konkret yang masih harus dituntaskan; penugasan langsung kepada BK membuka rekam konseling terpisah.
+- Siklus tugas dibedakan dari laporan, tinjauan BK, dan rekam konseling. Wali kelas yang mengambil sendiri tugas langsung mulai; tugas baru yang ditugaskan BK menunggu pemilik memulai; pengambilalihan BK mempertahankan tahap tugas yang berjalan. Pemilik aktif dapat menuntaskan tugas tanpa persetujuan BK; reopen hanya untuk koreksi/pekerjaan yang sama belum tuntas, sedangkan pekerjaan baru menjadi tugas tertaut.
+- Tinjauan BK memiliki status biner terpisah dari hasil triase. Membuka laporan tidak menyelesaikan tinjauan; hasil sementara “Perlu informasi tambahan” tetap “Belum ditinjau” dan tidak otomatis membuat tugas. Jika triase memerlukan tugas, semua tugas yang diputuskan harus berhasil dicatat sebelum tinjauan menjadi “Sudah ditinjau”; penyelesaian tugas pengumpulan informasi tidak menuntaskan tinjauan.
+- Akses dibedakan menurut peran: pelapor dan wali kelas melihat status sesuai cakupannya; guru mapel lain hanya melihat arahan BK yang dibagikan; waka/kamad hanya melihat status jika dimasukkan dalam ringkasan; admin aplikasi tidak mendapat akses langsung default. Semua BK dapat membaca hasil triase dan pemilik tinjauan, tetapi hanya pemilik aktif menyelesaikan tinjauan yang diklaim.
+- Pembacaan data laporan/triase yang dilindungi diaudit dengan metadata tanpa menyalin konten. Admin teknis boleh membaca log dan pembacaannya juga diaudit; log tidak boleh diedit/dihapus langsung, koreksi berupa peristiwa baru, dan penghapusan retensi melalui proses terpisah yang tercatat. Retensi log masih terbuka.
 - Catatan positif hanya menjadi entri profil, tanpa tindak lanjut/status. Untuk input dipilih satu menu "Catatan Perilaku" dengan pilihan Positif/Laporan Negatif.
-- Setelah membandingkan Wireframe A (satu menu Perilaku dengan ruang kerja di dalam modul) dan B (menu ruang kerja terpisah), pengguna memilih A. Pengguna multi-peran melihat satu daftar yang dikelompokkan menurut jenis tugas/peran; halaman awal menyesuaikan pekerjaan utama, dengan aksi "Catat" tetap mudah dijangkau.
-- Pelapor dapat melihat laporan sendiri dan statusnya. Wali kelas dapat segera melihat laporan negatif asli untuk murid di kelas perwaliannya, selain arahan/ringkasan yang diizinkan; akses ini tidak termasuk rekam konseling. Arahan BK bagi guru mapel tetap terbatas pada guru yang mengajar murid terkait.
-- BK dapat memberikan arahan dan ringkasan singkat yang terpisah dari rekam konseling. Waka/kamad hanya membaca ringkasan yang dipilih BK untuk dibagikan; pembacaan ringkasan tersebut wajib diaudit. Batas isi, pembagian, dan rincian audit masih terbuka.
+- Wireframe A dipilih: satu menu utama Perilaku dan ruang kerja di dalam modul; pengguna multi-peran melihat daftar pekerjaan terkelompok menurut jenis tugas/peran, dengan halaman awal sesuai pekerjaan utama dan aksi “Catat” mudah dijangkau. Wali kelas dapat membaca laporan asli murid kelas perwaliannya; BK dapat memberi arahan/ringkasan terpisah dari rekam konseling. Isi serta mekanisme pembagian/pencabutan ringkasan masih terbuka.
+- Belum ada perubahan aplikasi. Nilai status database, wireframe rinci, rancangan refaktor, dan durasi retensi log belum ditetapkan.
 
 ## Hasil sementara
 
@@ -28,20 +30,17 @@
 - Guru dapat menyelesaikan tindakan awal laporan negatif tanpa menunggu BK; laporan juga boleh disimpan sebelum tindakan awal, dengan keadaan “Belum ada tindakan awal”, dan semua laporan tersimpan dapat ditinjau BK. BK dapat menambah tindak lanjut setelah tindakan awal dan setiap penugasan langsung ke BK membuka rekam konseling tersendiri.
 - Hanya pelapor yang menambahkan tindakan awalnya sendiri ke riwayat laporan; tindakan wali kelas/BK dicatat melalui tugas masing-masing, bukan mengubah riwayat tindakan pelapor.
 - Jika pelapor mencatat tindakan setelah laporan tersimpan sebagai “Belum ada tindakan awal”, status terkini mengikuti hasil tindakan itu dan status/catatan sebelumnya tetap ada di riwayat bertimestamp.
-- Tinjauan BK memiliki status/penanda terpisah dari status tindakan awal laporan, tugas tindak lanjut, dan rekam konseling; petugas BK dan waktu tinjauan dicatat. Rincian nilai dan transisinya belum ditetapkan.
-- Status tinjauan hanya menunjukkan “Belum ditinjau” atau “Sudah ditinjau”; hasil triase dicatat terpisah.
+- Tinjauan BK memiliki status/penanda terpisah dari status tindakan awal laporan, tugas tindak lanjut, dan rekam konseling; statusnya “Belum ditinjau”/“Sudah ditinjau”, dengan petugas dan waktu dicatat. Hasil triase disimpan terpisah.
 - Pelapor melihat status tinjauan untuk laporannya sendiri, tetapi tidak hasil triase atau catatan internal BK.
 - Wali kelas melihat status tinjauan laporan murid di kelas perwaliannya, tetapi tidak hasil triase atau catatan internal BK selain arahan/ringkasan yang dibagikan.
 - Waka/kamad hanya melihat status tinjauan bila BK memasukkannya secara eksplisit ke ringkasan yang dibagikan; tidak ada akses langsung tambahan.
 - Guru mapel yang mengajar murid terkait tetapi bukan pelapor/wali kelas hanya melihat arahan BK yang dibagikan, tanpa akses langsung ke status tinjauan atau hasil triase.
 - Admin aplikasi tidak memiliki akses langsung secara default ke status tinjauan atau hasil triase; kebutuhan dukungan khusus perlu dibahas terpisah dan diaudit.
-- Admin teknis dapat membaca log audit metadata pembacaan status tinjauan secara default; ini tidak membuka akses langsung ke status laporan atau hasil triase.
-- Pembacaan log audit oleh admin teknis juga dicatat dengan identitas admin dan waktu akses.
+- Admin teknis dapat membaca log audit metadata secara default; setiap pembacaan log dicatat dengan identitas admin dan waktu akses. Hak ini tidak memberi akses langsung ke data laporan atau hasil triase.
 - Log audit tidak dapat diedit/dihapus secara langsung; koreksi dicatat sebagai peristiwa baru, dan penghapusan karena retensi menggunakan proses terpisah yang berwenang serta tercatat.
 - Setiap pembacaan status tinjauan BK diaudit dengan identitas pembaca dan waktu akses.
 - Metadata audit mencakup pembaca, waktu, identitas laporan, dan jenis akses, tanpa menyalin isi laporan, hasil triase, atau catatan BK.
 - Pembacaan isi laporan asli, hasil triase, dan status sementara yang dilindungi juga diaudit untuk peran yang berwenang, menggunakan metadata tanpa menyalin konten sensitif.
-- Retensi log, pihak yang boleh membacanya, dan perlindungan log belum diputuskan; bahas bersama tata kelola audit/retensi seluruh data perilaku.
 - Status menjadi “Sudah ditinjau” hanya setelah petugas BK secara eksplisit menyelesaikan/menyimpan tinjauan dan hasil triase; membuka laporan saja tidak mengubah status.
 - Jika pelapor menambahkan tindakan awal setelah BK meninjau, status kembali “Belum ditinjau”; riwayat tinjauan sebelumnya tetap dipertahankan.
 - Bila tindak lanjut diperlukan, status “Sudah ditinjau” baru dicapai setelah keputusan triase dan penugasan tugas yang sesuai berhasil dicatat.
@@ -54,7 +53,7 @@
 - Satu laporan boleh memiliki beberapa tugas tindak lanjut tertaut yang berjalan bersamaan untuk aksi/pemilik berbeda; setiap tugas memiliki status dan riwayat independen.
 - Bila tinjauan memerlukan beberapa tugas, status “Sudah ditinjau” baru dicapai setelah semua tugas yang diputuskan berhasil dicatat.
 - Tindakan awal guru yang selesai dicatat dalam riwayat laporan, bukan tugas tersendiri. Tugas hanya dibuat untuk tindakan lanjutan yang masih perlu dituntaskan; tidak ada tugas atau rekam konseling otomatis jika tidak ada tindak lanjut dan BK belum ditugaskan.
-- Laporan, tugas tindak lanjut, dan rekam konseling memiliki status terpisah. Label UI tugas yang disepakati ialah “Menunggu wali kelas/BK” → “Sedang ditindaklanjuti” → “Selesai”; pengambilan langsung oleh wali kelas memulai tugas, penugasan BK kepada wali kelas menunggu wali memulai, dan pengambilalihan BK mempertahankan tahap berjalan. Nilai status teknis dan transisi lain belum diputuskan.
+- Laporan, tugas tindak lanjut, status tinjauan, dan rekam konseling memiliki status terpisah. Label UI tugas yang disepakati ialah “Menunggu wali kelas/BK” → “Sedang ditindaklanjuti” → “Selesai”; wali kelas yang mengambil sendiri tugas langsung memulainya, tugas yang dibuat BK menunggu penerima memulai, dan pengambilalihan BK mempertahankan tahap berjalan. Nilai status database belum diputuskan.
 - Catatan positif hanya menjadi entri profil. Satu menu “Catatan Perilaku” dipilih sebagai pintu input untuk Positif/Laporan Negatif, dengan alur dan data yang tetap terpisah.
 - Wireframe A dipilih: satu menu utama Perilaku dan ruang kerja di dalam modul. Pengguna multi-peran melihat daftar pekerjaan yang dikelompokkan menurut jenis tugas/peran; halaman awal menyesuaikan pekerjaan utama dan aksi “Catat” tetap mudah dijangkau.
 - Pelapor dapat melihat laporan sendiri dan statusnya. Wali kelas dapat segera membaca laporan negatif asli dan mengambil tanggung jawab tindak lanjut untuk murid di kelas perwaliannya sebelum triase BK; saat mengambil tugas, status UI langsung “Sedang ditindaklanjuti”. Arahan BK untuk guru mapel hanya tersedia bagi guru yang mengajar murid terkait. Akses ini tidak membuka rekam konseling.
@@ -63,6 +62,8 @@
 - Jika BK mengambil alih tugas wali kelas yang berjalan, tugas yang sama berpindah ke BK dan riwayat wali dipertahankan. Petugas BK mana pun dapat mengambil alih dengan alasan singkat-operasional; waktu serta pemilik lama/baru dicatat. Status UI tetap “Sedang ditindaklanjuti”; hanya pemilik yang berubah. Jika pekerjaan BK selesai tetapi pemantauan masih dibutuhkan, buat tugas wali kelas baru yang tertaut, tanpa membuka kembali tugas/rekam BK.
 - Pemilik aktif dapat menandai tugas “Selesai” setelah tindakan yang diminta tuntas; persetujuan BK bukan prasyarat. Bila muncul pekerjaan tambahan, tugas baru dapat ditautkan.
 - Tugas yang sudah selesai hanya dibuka kembali bila penutupan keliru atau tindakan yang sama belum tuntas, dengan alasan dan riwayat; tindakan/pemantauan baru menggunakan tugas tertaut yang baru.
+- Petugas BK yang berwenang dapat menetapkan tugas kepada dirinya sendiri atau petugas BK lain; tiap tugas memiliki satu pemilik aktif. Perpindahan biasa mencatat waktu dan pemilik lama/baru tanpa alasan tambahan bila tujuan tugas jelas; alasan singkat wajib untuk pengambilalihan oleh BK dan reopen.
+- Status tugas dan rekam konseling BK independen. Penyelesaian tugas tidak otomatis menutup rekam; UI boleh menawarkan satu aksi gabungan yang secara eksplisit menuntaskan keduanya.
 - Waktu kejadian/tindakan (bila relevan dan diketahui) dibedakan dari waktu pencatatan sistem; perubahan status dan pemilik memiliki cap waktu otomatis di riwayat.
 - Rekam konseling tetap terbatas sesuai keputusan akses; daftar keputusan dan pertanyaan akses yang masih terbuka ada di sumber kanonis, bukan ditentukan oleh wireframe.
 
@@ -73,18 +74,18 @@
 
 ### Langkah berikutnya
 
-- Susun skenario end-to-end terlebih dahulu; untuk tiap skenario catat rekaman yang dibuat, pemilik, status, pembaca/penyunting, dan riwayat yang dipertahankan.
-- Setelah alur disepakati, tetapkan transisi status per jenis rekaman, lengkapi matriks akses/audit, lalu turunkan menjadi wireframe ponsel untuk peran tunggal dan multi-peran.
+- Lengkapi siklus hidup dan matriks baca/tulis/audit dari keputusan yang sudah dikonfirmasi; bahas hal terbuka, termasuk retensi log, kebutuhan dukungan admin khusus, serta isi dan mekanisme pembagian/pencabutan ringkasan.
+- Setelah aturan perilaku dan akses cukup jelas, turunkan menjadi wireframe ponsel untuk peran tunggal dan multi-peran.
 - Baru sesudah aturan dan wireframe cukup jelas, petakan gap data/komponen dengan implementasi untuk menentukan refaktor yang diperlukan.
-- Rincian terbuka yang perlu dibahas: alasan/akses/retensi riwayat perpindahan selain pengambilalihan BK, isi serta mekanisme pembagian ringkasan, sumber penugasan, dan hak akses/audit lain.
+- Nilai status database, format/zona waktu dan koreksi waktu kejadian, serta transisi teknis tetap belum diputuskan. Rincian retensi, dukungan khusus admin, dan tata kelola ringkasan juga masih terbuka.
 
-## Perkembangan setelah Hasil sementara (00:41-00:48 WIT)
+## Ringkasan masukan dan tanggapan lanjutan (02:30-03:10 WIT)
 
-- Pengguna menetapkan wali kelas boleh mengambil tanggung jawab tindak lanjut untuk setiap laporan negatif murid di kelas perwaliannya sebelum triase BK.
-- Setelah membandingkan tugas yang sama dipindahkan, tugas baru tertaut, dan rekomendasi saja, pengguna memilih: bila pekerjaan BK selesai tetapi pemantauan masih perlu, tutup tugas/rekam BK dan buat tugas pemantauan wali kelas baru yang tertaut.
-- Rekomendasi umum tanpa tindakan/penyelesaian yang diharapkan dapat berupa arahan saja. Tindakan khusus yang harus dilaksanakan menjadi tugas dengan pemilik dan status; arahan BK dapat menjadi panduannya.
-- Jika BK mengambil alih tugas wali kelas yang masih berjalan, tugas yang sama berpindah ke BK dan riwayat wali dipertahankan; wali kelas menjadi baca-saja. Petugas BK mana pun boleh mengambil alih, dengan alasan singkat-operasional wajib dicatat. Jika pemantauan wali diperlukan lagi setelah pekerjaan BK selesai, buat tugas wali baru yang tertaut.
-- Masih terbuka: alasan dan akses riwayat untuk perpindahan lain, rincian status/transisi, serta rincian akses dan audit yang belum diputuskan.
+- Pengguna mengonfirmasi pemetaan tugas dari skenario: beberapa tugas tertaut boleh berjalan paralel; satu tinjauan yang menghasilkan beberapa tugas baru selesai setelah seluruh tugas yang diputuskan berhasil dicatat. Tugas pengumpulan informasi tidak menutup tinjauan, dan hasil sementara tidak otomatis membuat tugas.
+- Diskusi memisahkan kemajuan tugas dari status tinjauan dan rekam konseling. Tugas BK selesai tidak menutup rekam konseling secara otomatis; status rekam dan tugas independen, meskipun UI dapat menyediakan aksi gabungan yang eksplisit.
+- Hak baca dan hak menyelesaikan tinjauan BK dipisahkan. Antrean belum diklaim bersifat bersama; klaim hanya menetapkan pemilik dan waktu. Semua BK dapat membaca hasil triase/status sementara/pemilik, tetapi hanya pemilik aktif menyelesaikan tinjauan yang diklaim.
+- Akses status tinjauan dibatasi menurut peran; audit mencakup pembacaan status serta informasi laporan/triase yang dilindungi. Log berisi metadata akses, tidak menyalin konten sensitif. Admin teknis boleh membaca log secara default dan akses tersebut juga diaudit; integritas log dilindungi dari edit/hapus langsung.
+- Retensi log tetap belum diputuskan dan akan dibahas bersama tata kelola audit/retensi seluruh data perilaku. Tidak ada implementasi aplikasi yang dilakukan selama diskusi ini.
 
 ## Catatan pengguna tentang hasil sementara
 

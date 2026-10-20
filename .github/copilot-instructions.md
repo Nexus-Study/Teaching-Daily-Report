@@ -7,6 +7,7 @@ Sebelum mengubah kode atau dokumentasi, baca [`docs/source-of-truth/README.md`](
 - Untuk perilaku yang benar-benar berjalan, periksa kode, tes, dan migrasi database/RLS. Jangan menganggap pemeriksaan UI saja sebagai otorisasi server.
 - Buat perubahan yang terarah; pertahankan perubahan pengguna yang sudah ada dan jangan mengubah area di luar permintaan.
 - Ikuti tipe, pola, dan konvensi proyek. Hindari tipe longgar, kegagalan diam-diam, dan fallback yang tampak sukses.
+- Untuk pekerjaan UI, ikuti [instruksi kualitas UI](./instructions/ui-design.instructions.md): hindari hasil generik, dan gunakan katalog website serta skill desain yang dirujuk sebagai masukan sebelum menentukan arah visual.
 - Jalankan pemeriksaan terkecil yang relevan setelah perubahan. Laporkan apa yang dijalankan dan keterbatasannya; jangan menyatakan verifikasi yang belum dilakukan.
 - Gunakan GitHub Issue sebagai pelacak pekerjaan kanonis dan hubungkan PR ke Issue. Jangan membuat daftar backlog/status duplikat di dokumen.
 - Perbarui dokumen keputusan hanya setelah keputusan dikonfirmasi. Catat keputusan stabil sebagai ADR dan tautkan Issue/PR terkait.
