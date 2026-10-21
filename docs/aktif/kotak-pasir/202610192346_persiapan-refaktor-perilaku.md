@@ -818,3 +818,83 @@ Pengguna menerima A11–A14 dan AU12 sebagai draf acceptance criteria, belum seb
 ### Tanggapan lanjutan — Copilot
 
 Draf gerbang akses, audit pembagian/pencabutan, dan batas waktu penugasan diterima. Pelaksanaan tetap menunggu lingkungan Supabase lokal/staging terisolasi dengan akun serta data sintetis; tidak ada tes yang dijalankan dan tidak ada perubahan kode aplikasi.
+
+### Masukan lanjutan — Pengguna
+
+Pengguna menjelaskan dua kendala lingkungan yang harus dipertimbangkan sebelum menyiapkan tes:
+
+1. Proyek Supabase online sudah digunakan aplikasi dan telah berisi data baru dari input aktif.
+2. Lingkungan lokal yang dijalankan dari repository belum tentu menghasilkan skema dan policy yang sama dengan Supabase online saat ini.
+
+### Tanggapan lanjutan — Copilot
+
+Kedua kendala tersebut benar dan berbeda. Database online adalah sistem aktif yang berisi data berjalan; menyiapkan lingkungan lokal tidak boleh mengganti, mereset, atau mengubahnya. Repository juga tidak boleh diasumsikan sebagai representasi lengkap skema/policy online sebelum ada rekonsiliasi yang aman.
+
+Panduan Supabase yang diperiksa menyebut `supabase db pull` secara default menggunakan project linked dan dapat menawarkan pencatatan baseline ke `supabase_migrations.schema_migrations` pada database remote; proses non-interaktif dapat menerima pencatatan itu otomatis. Karena itu, `db pull` bukan langkah pasif yang aman untuk dijalankan tanpa evaluasi. Perintah tersebut belum dijalankan, begitu juga `db reset` atau `db push`; nilai `.env.local` tidak dibaca.
+
+Arahan sementara, bukan keputusan implementasi: pertahankan project online tanpa perubahan; verifikasi backup yang tersedia; petakan skema, policy, grant, fungsi/RPC, dan riwayat migration aktif dengan prosedur yang secara eksplisit read-only; bandingkan metadata itu dengan repository; baru setelah selisih dipahami, bentuk lingkungan uji terisolasi dan seed data sintetis. Jangan menyalin data murid nyata ke lokal. Cara mengambil metadata remote dengan kredensial minimum dan cara menyamakan skema lokal masih harus dirancang, dan tidak ada perintah remote yang dijalankan dalam sesi ini.
+
+### Masukan lanjutan — Pengguna
+
+Pengguna meminta pembahasan rinci tentang pendekatan terbaik untuk menjaga data tetap aman, tidak rusak, dan tidak hilang karena salah langkah, serta ingin dipandu bertahap.
+
+### Tanggapan lanjutan — Copilot: usulan urutan pengamanan
+
+Tahap berikut adalah rekomendasi untuk ditinjau bersama, bukan persetujuan menjalankan perubahan. Prinsip utamanya: database online tetap berjalan sebagai produksi; jangan menguji migration di sana; jangan menganggap repository mencerminkan deployment sampai diverifikasi.
+
+1. **Bekukan perubahan skema yang tidak darurat, bukan input aplikasi.** Aplikasi boleh tetap menerima input normal. Untuk sementara jangan menjalankan migration, SQL `CREATE/ALTER/DROP`, `db pull`, `db reset`, `db push`, fungsi impor, atau operasi restore pada proyek online. Pastikan setiap alat/terminal yang dipakai nantinya jelas targetnya sebelum koneksi dibuat.
+2. **Pastikan kemampuan pemulihan.** Dari Dashboard, periksa plan, waktu backup database terakhir, dan apakah ada PITR. Jika perlu ekspor manual, simpan terenkripsi pada lokasi terbatas dan catat kapan dibuat. Backup database tidak meliputi objek file di Supabase Storage; objek file memerlukan rencana salinan tersendiri. Backup belum dianggap perlindungan yang terbukti sampai prosedur pemulihan diuji pada proyek/instance terpisah, bukan dengan restore ke produksi. Jangan mengirim backup atau rahasia koneksi ke chat/issue.
+3. **Inventaris keadaan online dengan akses baca-saja.** Setelah target project dikonfirmasi di Dashboard, kumpulkan metadata saja: tabel/kolom, tipe/default/constraint/index, RLS aktif dan policy, grant untuk role, fungsi/RPC dan atribut keamanan, trigger, extension, serta migration ledger. Gunakan query katalog `SELECT` yang telah ditinjau; jangan memakai SQL editor untuk perintah tulis. Jangan mengambil isi tabel murid. Simpan hasil dengan akses terbatas karena definisi fungsi/policy dapat mengungkap detail internal.
+4. **Bandingkan dengan repository tanpa menganggap salah satu otomatis benar.** Migration menunjukkan perubahan yang direncanakan/tercatat di Git; migration ledger menunjukkan apa yang tercatat pernah diterapkan; inventaris katalog online menunjukkan keadaan efektif saat ini. Cocokkan ketiganya dan beri label selisih: hanya di Git, hanya di online, definisi berbeda, atau belum dapat dipastikan. Perhatian khusus untuk policy permissive yang dapat saling menambah akses, grant efektif, overload fungsi, serta migration rekonsiliasi/impor. Jangan memperbaiki selisih dengan langsung menjalankan ulang migration.
+5. **Pilih replika tanpa data murid nyata.** Pilihan yang disarankan adalah proyek staging baru yang terpisah atau Supabase lokal dari baseline skema yang sudah diverifikasi. Bentuk baseline dari metadata/schema-only yang ditinjau; jangan menyalin database produksi penuh hanya demi kesamaan skema. Masukkan akun dan data sintetis. Pastikan URL/Project Ref staging/local terlihat sebelum tiap tindakan; beri nama proyek yang tidak mungkin tertukar dengan produksi dan jangan menyimpan kredensial produksi di konfigurasi lokal.
+6. **Uji kesesuaian sebelum tes fitur.** Terapkan baseline/migration hanya pada lingkungan terpisah yang dapat dibuang. Bandingkan ulang inventaris skema, policy, grant, fungsi, dan trigger antara target uji dan snapshot produksi. Lanjutkan tes RLS hanya jika hasilnya sesuai pada objek yang menjadi cakupan tes; catat selisih yang disengaja. Gunakan `service_role` hanya untuk menyiapkan fixture/administrasi lokal, bukan untuk membuktikan kontrol akses pengguna.
+7. **Baru kemudian rencanakan rilis.** Migration produksi harus berupa perubahan kecil, ditinjau, dicoba di staging yang cocok, memiliki backup dan rencana pemulihan, serta memiliki langkah verifikasi pasca-deploy. Deploy bukan bagian dari persiapan tes ini dan perlu persetujuan terpisah.
+
+Supabase mendokumentasikan bahwa workflow `db pull` dapat mencatat baseline ke migration history remote; perintah itu tidak dipakai sebagai langkah awal pemeriksaan. Dokumentasi backup juga menyatakan backup database tidak mencakup objek Storage. Rujukan: [workflow lokal Supabase CLI](https://supabase.com/docs/guides/local-development/cli-workflows) dan [backup database Supabase](https://supabase.com/docs/guides/platform/backups).
+
+Dalam sesi ini tidak ada koneksi ke Supabase online, query remote, ekspor, instalasi tooling, atau perintah migration yang dilakukan. Langkah pertama yang paling rendah risiko adalah pengguna memeriksa sendiri plan dan status backup melalui Dashboard tanpa membagikan password, token, URL koneksi, atau isi database; setelah itu kita meninjau apa yang terlihat sebelum menentukan langkah metadata read-only berikutnya.
+
+### Masukan lanjutan — Pengguna
+
+Pengguna memeriksa Dashboard dan melaporkan pesan: **“free plan does not include project backups”**.
+
+### Tanggapan lanjutan — Copilot: jalur backup untuk Free plan
+
+Ketiadaan backup proyek terjadwal berarti kita belum memiliki titik pemulihan dashboard yang dapat diandalkan untuk kesalahan perubahan skema/data. Jangan menjalankan migration, reset, import, atau restore ke database online. Aplikasi boleh terus menerima input normal; yang ditahan adalah eksperimen/perubahan database sampai ada backup yang bisa diverifikasi.
+
+Dokumentasi Supabase saat ini merekomendasikan ekspor manual untuk proyek Free. Prosedur backup/restore CLI memisahkan ekspor role, skema, dan data dengan `supabase db dump`; ekspor data berisi data sensitif sehingga file harus diperlakukan seperti salinan produksi: terenkripsi, akses terbatas, tidak dikirim ke chat/Issue, dan tidak ditinggalkan di folder sementara atau workspace yang tersinkron. Dump database tidak meliputi objek file Storage; inventaris file Storage dan perlindungan metadata-nya adalah jalur terpisah.
+
+Urutan yang disarankan sebelum menjalankan ekspor: (1) sepakati tempat penyimpanan lokal terenkripsi dan ruang yang cukup; (2) siapkan CLI/alat yang diperlukan tanpa memasukkan kredensial ke command history, repo, `.env.local`, atau percakapan; (3) lakukan ekspor ke folder privat di luar repository dengan target project diverifikasi; (4) pastikan tiap perintah sukses dan file dump ada/tidak kosong, buat checksum serta catat waktu/versi tool tanpa isi data; (5) uji pemulihan ke project Supabase baru yang terpisah, bukan produksi; (6) jangan anggap aman sebelum hasil pemulihan diperiksa. Tidak satu pun langkah ekspor atau restore telah dijalankan.
+
+Sebelum backup diuji pulih, ia belum merupakan perlindungan yang terbukti. Paket Pro menawarkan backup terjadwal menurut dokumentasi, tetapi peningkatan plan tetap pilihan biaya pengguna dan tidak menggantikan ekspor independen, pemulihan uji, atau perlindungan file Storage. Langkah berikutnya yang direkomendasikan adalah menyiapkan backup logis dan uji pemulihan terisolasi terlebih dahulu; jangan menghubungkan atau mereset Supabase lokal sebelum baseline remote dan hasil pemulihan diverifikasi.
+
+Rujukan: [backup dan restore CLI Supabase](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore) dan [backup database Supabase](https://supabase.com/docs/guides/platform/backups). Keduanya diperiksa untuk panduan umum; belum ada operasi pada project pengguna.
+
+### Masukan lanjutan — Pengguna
+
+Pengguna bersedia membuat ekspor lokal untuk pemulihan, tetapi menyatakan tidak mengetahui adanya penyimpanan terenkripsi dan menilai hal itu belum menjadi masalah karena data saat ini belum mencakup data sensitif.
+
+### Tanggapan lanjutan — Copilot: klasifikasi salinan ekspor
+
+Sebelum memberi langkah ekspor penuh, perlu dibedakan:
+
+- Ekspor skema saja berisi struktur database, fungsi, trigger, policy, dan grant yang dipilih; tidak dimaksudkan berisi baris data aplikasi. Ini dapat membantu membandingkan skema tanpa menyalin data murid.
+- Ekspor database penuh/data mencakup baris aktual. Migration repository mendefinisikan `siswa.full_name`, `siswa.nisn`, data profil, serta deskripsi catatan perilaku dan tindak lanjut. Ini bukan bukti bahwa seluruh kolom tersebut saat ini terisi, tetapi karena project sudah digunakan, salinan harus diperlakukan sebagai data pribadi/confidential sampai isi dan cakupannya dipastikan. Nilai-nilai contoh atau data nyata tidak perlu dikirim ke Copilot.
+
+Karena itu, walaupun pengguna menyetujui ekspor lokal, rekomendasi Copilot adalah **jangan menyimpan dump berisi data aplikasi pada perangkat yang enkripsinya belum dipastikan**. Untuk inventaris skema, gunakan dahulu prosedur schema-only yang ditinjau atau query katalog baca-saja. Untuk backup pemulihan penuh, lebih baik aktifkan/siapkan BitLocker atau gunakan media terenkripsi dan lokasi privat di luar repo/sinkronisasi; kemudian uji restore hanya pada project baru yang terpisah. Alternatif berbayar dengan backup terjadwal dapat dibahas, tetapi bukan jaminan pemulihan yang sudah diuji dan bukan pengganti perlindungan objek Storage.
+
+Belum ada ekspor, instalasi, atau koneksi ke project dilakukan. Sebelum langkah berikutnya, pengguna perlu memeriksa status enkripsi disk Windows secara lokal tanpa membagikan recovery key. Jika perangkat tidak dapat dienkripsi, tunda ekspor data penuh dan lanjutkan dengan schema-only/read-only metadata saja.
+
+Pengguna meminta panduan ekspor penuh tetapi akan menjalankan sendiri perintahnya (`guide_only_full`). Tidak ada izin untuk Copilot mengakses berkas ekspor; jangan membaca atau menampilkan isi dump. Pengguna menyatakan bersedia menyimpan salinan tanpa enkripsi dan memahami bahwa data serupa sudah ada di penyimpanan lokal laptop. Tetap ingatkan risiko dan jangan meminta data/contoh nyata.
+
+### Klarifikasi lanjutan — Pengguna
+
+Pengguna menegaskan bahwa kedua persoalan tersebut sudah tercantum: (1) project online sedang digunakan dan berisi data baru dari input aplikasi; (2) hasil lokal dari repository dikhawatirkan tidak sama dengan skema dan policy Supabase online. Copilot sebelumnya keliru menyatakan persoalan kedua belum ditulis; koreksi pengguna diterima.
+
+### Tanggapan lanjutan — Copilot: batas rencana keselamatan
+
+Tidak ada alasan untuk mengganti database online dengan database lokal. Risiko utamanya adalah menjalankan migration dari repository tanpa membuktikan kesesuaiannya dengan keadaan online, atau mengira local reset/pull sebagai pemeriksaan tanpa efek.
+
+Pemeriksaan repository secara baca-saja menunjukkan `supabase/config.toml` dan test harness Supabase belum tersedia. Migration rekonsiliasi skema 2026-10-19 menyatakan acuannya adalah snapshot skema repository, tetapi keberadaan file itu sendiri tidak membuktikan kesetaraan seluruh policy/grant/fungsi yang aktif di deployment. Migration impor mendefinisikan fungsi `SECURITY DEFINER` yang melakukan upsert saat dipanggil; migration rekonsiliasi juga mengubah constraint/FK. Karena itu setiap migration perlu ditelaah sebelum dijalankan, walaupun definisi fungsi impor tidak otomatis berarti data impor dijalankan saat migration diterapkan.
+
+Urutan aman tetap berupa rancangan: jangan jalankan `db pull`, `db reset`, `db push`, atau perubahan remote; pastikan backup yang tersedia; lakukan inventory metadata remote dengan metode yang dipastikan read-only; cocokkan hasil dengan semua migration/RLS repository; bentuk baseline lokal/staging terisolasi setelah perbedaan disetujui; gunakan fixture sintetis saja. Dalam sesi ini hanya file repository dibaca dan catatan ini diperbarui; tidak ada kredensial/data `.env.local` dibaca, migration dijalankan, atau koneksi ke project Supabase online dibuat.
